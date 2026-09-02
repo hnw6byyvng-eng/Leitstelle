@@ -83,3 +83,11 @@ Version 2.6:
 - Neuer Reiter IVENA als reine Übungssimulation (keine Verbindung zum realen IVENA, keine Echtzeitdaten).
 - IVENA-Ziele können hinzugefügt und mit Grün/Gelb/Rot sowie Übungshinweisen gepflegt werden.
 - JavaScript-Syntax geprüft.
+
+Version 2.7:
+- Notruf-Freitext ans Ende der Abfrage verschoben.
+- Reiter „Rettungsmittel“ neu aufgebaut und repariert.
+- Status kann in der Rettungsmittelübersicht direkt geändert werden.
+- Button „Realistisch“ und „+ Einheit“ bleiben erhalten.
+- Sichtbare Versionsanzeige „Version 2.7“ ergänzt.
+- JavaScript-Syntax geprüft.

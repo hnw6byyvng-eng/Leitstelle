@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-6";
+const KEY="dlrg-jet-v2-7";
 const defaults={
  units:[
   
@@ -123,7 +123,7 @@ const defaults={
  ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=[
@@ -557,7 +557,6 @@ function newCall(pref={}){
 const qs=[
  ["location","📍 Wo genau ist der Notfallort?","text"],
  ["event","❓ Was ist passiert?","event112"],
- ["freeText","📝 Schilderung des Anrufers / Freitext","textarea"],
  ["count","👥 Wie viele Personen/Tiere sind betroffen?","count"],
  ["conscious","🧠 Ist die betroffene Person bei Bewusstsein?","ynMedical"],
  ["breathing","🫁 Atmet die betroffene Person normal?","ynMedical"],
@@ -572,6 +571,7 @@ const qs=[
  ["d_disability","D – Wie ist der neurologische Zustand / das Bewusstsein?","xdisability"],
  ["e_exposure","E – Weitere Verletzungen, Erkrankungszeichen oder Umgebungseinflüsse?","textarea"],
  ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
+ ["freeText","📝 Freitext / zusätzliche Angaben","textarea"],
  ["callback","☎️ Wie lautet die Rückrufnummer?","text"]
 ];
 function notruf(){
@@ -891,6 +891,15 @@ function finishCall(id=null){
 function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
 function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
 function setStatus(id,s){db.units.find(x=>x.id===id).status=s;save();toast("Status geändert")}
+function mittel(){
+ const units=geoSortUnits(db.units||[]);
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><h2>🚤 Rettungsmittel</h2><div class="row"><button onclick="realisticMode()">🎲 Realistisch</button><button class="primary" onclick="addUnit()">＋ Einheit</button></div></div><div style="overflow:auto"><table><thead><tr><th>OPTA / Funkrufname</th><th>Organisation</th><th>Typ</th><th>Bereich</th><th>Status</th><th>Aktion</th></tr></thead><tbody>${units.map(u=>`<tr><td><b>${esc(u.opta||u.name||"—")}</b></td><td>${esc(u.org||"—")}</td><td>${esc(u.type||"—")}</td><td>${esc(optaAreaName(u)||u.location||"—")}</td><td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td><td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">${["0","1","2","3","4","5","6","7","8"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div></div>`;
+}
+function setStatusFromSelect(id,status){
+ const u=db.units.find(x=>String(x.id)===String(id));if(!u)return;
+ setUnitStatus(u,String(status));save();render("mittel");
+}
+
 function aao(){
  document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Regeln werden von oben nach unten geprüft; der spezifischste Treffer gewinnt.</p></div><button class="primary" onclick="addAAO()">＋ AAO anlegen</button></div>
  <table><thead><tr><th>Stichwort</th><th>Regeln</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td>${Object.entries(a.rules).map(([k,v])=>`${k}=${v}`).join(" · ")}</td><td>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</td><td><button onclick="deleteAAO(${a.id})">Löschen</button></td></tr>`).join("")}</tbody></table></div>`;
