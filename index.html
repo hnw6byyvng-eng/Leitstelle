@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
 <title>DLRG JET Leitstelle</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--bg:#eef2f6;--panel:#fff;--ink:#17202a;--muted:#66717d;--line:#d9e0e7;--nav:#0b1220;--accent:#e30613;--green:#198754;--yellow:#e0a800;--red:#c82333;--blue:#1976d2}
 *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
@@ -31,6 +33,13 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 .answer{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.answer button{text-align:left;background:#f8fafc}@media(max-width:600px){.answer{grid-template-columns:1fr}}
 .hidden{display:none!important}.pill{padding:4px 8px;border-radius:999px;background:#eef2f6;font-size:12px;font-weight:800}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 15px;border-radius:10px;display:none;z-index:30}
+
+#map{height:62vh;min-height:430px;border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.mapSearch{display:grid;grid-template-columns:1fr auto;gap:8px}
+.mapResult{padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+.mapResult:hover{background:#f4f7fa}
+.coords{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -38,17 +47,68 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v1";
+const KEY="dlrg-jet-v2";
 const defaults={
  units:[
-  {id:1,name:"Pelikan Varel 71/1",type:"RTB",location:"Varel",status:"1",crew:"2",skills:"Wasserrettung"},
-  {id:2,name:"Pelikan Varel 71/2",type:"RTB",location:"Dangast",status:"1",crew:"2",skills:"Wasserrettung"},
-  {id:3,name:"Pelikan Varel 72/1",type:"MTF",location:"Varel",status:"1",crew:"4",skills:"Transport, Wasserrettung"},
-  {id:4,name:"Wasserrettung 1",type:"WR-Trupp",location:"Varel",status:"1",crew:"4",skills:"Wasserrettung, Erste Hilfe"},
-  {id:5,name:"RTW 41/83-1",type:"RTW",location:"Varel",status:"1",crew:"2",skills:"Rettungsdienst"},
-  {id:6,name:"72-58-01",type:"GW Wasserrettung",location:"Varel",status:"1",crew:"2",skills:"Wasserrettung, Materialtransport"},
-  {id:7,name:"72-17-01",type:"MTW",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport"},
-  {id:8,name:"72-19-01",type:"GW Drohne",location:"Varel",status:"1",crew:"2",skills:"Drohne, Lageerkundung",vehicle:"Ford Ranger"}
+  
+  {id:1,name:"72-58-01",opta:"Pelikan Friesland 72-58-01",type:"GW Wasserrettung",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettung, Materialtransport",verified:"Nutzerangabe"},
+  {id:2,name:"72-17-01",opta:"Pelikan Friesland 72-17-01",type:"MTW",org:"DLRG",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport",verified:"Nutzerangabe"},
+  {id:3,name:"72-19-01",opta:"Pelikan Friesland 72-19-01",type:"GW Drohne",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Drohne, Lageerkundung",vehicle:"Ford Ranger",verified:"Nutzerangabe"},
+
+  {id:101,name:"81-83-01",opta:"Rettung Friesland 81/83-01",type:"RTW",org:"Rettungsdienst",location:"Jever",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
+  {id:102,name:"81-83-02",opta:"Rettung Friesland 81/83-02",type:"RTW",org:"Rettungsdienst",location:"Jever",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_as_rtw",verified:"Nutzerangabe"},
+  {id:103,name:"81-93-01",opta:"Rettung Friesland 81/93-01",type:"NKTW",org:"Rettungsdienst",location:"Jever",status:"6",crew:"2",skills:"Notfalltransport, First Responder",schedule:"night_replacement_81",verified:"Nutzerangabe"},
+  {id:104,name:"82-83-01",opta:"Rettung Friesland 82/83-01",type:"RTW",org:"Rettungsdienst",location:"Varel",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
+  {id:105,name:"82-83-02",opta:"Rettung Friesland 82/83-02",type:"RTW",org:"Rettungsdienst",location:"Varel",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_as_rtw",verified:"Nutzerangabe"},
+  {id:106,name:"82-93-01",opta:"Rettung Friesland 82/93-01",type:"NKTW",org:"Rettungsdienst",location:"Varel",status:"6",crew:"2",skills:"Notfalltransport, First Responder",schedule:"night_replacement_82",verified:"Nutzerangabe"},
+  {id:107,name:"82-82-01",opta:"Rettung Friesland 82/82-01",type:"NEF",org:"Rettungsdienst",location:"Varel",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge"},
+  {id:108,name:"84-82-01",opta:"Rettung Friesland 84/82-01",type:"NEF",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge"},
+  {id:109,name:"84-82-03",opta:"Rettung Friesland 84/82-03",type:"NEF",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notarzt / Reserve",verified:"BOS-Fahrzeuge"},
+  {id:110,name:"84-83-01",opta:"Rettung Friesland 84/83-01",type:"RTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
+  {id:111,name:"84-93-01",opta:"Rettung Friesland 84/93-01",type:"NKTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfalltransport, First Responder",schedule:"day_only",verified:"Nutzerangabe"},
+  {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Friesische Wehde",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"Nutzerangabe"},
+
+  {id:201,name:"12-11-01",opta:"Florian Friesland 12-11-1",type:"ELW",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Einsatzleitung",verified:"Feuerwehr Varel"},
+  {id:202,name:"12-17-01",opta:"Florian Friesland 12-17-1",type:"MTW",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"Feuerwehr Varel"},
+  {id:203,name:"12-17-02",opta:"Florian Friesland 12-17-2",type:"MTF",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"Feuerwehr Varel"},
+  {id:204,name:"12-30-01",opta:"Florian Friesland 12-30-1",type:"DLK",org:"Feuerwehr",location:"Varel",status:"2",crew:"3",skills:"Drehleiter, Menschenrettung",verified:"Feuerwehr Varel"},
+  {id:205,name:"12-48-01",opta:"Florian Friesland 12-48-1",type:"HLF",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Brandbekämpfung, Technische Hilfe, First Responder",verified:"Feuerwehr Varel"},
+  {id:206,name:"12-45-01",opta:"Florian Friesland 12-45-1",type:"LF",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Brandbekämpfung",verified:"Feuerwehr Varel"},
+  {id:207,name:"12-45-03",opta:"Florian Friesland 12-45-3",type:"LF",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Brandbekämpfung",verified:"Feuerwehr Varel"},
+  {id:208,name:"12-43-02",opta:"Florian Friesland 12-43-2",type:"LF",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Brandbekämpfung",verified:"Feuerwehr Varel"},
+  {id:209,name:"12-51-01",opta:"Florian Friesland 12-51-1",type:"RW",org:"Feuerwehr",location:"Varel",status:"2",crew:"3",skills:"Technische Hilfe",verified:"Feuerwehr Varel"},
+  {id:210,name:"12-61-01",opta:"Florian Friesland 12-61-1",type:"SW",org:"Feuerwehr",location:"Varel",status:"2",crew:"3",skills:"Wasserversorgung",verified:"Feuerwehr Varel"},
+  {id:211,name:"19-62-01",opta:"Florian Friesland 19-62-1",type:"SW",org:"Feuerwehr",location:"Varel",status:"2",crew:"3",skills:"Wasserversorgung",verified:"Feuerwehr Varel"},
+  {id:212,name:"12-23-01",opta:"Florian Friesland 12-23-1",type:"TLF",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Brandbekämpfung, Wasser",verified:"Feuerwehr Varel"},
+  {id:213,name:"12-24-02",opta:"Florian Friesland 12-24-2",type:"TLF",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Brandbekämpfung, Wasser",verified:"Feuerwehr Varel"},
+  {id:214,name:"12-24-03",opta:"Florian Friesland 12-24-3",type:"TLF",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Brandbekämpfung, Wasser",verified:"Feuerwehr Varel"},
+  {id:215,name:"12-63-01",opta:"Florian Friesland 12-63-1",type:"MZF",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Logistik",verified:"Feuerwehr Varel"},
+  {id:216,name:"12-63-03",opta:"Florian Friesland 12-63-3",type:"MZF",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Logistik",verified:"Feuerwehr Varel"},
+
+  {id:221,name:"11-11-01",opta:"Florian Friesland 11-11-1",type:"ELW",org:"Feuerwehr",location:"Jever",status:"2",crew:"6",skills:"Einsatzleitung",verified:"Feuerwehr Jever"},
+  {id:222,name:"11-17-01",opta:"Florian Friesland 11-17-1",type:"MTF",org:"Feuerwehr",location:"Jever",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"Feuerwehr Jever"},
+  {id:223,name:"11-41-01",opta:"Florian Friesland 11-41-1",type:"KLF",org:"Feuerwehr",location:"Jever",status:"2",crew:"6",skills:"Brandbekämpfung",verified:"Feuerwehr Jever"},
+  {id:224,name:"11-47-01",opta:"Florian Friesland 11-47-1",type:"LF",org:"Feuerwehr",location:"Jever",status:"2",crew:"9",skills:"Brandbekämpfung",verified:"Feuerwehr Jever"},
+  {id:225,name:"11-48-01",opta:"Florian Friesland 11-48-1",type:"HLF",org:"Feuerwehr",location:"Jever",status:"2",crew:"9",skills:"Brandbekämpfung, Technische Hilfe, First Responder",verified:"Feuerwehr Jever"},
+  {id:226,name:"11-30-01",opta:"Florian Friesland 11-30-1",type:"DLK",org:"Feuerwehr",location:"Jever",status:"2",crew:"3",skills:"Drehleiter, Menschenrettung",verified:"Feuerwehr Jever"},
+
+  {id:231,name:"17-11-01",opta:"Florian Friesland 17/11-01",type:"ELW",org:"Feuerwehr",location:"Bockhorn",status:"2",crew:"6",skills:"Einsatzleitung",verified:"BOS-Fahrzeuge"},
+  {id:232,name:"17-17-01",opta:"Florian Friesland 17/17-01",type:"MTW",org:"Feuerwehr",location:"Bockhorn",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"BOS-Fahrzeuge"},
+  {id:233,name:"17-24-01",opta:"Florian Friesland 17/24-01",type:"TLF",org:"Feuerwehr",location:"Bockhorn",status:"2",crew:"6",skills:"Brandbekämpfung, Wasser",verified:"BOS-Fahrzeuge"},
+  {id:234,name:"17-45-01",opta:"Florian Friesland 17/45-01",type:"LF",org:"Feuerwehr",location:"Bockhorn",status:"2",crew:"9",skills:"Brandbekämpfung",verified:"BOS-Fahrzeuge"},
+  {id:235,name:"17-48-01",opta:"Florian Friesland 17/48-01",type:"HLF",org:"Feuerwehr",location:"Bockhorn",status:"2",crew:"9",skills:"Brandbekämpfung, Technische Hilfe, First Responder",verified:"BOS-Fahrzeuge"},
+
+  {id:241,name:"16-11-01",opta:"Florian Friesland 16-11-01",type:"ELW",org:"Feuerwehr",location:"Hohenkirchen",status:"2",crew:"5",skills:"Einsatzleitung",verified:"Feuerwehr Hohenkirchen"},
+
+  {id:301,name:"21/10",opta:"Heros Jever 21/10",type:"MTW Zugtrupp",org:"THW",location:"Jever",status:"2",crew:"4",skills:"Führung",verified:"THW/BOS-Fahrzeuge"},
+  {id:302,name:"22/51",opta:"Heros Jever 22/51",type:"GKW 1",org:"THW",location:"Jever",status:"2",crew:"9",skills:"Bergung, Technische Hilfe",verified:"THW/BOS-Fahrzeuge"},
+  {id:303,name:"24/54",opta:"Heros Jever 24/54",type:"MzKW",org:"THW",location:"Jever",status:"2",crew:"7",skills:"Notversorgung, Logistik",verified:"BOS-Fahrzeuge"},
+  {id:304,name:"32/43",opta:"Heros Jever 32/43",type:"LKW 7t Lbw",org:"THW",location:"Jever",status:"2",crew:"3",skills:"Elektroversorgung, Logistik",verified:"THW/BOS-Fahrzeuge"},
+  {id:305,name:"32/NEA",opta:"Heros Jever 32/NEA",type:"NEA 68 kVA",org:"THW",location:"Jever",status:"2",crew:"0",skills:"Stromversorgung",verified:"THW/BOS-Fahrzeuge"},
+  {id:306,name:"86/25",opta:"Heros Jever 86/25",type:"MTW OV",org:"THW",location:"Jever",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"THW/BOS-Fahrzeuge"},
+
+  {id:401,name:"POL-FRI-1",opta:"Polizei Friesland – FuStW",type:"FuStW",org:"Polizei",location:"Friesland",status:"1",crew:"2",skills:"Polizeiliche Gefahrenabwehr",verified:"Abstrakte Übungsressource"}
+
  ],
  aao:[
   {id:1,name:"Wasser 1 – Person im Wasser",rules:{water:"ja"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1}]},
@@ -69,16 +129,194 @@ function toast(t){const x=document.getElementById("toast");x.textContent=t;x.sty
 function statusName(s){return {0:"Priorisierter Sprechwunsch",1:"Frei über Funk",2:"Frei auf Wache",3:"Einsatz übernommen",4:"Am Einsatzort",5:"Sprechwunsch",6:"Nicht einsatzbereit",7:"Patient aufgenommen",8:"bed. Verfügbar"}[s]||s}
 function statusClass(s){return "s"+s}
 function nav(active){document.getElementById("nav").innerHTML=[
- ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["szenarien","🎓 Übungen"]
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["szenarien","🎓 Übungen"]
 ].map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}
 function render(page="leitstelle"){
  nav(page);
  if(page==="leitstelle") dashboard();
  if(page==="notruf") notruf();
+ if(page==="karte") karte();
  if(page==="mittel") mittel();
  if(page==="aao") aao();
  if(page==="szenarien") szenarien();
 }
+
+let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
+
+function karte(){
+  const c=db.currentCall;
+  document.getElementById("app").innerHTML=`<div class="grid">
+    <section>
+      <div class="card">
+        <div class="row between">
+          <div><h2>🗺️ Einsatzkarte</h2><div class="muted">Adresse suchen oder den Marker direkt auf der Karte setzen.</div></div>
+          ${c?`<span class="status s2">Einsatz #${c.id}</span>`:`<span class="pill">Kein laufender Einsatz</span>`}
+        </div>
+        <div class="mapSearch" style="margin-top:12px">
+          <input id="mapQuery" placeholder="z. B. Edo-Wiemken-Straße 61, Varel oder Dangast Strand">
+          <button class="primary" onclick="searchMap()">🔎 Suchen</button>
+        </div>
+        <div id="mapResults" style="margin:8px 0"></div>
+        <div id="map"></div>
+      </div>
+    </section>
+    <aside>
+      <div class="card">
+        <h2>📍 Gewählter Notfallort</h2>
+        <label>Adresse / Ortsbeschreibung</label>
+        <textarea id="mapAddress" rows="4" placeholder="Noch kein Ort gewählt">${esc(c?.location||"")}</textarea>
+        <label>Koordinaten</label>
+        <div id="mapCoords" class="coords">${c?.lat&&c?.lng?`${Number(c.lat).toFixed(6)}, ${Number(c.lng).toFixed(6)}`:"–"}</div>
+        <div class="row" style="margin-top:12px">
+          <button class="primary" onclick="applyMapLocation()">✅ In Einsatz übernehmen</button>
+          <button onclick="useMyLocation()">◎ Aktueller Standort</button>
+        </div>
+        <p class="muted" style="margin-top:12px">Tippe auf die Karte, um den Einsatzort exakt zu setzen. Der Marker lässt sich anschließend verschieben.</p>
+      </div>
+      <div class="card">
+        <h3>Hinweis</h3>
+        <p class="muted">Kartendarstellung über OpenStreetMap. Für Karte und Adresssuche wird eine Internetverbindung benötigt.</p>
+      </div>
+    </aside>
+  </div>`;
+  setTimeout(initMap,0);
+}
+
+function initMap(){
+  if(typeof L==="undefined"){
+    document.getElementById("map").innerHTML='<div style="padding:20px">Kartenbibliothek konnte nicht geladen werden. Internetverbindung prüfen.</div>';
+    return;
+  }
+  const c=db.currentCall;
+  const lat=Number(c?.lat)||53.3965, lng=Number(c?.lng)||8.1364; // Varel
+  leafletMap=L.map("map").setView([lat,lng], c?.lat?16:11);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; OpenStreetMap-Mitwirkende'
+  }).addTo(leafletMap);
+
+  if(c?.lat&&c?.lng) setIncidentMarker(Number(c.lat),Number(c.lng),false);
+
+  leafletMap.on("click", async e=>{
+    setIncidentMarker(e.latlng.lat,e.latlng.lng,true);
+    await reverseGeocode(e.latlng.lat,e.latlng.lng);
+  });
+  setTimeout(()=>leafletMap.invalidateSize(),150);
+}
+
+function setIncidentMarker(lat,lng,updateSelection=true){
+  if(!leafletMap)return;
+  if(incidentMarker) leafletMap.removeLayer(incidentMarker);
+  incidentMarker=L.marker([lat,lng],{draggable:true}).addTo(leafletMap);
+  incidentMarker.bindPopup("📍 Notfallort").openPopup();
+  if(updateSelection){
+    selectedMapLocation={lat,lng,address:document.getElementById("mapAddress")?.value||""};
+    document.getElementById("mapCoords").textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  }
+  incidentMarker.on("dragend",async ev=>{
+    const pos=ev.target.getLatLng();
+    selectedMapLocation={lat:pos.lat,lng:pos.lng,address:""};
+    document.getElementById("mapCoords").textContent=`${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+    await reverseGeocode(pos.lat,pos.lng);
+  });
+}
+
+async function searchMap(){
+  const q=document.getElementById("mapQuery").value.trim();
+  if(!q)return;
+  const box=document.getElementById("mapResults");
+  box.innerHTML='<div class="muted">Suche …</div>';
+  try{
+    const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=de&q=${encodeURIComponent(q)}`;
+    const res=await fetch(url,{headers:{"Accept":"application/json"}});
+    const data=await res.json();
+    if(!data.length){box.innerHTML='<div class="muted">Kein Treffer gefunden.</div>';return}
+    window._mapSearchResults=data;
+    box.innerHTML=data.map((r,i)=>`<div class="mapResult" onclick="chooseMapResult(${i})"><b>${esc(r.display_name.split(",")[0])}</b><br><small>${esc(r.display_name)}</small></div>`).join("");
+  }catch(e){
+    box.innerHTML='<div class="muted">Adresssuche derzeit nicht erreichbar.</div>';
+  }
+}
+
+function chooseMapResult(i){
+  const r=window._mapSearchResults[i];
+  const lat=Number(r.lat),lng=Number(r.lon);
+  selectedMapLocation={lat,lng,address:r.display_name};
+  document.getElementById("mapAddress").value=r.display_name;
+  document.getElementById("mapCoords").textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  leafletMap.setView([lat,lng],17);
+  setIncidentMarker(lat,lng,false);
+  document.getElementById("mapResults").innerHTML="";
+}
+
+async function reverseGeocode(lat,lng){
+  try{
+    const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    const res=await fetch(url,{headers:{"Accept":"application/json"}});
+    const r=await res.json();
+    const address=r.display_name||`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    selectedMapLocation={lat,lng,address};
+    document.getElementById("mapAddress").value=address;
+  }catch(e){
+    selectedMapLocation={lat,lng,address:`${lat.toFixed(6)}, ${lng.toFixed(6)}`};
+  }
+}
+
+function applyMapLocation(){
+  if(!db.currentCall){
+    if(!confirm("Es läuft noch kein Einsatz. Soll ein neuer Übungsnotruf mit diesem Ort gestartet werden?"))return;
+    newCall();
+  }
+  const address=document.getElementById("mapAddress")?.value.trim();
+  const coords=document.getElementById("mapCoords")?.textContent;
+  let lat=selectedMapLocation?.lat, lng=selectedMapLocation?.lng;
+  if((!lat||!lng)&&coords&&coords!=="–"){
+    const parts=coords.split(",").map(Number);lat=parts[0];lng=parts[1];
+  }
+  if(!address){toast("Bitte zuerst einen Notfallort wählen");return}
+  const c=db.currentCall;
+  c.location=address;
+  c.answers.location=address;
+  if(lat&&lng){c.lat=lat;c.lng=lng}
+  const existing=c.history.find(x=>x.q&&x.q.includes("Wo genau"));
+  if(existing) existing.a=address;
+  else c.history.unshift({q:"📍 Wo genau ist der Notfallort?",a:address});
+  save();
+  toast("Notfallort übernommen");
+  applyDutySchedule();
+render("leitstelle");
+}
+
+function useMyLocation(){
+  if(!navigator.geolocation){toast("Standortzugriff nicht verfügbar");return}
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude,lng=pos.coords.longitude;
+    leafletMap.setView([lat,lng],17);
+    setIncidentMarker(lat,lng,true);
+    await reverseGeocode(lat,lng);
+  },()=>toast("Standort konnte nicht bestimmt werden"),{enableHighAccuracy:true,timeout:10000});
+}
+
+
+function applyDutySchedule(){
+ const h=new Date().getHours();
+ const day=h>=7&&h<19;
+ const set=(name,status)=>{const u=db.units.find(x=>x.name===name);if(u&&["1","2","6"].includes(u.status))u.status=status};
+ set("81-83-02",day?"1":"6");
+ set("82-83-02",day?"1":"6");
+ set("81-93-01",day?"6":"1");
+ set("82-93-01",day?"6":"1");
+ set("84-93-01",day?"1":"6");
+ set("87-83-02",day?"1":"6");
+ save();
+}
+function availableUnits(type,org=null){
+ const prim=db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status));
+ if(prim.length)return prim;
+ return db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8");
+}
+function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
+
 function dashboard(){
  const c=db.currentCall;
  document.getElementById("app").innerHTML=`<div class="grid">
@@ -87,7 +325,7 @@ function dashboard(){
  <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
  <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div></div>
  <div class="suggest"><b>🧠 Automatischer Vorschlag</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>${c.nafo&&c.nafo.length?`<div class="card" style="margin-top:10px;background:#f8fafc"><h3>📟 Nachforderungen</h3>${c.nafo.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${new Date(n.time).toLocaleTimeString("de-DE")}</b> – ${esc(n.reason)}</div>`).join("")}</div>`:""}
- <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
+ <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button onclick="render('karte')">🗺️ Notfallort</button><button class="primary" onclick="alarmProposal()">🚨 Vorschlag alarmieren</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
  </section>
  <aside><div class="card"><h2>🚤 Mittelübersicht</h2>${db.units.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
  <div class="card"><h2>AAO-Vorschläge</h2><p class="muted">Die AAO wird aus den Antworten des Notrufes ermittelt.</p>${db.aao.map(a=>`<div style="padding:8px 0"><b>${esc(a.name)}</b><br><small>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</small></div>`).join("")}</div></aside></div>`;
@@ -95,27 +333,47 @@ function dashboard(){
 function newCall(pref={}){db.currentCall={id:Date.now().toString().slice(-5),location:pref.location||"",count:pref.count||"",answers:{},history:[],keyword:"",suggestion:""};save();render("notruf")}
 const qs=[
  ["location","📍 Wo genau ist der Notfallort?","text"],
- ["event","❓ Was ist passiert?","event"],
- ["count","👥 Wie viele Betroffene gibt es?","count"],
- ["water","🌊 Befindet sich die Person im Wasser?","yn"],
- ["visible","👀 Ist die Person sichtbar?","yn"],
- ["conscious","🧠 Ist die Person bei Bewusstsein?","yn"],
- ["breathing","🫁 Atmet die Person normal?","yn"],
- ["danger","⚠️ Bestehen Gefahren für Einsatzkräfte?","yn"],
- ["callback","☎️ Rückrufnummer?","text"]
+ ["event","❓ Was ist passiert?","event112"],
+ ["count","👥 Wie viele Personen/Tiere sind betroffen?","count"],
+ ["conscious","🧠 Ist die betroffene Person bei Bewusstsein?","ynMedical"],
+ ["breathing","🫁 Atmet die betroffene Person normal?","ynMedical"],
+ ["trapped","🚗 Ist jemand eingeklemmt oder eingeschlossen?","ynTech"],
+ ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
+ ["water","🌊 Befindet sich eine Person oder ein Tier im Wasser?","ynWater"],
+ ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
+ ["callback","☎️ Wie lautet die Rückrufnummer?","text"]
 ];
 function notruf(){
  if(!db.currentCall){document.getElementById("app").innerHTML=`<div class="card"><h2>📞 Übungsnotruf</h2><p>Starte einen neuen Anruf. Die Software führt dich Schritt für Schritt durch die Abfrage.</p><button class="primary" onclick="newCall()">Notruf annehmen</button></div>`;return}
  const c=db.currentCall, idx=qs.findIndex(q=>!(q[0] in c.answers) && !(q[0]==="location"&&c.location));
  const q=idx<0?null:qs[idx];
  document.getElementById("app").innerHTML=`<div class="grid"><section><div class="card call"><div class="row between"><div><h2>📞 Eingehender Notruf #${c.id}</h2><div class="muted">„Notruf, DLRG-Leitstelle. Wo genau ist der Notfallort?“</div></div><button onclick="render('leitstelle')">Zur Übersicht</button></div>
- <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div></div>
+ <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="alarmProposal()">🚨 Vorschlag alarmieren</button><button onclick="render(\'karte\')">🗺️ Notfallort prüfen</button></div><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div></div>
  <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div></section>
  <aside><div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div></aside></div>`;
 }
 function questionHTML(q){
  if(q[2]==="text"||q[2]==="count") return `<label>${q[1]}</label><div class="row"><input id="ans" type="${q[2]==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${q[0]}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
- if(q[2]==="event") return `<label>${q[1]}</label><div class="answer"><button onclick="answer('event','Person im Wasser')">Person im Wasser</button><button onclick="answer('event','Untergang beobachtet')">Untergang beobachtet</button><button onclick="answer('event','Badeunfall')">Badeunfall</button><button onclick="answer('event','Bootsunfall')">Bootsunfall</button></div>`;
+ if(q[2]==="event112") return `<label>${q[1]}</label><div class="answer">
+   <button onclick="answer('event','Medizinischer Notfall')">🚑 Medizinischer Notfall</button>
+   <button onclick="answer('event','Reanimation')">❤️ Reanimation / bewusstlos</button>
+   <button onclick="answer('event','Feuer / Rauchentwicklung')">🔥 Feuer / Rauch</button>
+   <button onclick="answer('event','Verkehrsunfall')">🚗 Verkehrsunfall</button>
+   <button onclick="answer('event','Technische Hilfeleistung')">🛠️ Technische Hilfeleistung</button>
+   <button onclick="answer('event','Person im Wasser')">🌊 Person im Wasser</button>
+   <button onclick="answer('event','Tier im Wasser')">🐕 Tier im Wasser</button>
+   <button onclick="answer('event','Boot in Notlage')">🚤 Boot in Notlage</button>
+   <button onclick="answer('event','Sonstiger Notfall')">❓ Sonstiger Notfall</button>
+ </div>`;
+ const e=db.currentCall?.answers?.event||"";
+ const medical=["Medizinischer Notfall","Reanimation"].includes(e);
+ const fire=e==="Feuer / Rauchentwicklung";
+ const tech=["Verkehrsunfall","Technische Hilfeleistung"].includes(e);
+ const water=["Person im Wasser","Tier im Wasser","Boot in Notlage"].includes(e);
+ if(q[2]==="ynMedical"&&!medical) {setTimeout(()=>answer(q[0],"nicht zutreffend"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
+ if(q[2]==="ynFire"&&!fire) {setTimeout(()=>answer(q[0],"nicht zutreffend"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
+ if(q[2]==="ynTech"&&!tech) {setTimeout(()=>answer(q[0],"nicht zutreffend"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
+ if(q[2]==="ynWater"&&!water) {setTimeout(()=>answer(q[0],"nein"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
  return `<label>${q[1]}</label><div class="answer"><button onclick="answer('${q[0]}','ja')">Ja</button><button onclick="answer('${q[0]}','nein')">Nein</button><button onclick="answer('${q[0]}','unbekannt')">Unbekannt</button></div>`;
 }
 function answer(k,v){
@@ -123,13 +381,65 @@ function answer(k,v){
  const q=qs.find(x=>x[0]===k);c.history.push({q:q[1],a:v}); evaluate();save();notruf()
 }
 function evaluate(){
- const c=db.currentCall, a=c.answers;let matches=db.aao.filter(rule=>Object.entries(rule.rules).every(([k,v])=>a[k]===v));
- if(matches.length){let r=matches.sort((x,y)=>Object.keys(y.rules).length-Object.keys(x.rules).length)[0];c.keyword=r.name;let picks=[];r.units.forEach(w=>{let primary=db.units.filter(u=>u.type===w.type&&["1","2"].includes(u.status));
-let avail=primary.slice(0,w.n);
-let fallbackUsed=false;
-if(avail.length<w.n){
-  let fallback=db.units.filter(u=>u.type===w.type&&u.status==="8").slice(0,w.n-avail.length);
-  if(fallback.length){avail=avail.concat(fallback);fallbackUsed=true}
+ applyDutySchedule();
+ const c=db.currentCall, a=c.answers, e=a.event||"";
+ let req=[], keyword="Noch unklar", sr=true;
+
+ const add=(type,n=1,org=null)=>{for(let i=0;i<n;i++)req.push({type,org})};
+
+ if(e==="Reanimation" || (a.conscious==="nein" && a.breathing==="nein")){
+   keyword="REANIMATION R1N1";
+   add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+   const nktw=availableUnits("NKTW","Rettungsdienst")[0];
+   if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
+ } else if(e==="Person im Wasser"){
+   keyword="H_Person im Wasser R1";
+   add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
+   add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst"); add("FuStW",1,"Polizei");
+ } else if(e==="Tier im Wasser"){
+   keyword="H_Tier im Wasser R1";
+   add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
+   add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst"); add("FuStW",1,"Polizei");
+ } else if(e==="Boot in Notlage"){
+   const cnt=Number(a.count)||1;
+   keyword=cnt>=2?"H_Boot YY R1":"H_Boot Y R1";
+   add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
+   add("HLF",1,"Feuerwehr"); add("RTW",Math.max(1,Math.min(cnt,3)),"Rettungsdienst"); add("FuStW",1,"Polizei");
+ } else if(e==="Feuer / Rauchentwicklung"){
+   keyword=a.firePeople==="ja"?"F_2_Y":"F_2";
+   add("HLF",1,"Feuerwehr"); add("LF",1,"Feuerwehr");
+   if(a.firePeople==="ja"){add("DLK",1,"Feuerwehr");add("RTW",1,"Rettungsdienst")}
+ } else if(e==="Verkehrsunfall"){
+   keyword=a.trapped==="ja"?"H_Eingeklemmt_2 R1":"H_VU R1";
+   add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+   if(a.trapped==="ja")add("RW",1,"Feuerwehr");
+ } else if(e==="Technische Hilfeleistung"){
+   keyword="TH";
+   add("HLF",1,"Feuerwehr");
+ } else if(e==="Medizinischer Notfall"){
+   keyword="MEDIZINISCHER NOTFALL R1";
+   add("RTW",1,"Rettungsdienst");
+ } else if(e==="Sonstiger Notfall"){
+   keyword="NOTFALL – Disponentenentscheidung";
+   sr=false;
+ }
+
+ let selected=[], used=new Set();
+ for(const r of req){
+   let u=null;
+   if(r.exact)u=db.units.find(x=>x.id===r.exact);
+   else {
+     let arr=availableUnits(r.type,r.org).filter(x=>!used.has(x.id));
+     u=arr[0]||null;
+   }
+   if(u){selected.push({...u,firstResponder:!!r.firstResponder});used.add(u.id)}
+   else selected.push({missing:true,type:r.type,org:r.org});
+ }
+ c.keyword=keyword;
+ c.proposedUnitIds=selected.filter(x=>!x.missing).map(x=>x.id);
+ c.proposal=selected;
+ c.suggestion=selected.map(x=>x.missing?`⚠️ ${x.type} (${x.org||"beliebig"}) nicht verfügbar`:`${x.opta||x.name} – ${x.type}${x.firstResponder?" (First Responder)":""}`).join(" · ");
+ c.sr=sr;
 }
 let txt=avail.length?avail.map(u=>u.name+(u.status==="8"?" (Status 8)":"")).join(", "):"⚠️ nicht verfügbar";
 if(avail.length<w.n) txt+=" ⚠️ nur "+avail.length+"/"+w.n+" verfügbar";
@@ -173,10 +483,29 @@ function showNafo(text){
   </div>`;
 }
 
+
+function alarmProposal(){
+ const c=db.currentCall;
+ if(!c||!c.proposedUnitIds||!c.proposedUnitIds.length){toast("Kein alarmierbarer Vorschlag vorhanden");return}
+ const now=new Date();
+ c.alarmedUnits=c.alarmedUnits||[];
+ for(const id of c.proposedUnitIds){
+   const u=db.units.find(x=>x.id===id);
+   if(!u)continue;
+   u.status="3";
+   if(!c.alarmedUnits.includes(id))c.alarmedUnits.push(id);
+ }
+ c.alarmTime=now.toISOString();
+ c.history.push({q:"🚨 Alarmierung",a:`Vorschlag alarmiert – ${now.toLocaleTimeString("de-DE")}`});
+ save();
+ toast("Vorschlag im Simulator alarmiert");
+ render("leitstelle");
+}
+
 function finishCall(){if(db.currentCall){db.currentCall=null;save();toast("Einsatz abgeschlossen");render("leitstelle")}}
 function mittel(){
  document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🚤 Rettungsmittel</h2><p class="muted">Eigene Einheiten, Fähigkeiten und Status verwalten.</p></div><button class="primary" onclick="addUnit()">＋ Einheit</button></div>
- <table><thead><tr><th>Funkrufname</th><th>Typ</th><th>Standort</th><th>Status</th><th></th></tr></thead><tbody>${db.units.map(u=>`<tr><td><b>${esc(u.name)}</b><br><small>${esc(u.skills)}</small></td><td>${esc(u.type)}</td><td>${esc(u.location)}</td><td><select onchange="setStatus(${u.id},this.value)">${Object.entries({0:"0 – Priorisierter Sprechwunsch",1:"1 – Frei über Funk",2:"2 – Frei auf Wache",3:"3 – Einsatz übernommen",4:"4 – Am Einsatzort",5:"5 – Sprechwunsch",6:"6 – Nicht einsatzbereit",7:"7 – Patient aufgenommen",8:"8 – bed. Verfügbar"}).map(([k,v])=>`<option value="${k}" ${u.status===k?"selected":""}>${v}</option>`).join("")}</select></td><td><button onclick="editUnit(${u.id})">Bearbeiten</button></td></tr>`).join("")}</tbody></table></div>`;
+ <table><thead><tr><th>OPTA / Funkrufname</th><th>Organisation</th><th>Typ</th><th>Standort</th><th>Status</th><th></th></tr></thead><tbody>${db.units.map(u=>`<tr><td><b>${esc(u.opta||u.name)}</b><br><small>${esc(u.skills)}</small></td><td>${esc(u.org||"–")}</td><td>${esc(u.type)}</td><td>${esc(u.location)}</td><td><select onchange="setStatus(${u.id},this.value)">${Object.entries({0:"0 – Priorisierter Sprechwunsch",1:"1 – Frei über Funk",2:"2 – Frei auf Wache",3:"3 – Einsatz übernommen",4:"4 – Am Einsatzort",5:"5 – Sprechwunsch",6:"6 – Nicht einsatzbereit",7:"7 – Patient aufgenommen",8:"8 – bed. Verfügbar"}).map(([k,v])=>`<option value="${k}" ${u.status===k?"selected":""}>${v}</option>`).join("")}</select></td><td><button onclick="editUnit(${u.id})">Bearbeiten</button></td></tr>`).join("")}</tbody></table></div>`;
 }
 function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
 function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
@@ -193,7 +522,7 @@ function szenarien(){
 }
 function startScenario(id){let s=db.scenarios.find(x=>x.id===id);newCall({location:s.location,count:""});db.currentCall.answers={...s.answers};db.currentCall.location=s.location;db.currentCall.history=[];for(const [k,v] of Object.entries(s.answers)){let q=qs.find(x=>x[0]===k);if(q)db.currentCall.history.push({q:q[1],a:v})}evaluate();save();render("notruf")}
 function addScenario(){const name=prompt("Szenarioname");if(!name)return;const location=prompt("Einsatzort","Dangast");const note=prompt("Lagebeschreibung","Person im Wasser");db.scenarios.push({id:Date.now(),name,location,note,answers:{water:"ja",conscious:"nein"}});save();render("szenarien")}
-setInterval(()=>document.getElementById("clock").textContent=new Date().toLocaleTimeString("de-DE"),1000);
+setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule()},1000);
 render("leitstelle");
 </script>
 </body></html>
