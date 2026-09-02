@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>DLRG JET Leitstelle</title>
+<style>
+:root{--bg:#eef2f6;--panel:#fff;--ink:#17202a;--muted:#66717d;--line:#d9e0e7;--nav:#0b1220;--accent:#e30613;--green:#198754;--yellow:#e0a800;--red:#c82333;--blue:#1976d2}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+header{height:64px;background:var(--nav);color:white;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:10}
+.brand{font-weight:800;letter-spacing:.3px}.clock{font-variant-numeric:tabular-nums;color:#cbd5e1}
+nav{display:flex;gap:6px;background:#111827;padding:8px;overflow:auto;position:sticky;top:64px;z-index:9}
+nav button{border:0;background:#243044;color:#dbe4ef;border-radius:9px;padding:11px 14px;font-weight:700;white-space:nowrap}
+nav button.active{background:#e30613;color:white}
+main{max-width:1250px;margin:0 auto;padding:16px}
+.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #0000000a;margin-bottom:14px}
+h1,h2,h3{margin:0 0 12px} h2{font-size:20px} h3{font-size:16px}
+.muted{color:var(--muted)} .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+button,.btn{border:1px solid var(--line);background:#f8fafc;color:var(--ink);border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer}
+button.primary{background:#e30613;color:#fff;border-color:#e30613}.btn.green{background:#e9f7ef;color:#12633b}.btn.blue{background:#eaf2ff;color:#1456a0}
+input,select,textarea{width:100%;border:1px solid #cbd5df;border-radius:9px;padding:11px;background:#fff;font:inherit}
+label{font-size:13px;font-weight:700;color:#4b5563;display:block;margin:8px 0 5px}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(max-width:600px){.formgrid{grid-template-columns:1fr}}
+.status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800}
+@keyframes status0blink{0%,45%{background:#d71920;color:#fff;box-shadow:0 0 0 0 rgba(215,25,32,.55)}50%,95%{background:#fff;color:#d71920;box-shadow:0 0 0 4px rgba(215,25,32,.18)}100%{background:#d71920;color:#fff}}
+.s0{background:#d71920;color:#fff;animation:status0blink 1s steps(1,end) infinite;border:2px solid #d71920}.s1{background:#b9f6ca;color:#0b5d2a}.s2{background:#1f7a3f;color:#fff}.s3{background:#ffe082;color:#6b5200}.s4{background:#ffb74d;color:#6b3600}.s5{background:#fff;color:#333;border:1px solid #cbd5df}.s6{background:#e53935;color:#fff}.s7{background:#b3e5fc;color:#075985}.s8{background:#1565c0;color:#fff}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}th{font-size:12px;color:#66717d;text-transform:uppercase}
+.call{border-left:5px solid #e30613}.big{font-size:28px;font-weight:900}.suggest{background:#fff8e1;border:1px solid #f1d37a;border-radius:10px;padding:12px}
+.answer{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.answer button{text-align:left;background:#f8fafc}@media(max-width:600px){.answer{grid-template-columns:1fr}}
+.hidden{display:none!important}.pill{padding:4px 8px;border-radius:999px;background:#eef2f6;font-size:12px;font-weight:800}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 15px;border-radius:10px;display:none;z-index:30}
+</style>
+</head>
+<body>
+<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span></div><div id="clock" class="clock"></div></header>
+<nav id="nav"></nav>
+<main id="app"></main><div id="toast" class="toast"></div>
+<script>
+const KEY="dlrg-jet-v1";
+const defaults={
+ units:[
+  {id:1,name:"Pelikan Varel 71/1",type:"RTB",location:"Varel",status:"1",crew:"2",skills:"Wasserrettung"},
+  {id:2,name:"Pelikan Varel 71/2",type:"RTB",location:"Dangast",status:"1",crew:"2",skills:"Wasserrettung"},
+  {id:3,name:"Pelikan Varel 72/1",type:"MTF",location:"Varel",status:"1",crew:"4",skills:"Transport, Wasserrettung"},
+  {id:4,name:"Wasserrettung 1",type:"WR-Trupp",location:"Varel",status:"1",crew:"4",skills:"Wasserrettung, Erste Hilfe"},
+  {id:5,name:"RTW 41/83-1",type:"RTW",location:"Varel",status:"1",crew:"2",skills:"Rettungsdienst"},
+  {id:6,name:"72-58-01",type:"GW Wasserrettung",location:"Varel",status:"1",crew:"2",skills:"Wasserrettung, Materialtransport"},
+  {id:7,name:"72-17-01",type:"MTW",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport"},
+  {id:8,name:"72-19-01",type:"GW Drohne",location:"Varel",status:"1",crew:"2",skills:"Drohne, Lageerkundung",vehicle:"Ford Ranger"}
+ ],
+ aao:[
+  {id:1,name:"Wasser 1 – Person im Wasser",rules:{water:"ja"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1}]},
+  {id:2,name:"Wasser 2 – bewusstlose Person im Wasser",rules:{water:"ja",conscious:"nein"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
+  {id:3,name:"Wasser 3 – keine normale Atmung",rules:{water:"ja",breathing:"nein"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]}
+ ],
+ calls:[],
+ scenarios:[
+  {id:1,name:"Person nach Untergang",location:"Dangast, Strandaufgang 4",answers:{water:"ja",visible:"nein",conscious:"nein",breathing:"nein",count:"1"},note:"Untergang vor ca. 2 Minuten beobachtet."},
+  {id:2,name:"Badeunfall – ansprechbar",location:"Strandbad, Steg 2",answers:{water:"ja",visible:"ja",conscious:"ja",breathing:"ja",count:"1"},note:"Person klagt über Schmerzen am Bein."}
+ ],
+ currentCall:null
+};
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
+function statusName(s){return {0:"Priorisierter Sprechwunsch",1:"Frei über Funk",2:"Frei auf Wache",3:"Einsatz übernommen",4:"Am Einsatzort",5:"Sprechwunsch",6:"Nicht einsatzbereit",7:"Patient aufgenommen",8:"bed. Verfügbar"}[s]||s}
+function statusClass(s){return "s"+s}
+function nav(active){document.getElementById("nav").innerHTML=[
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["szenarien","🎓 Übungen"]
+].map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}
+function render(page="leitstelle"){
+ nav(page);
+ if(page==="leitstelle") dashboard();
+ if(page==="notruf") notruf();
+ if(page==="mittel") mittel();
+ if(page==="aao") aao();
+ if(page==="szenarien") szenarien();
+}
+function dashboard(){
+ const c=db.currentCall;
+ document.getElementById("app").innerHTML=`<div class="grid">
+ <section><div class="card"><div class="row between"><div><h2>Leitstellenübersicht</h2><div class="muted">Übungsbetrieb – keine reale Alarmierung</div></div><button class="primary" onclick="render('notruf')">＋ Neuer Notruf</button></div></div>
+ ${c?`<div class="card call"><div class="row between"><div><h2>🚨 Einsatz #${c.id}</h2><div class="muted">${esc(c.location||"Ort noch nicht bekannt")}</div></div><span class="status s2">Bearbeitung</span></div><hr><div class="formgrid">
+ <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
+ <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div></div>
+ <div class="suggest"><b>🧠 Automatischer Vorschlag</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>${c.nafo&&c.nafo.length?`<div class="card" style="margin-top:10px;background:#f8fafc"><h3>📟 Nachforderungen</h3>${c.nafo.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${new Date(n.time).toLocaleTimeString("de-DE")}</b> – ${esc(n.reason)}</div>`).join("")}</div>`:""}
+ <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
+ </section>
+ <aside><div class="card"><h2>🚤 Mittelübersicht</h2>${db.units.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
+ <div class="card"><h2>AAO-Vorschläge</h2><p class="muted">Die AAO wird aus den Antworten des Notrufes ermittelt.</p>${db.aao.map(a=>`<div style="padding:8px 0"><b>${esc(a.name)}</b><br><small>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</small></div>`).join("")}</div></aside></div>`;
+}
+function newCall(pref={}){db.currentCall={id:Date.now().toString().slice(-5),location:pref.location||"",count:pref.count||"",answers:{},history:[],keyword:"",suggestion:""};save();render("notruf")}
+const qs=[
+ ["location","📍 Wo genau ist der Notfallort?","text"],
+ ["event","❓ Was ist passiert?","event"],
+ ["count","👥 Wie viele Betroffene gibt es?","count"],
+ ["water","🌊 Befindet sich die Person im Wasser?","yn"],
+ ["visible","👀 Ist die Person sichtbar?","yn"],
+ ["conscious","🧠 Ist die Person bei Bewusstsein?","yn"],
+ ["breathing","🫁 Atmet die Person normal?","yn"],
+ ["danger","⚠️ Bestehen Gefahren für Einsatzkräfte?","yn"],
+ ["callback","☎️ Rückrufnummer?","text"]
+];
+function notruf(){
+ if(!db.currentCall){document.getElementById("app").innerHTML=`<div class="card"><h2>📞 Übungsnotruf</h2><p>Starte einen neuen Anruf. Die Software führt dich Schritt für Schritt durch die Abfrage.</p><button class="primary" onclick="newCall()">Notruf annehmen</button></div>`;return}
+ const c=db.currentCall, idx=qs.findIndex(q=>!(q[0] in c.answers) && !(q[0]==="location"&&c.location));
+ const q=idx<0?null:qs[idx];
+ document.getElementById("app").innerHTML=`<div class="grid"><section><div class="card call"><div class="row between"><div><h2>📞 Eingehender Notruf #${c.id}</h2><div class="muted">„Notruf, DLRG-Leitstelle. Wo genau ist der Notfallort?“</div></div><button onclick="render('leitstelle')">Zur Übersicht</button></div>
+ <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div></div>
+ <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div></section>
+ <aside><div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div></aside></div>`;
+}
+function questionHTML(q){
+ if(q[2]==="text"||q[2]==="count") return `<label>${q[1]}</label><div class="row"><input id="ans" type="${q[2]==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${q[0]}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
+ if(q[2]==="event") return `<label>${q[1]}</label><div class="answer"><button onclick="answer('event','Person im Wasser')">Person im Wasser</button><button onclick="answer('event','Untergang beobachtet')">Untergang beobachtet</button><button onclick="answer('event','Badeunfall')">Badeunfall</button><button onclick="answer('event','Bootsunfall')">Bootsunfall</button></div>`;
+ return `<label>${q[1]}</label><div class="answer"><button onclick="answer('${q[0]}','ja')">Ja</button><button onclick="answer('${q[0]}','nein')">Nein</button><button onclick="answer('${q[0]}','unbekannt')">Unbekannt</button></div>`;
+}
+function answer(k,v){
+ const c=db.currentCall;c.answers[k]=v;if(k==="location")c.location=v;if(k==="count")c.count=v;
+ const q=qs.find(x=>x[0]===k);c.history.push({q:q[1],a:v}); evaluate();save();notruf()
+}
+function evaluate(){
+ const c=db.currentCall, a=c.answers;let matches=db.aao.filter(rule=>Object.entries(rule.rules).every(([k,v])=>a[k]===v));
+ if(matches.length){let r=matches.sort((x,y)=>Object.keys(y.rules).length-Object.keys(x.rules).length)[0];c.keyword=r.name;let picks=[];r.units.forEach(w=>{let primary=db.units.filter(u=>u.type===w.type&&["1","2"].includes(u.status));
+let avail=primary.slice(0,w.n);
+let fallbackUsed=false;
+if(avail.length<w.n){
+  let fallback=db.units.filter(u=>u.type===w.type&&u.status==="8").slice(0,w.n-avail.length);
+  if(fallback.length){avail=avail.concat(fallback);fallbackUsed=true}
+}
+let txt=avail.length?avail.map(u=>u.name+(u.status==="8"?" (Status 8)":"")).join(", "):"⚠️ nicht verfügbar";
+if(avail.length<w.n) txt+=" ⚠️ nur "+avail.length+"/"+w.n+" verfügbar";
+if(fallbackUsed) txt+=" · bedingt verfügbar";
+picks.push(`${w.n}× ${w.type}: ${txt}`)});c.suggestion=picks.join(" · ")}
+ else if(a.water==="ja"){c.keyword="Wasserrettung – weitere Abklärung";c.suggestion="Noch kein vollständiger AAO-Treffer. Weitere Abfrage durchführen."}
+ else c.keyword="Noch unklar"; 
+}
+
+function buildMeldertext(c, nafoReason=""){
+  const ort=c.location||c.answers?.location||"Ort unbekannt";
+  const lage=c.answers?.event||c.keyword||"Einsatz";
+  const mittel=(c.suggestion||"").replace(/<[^>]*>/g,"");
+  let txt=`${c.keyword||"EINSATZ"}\nOrt: ${ort}\nMeldung: ${lage}`;
+  if(mittel) txt+=`\nWeitere Rettungsmittel: ${mittel}`;
+  txt+=`\nAnfahrt: entsprechend AAO`;
+  if(nafoReason) txt+=`\nNAFO-Grund: ${nafoReason}`;
+  return txt;
+}
+function openNafo(){
+  const c=db.currentCall;
+  if(!c){toast("Kein laufender Einsatz");return}
+  const grund=prompt("NAFO-Grund / Nachforderungsgrund:");
+  if(!grund)return;
+  const text=buildMeldertext(c,grund);
+  if(!c.nafo)c.nafo=[];
+  c.nafo.push({time:new Date().toISOString(),reason:grund,text});
+  save();
+  showNafo(text);
+}
+function showNafo(text){
+  document.getElementById("app").innerHTML=`<div class="card call">
+    <div class="row between"><div><h2>📟 NAFO / Nachforderung</h2><div class="muted">Übungs-Meldertext</div></div><button onclick="render('leitstelle')">Zurück</button></div>
+    <label>Meldetext</label>
+    <textarea id="nafoText" rows="12">${esc(text)}</textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="navigator.clipboard?navigator.clipboard.writeText(document.getElementById('nafoText').value).then(()=>toast('Meldetext kopiert')):toast('Kopieren nicht verfügbar')">📋 Meldetext kopieren</button>
+      <button onclick="render('leitstelle')">Schließen</button>
+    </div>
+    <p class="muted">Simulation: Es wird keine reale Alarmierung oder Pager-Nachricht versendet.</p>
+  </div>`;
+}
+
+function finishCall(){if(db.currentCall){db.currentCall=null;save();toast("Einsatz abgeschlossen");render("leitstelle")}}
+function mittel(){
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🚤 Rettungsmittel</h2><p class="muted">Eigene Einheiten, Fähigkeiten und Status verwalten.</p></div><button class="primary" onclick="addUnit()">＋ Einheit</button></div>
+ <table><thead><tr><th>Funkrufname</th><th>Typ</th><th>Standort</th><th>Status</th><th></th></tr></thead><tbody>${db.units.map(u=>`<tr><td><b>${esc(u.name)}</b><br><small>${esc(u.skills)}</small></td><td>${esc(u.type)}</td><td>${esc(u.location)}</td><td><select onchange="setStatus(${u.id},this.value)">${Object.entries({0:"0 – Priorisierter Sprechwunsch",1:"1 – Frei über Funk",2:"2 – Frei auf Wache",3:"3 – Einsatz übernommen",4:"4 – Am Einsatzort",5:"5 – Sprechwunsch",6:"6 – Nicht einsatzbereit",7:"7 – Patient aufgenommen",8:"8 – bed. Verfügbar"}).map(([k,v])=>`<option value="${k}" ${u.status===k?"selected":""}>${v}</option>`).join("")}</select></td><td><button onclick="editUnit(${u.id})">Bearbeiten</button></td></tr>`).join("")}</tbody></table></div>`;
+}
+function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
+function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
+function setStatus(id,s){db.units.find(x=>x.id===id).status=s;save();toast("Status geändert")}
+function aao(){
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Regeln werden von oben nach unten geprüft; der spezifischste Treffer gewinnt.</p></div><button class="primary" onclick="addAAO()">＋ AAO anlegen</button></div>
+ <table><thead><tr><th>Stichwort</th><th>Regeln</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td>${Object.entries(a.rules).map(([k,v])=>`${k}=${v}`).join(" · ")}</td><td>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</td><td><button onclick="deleteAAO(${a.id})">Löschen</button></td></tr>`).join("")}</tbody></table></div>`;
+}
+function addAAO(){const name=prompt("Name des Einsatzstichworts");if(!name)return;const water=prompt("Bedingung Wasser? (ja/nein/leer)","ja");const conscious=prompt("Bedingung Bewusstsein? (ja/nein/leer)","");const breathing=prompt("Bedingung Atmung? (ja/nein/leer)","");const types=prompt("Alarmierung, z.B. RTB:1,WR-Trupp:1,RTW:1","RTB:1,WR-Trupp:1");let rules={};if(water)rules.water=water;if(conscious)rules.conscious=conscious;if(breathing)rules.breathing=breathing;let units=types.split(",").map(s=>{let [type,n]=s.trim().split(":");return{type,n:Number(n)||1}});db.aao.push({id:Date.now(),name,rules,units});save();render("aao")}
+function deleteAAO(id){if(confirm("AAO wirklich löschen?")){db.aao=db.aao.filter(x=>x.id!==id);save();render("aao")}}
+function szenarien(){
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🎓 Übungsszenarien</h2><p class="muted">Szenario auswählen und als Übungsnotruf starten.</p></div><button class="primary" onclick="addScenario()">＋ Szenario</button></div>
+ ${db.scenarios.map(s=>`<div class="card" style="margin:10px 0;background:#f8fafc"><div class="row between"><div><h3>${esc(s.name)}</h3><div class="muted">📍 ${esc(s.location)}</div><p>${esc(s.note)}</p></div><button class="primary" onclick="startScenario(${s.id})">▶ Starten</button></div></div>`).join("")}</div>`;
+}
+function startScenario(id){let s=db.scenarios.find(x=>x.id===id);newCall({location:s.location,count:""});db.currentCall.answers={...s.answers};db.currentCall.location=s.location;db.currentCall.history=[];for(const [k,v] of Object.entries(s.answers)){let q=qs.find(x=>x[0]===k);if(q)db.currentCall.history.push({q:q[1],a:v})}evaluate();save();render("notruf")}
+function addScenario(){const name=prompt("Szenarioname");if(!name)return;const location=prompt("Einsatzort","Dangast");const note=prompt("Lagebeschreibung","Person im Wasser");db.scenarios.push({id:Date.now(),name,location,note,answers:{water:"ja",conscious:"nein"}});save();render("szenarien")}
+setInterval(()=>document.getElementById("clock").textContent=new Date().toLocaleTimeString("de-DE"),1000);
+render("leitstelle");
+</script>
+</body></html>
