@@ -27,3 +27,15 @@ Version 2.0:
 - Zusätzliche verifizierte Fahrzeug-/OPTA-Daten aus Friesland (Rettungsdienst, Feuerwehren Varel/Jever/
   Bockhorn, THW Jever) plus Nutzerangaben.
 - Polizei bleibt bewusst als abstrakte Übungsressource, da keine operative OPTA erfunden wird.
+
+Version 2.1:
+- Button „Zusätzliche Rettungsmittel“ im laufenden Einsatz.
+- Zusätzliche verfügbare Mittel können zum Alarmvorschlag ergänzt werden.
+- Button „Realistisch“ in der Rettungsmittelübersicht erzeugt einen zufälligen plausiblen Statusmix
+  bei Feuerwehr- und Rettungsdienstfahrzeugen.
+- Christoph 26 als RTH/Luftrettung, Standort Sanderbusch (Sande), 24/7, ergänzt.
+
+Version 2.2:
+- Einsatz abschließen: alle dem Einsatz zugeordneten/alarmierten Einsatzmittel werden auf Status 1 gesetzt.
+- Status 1 wechselt automatisch nach zufälliger Rückkehrzeit von 2–10 Minuten auf Status 2.
+- Damit spätestens nach 10 Minuten „Frei auf Wache“.

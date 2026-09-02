@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2";
+const KEY="dlrg-jet-v2-2";
 const defaults={
  units:[
   
@@ -107,7 +107,8 @@ const defaults={
   {id:305,name:"32/NEA",opta:"Heros Jever 32/NEA",type:"NEA 68 kVA",org:"THW",location:"Jever",status:"2",crew:"0",skills:"Stromversorgung",verified:"THW/BOS-Fahrzeuge"},
   {id:306,name:"86/25",opta:"Heros Jever 86/25",type:"MTW OV",org:"THW",location:"Jever",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"THW/BOS-Fahrzeuge"},
 
-  {id:401,name:"POL-FRI-1",opta:"Polizei Friesland – FuStW",type:"FuStW",org:"Polizei",location:"Friesland",status:"1",crew:"2",skills:"Polizeiliche Gefahrenabwehr",verified:"Abstrakte Übungsressource"}
+  {id:401,name:"POL-FRI-1",opta:"Polizei Friesland – FuStW",type:"FuStW",org:"Polizei",location:"Friesland",status:"1",crew:"2",skills:"Polizeiliche Gefahrenabwehr",verified:"Abstrakte Übungsressource"},
+  {id:501,name:"Christoph 26",opta:"Christoph 26",type:"RTH",org:"Luftrettung",location:"Sanderbusch (Sande)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Windenrettung, Intensivtransport",verified:"ADAC Luftrettung",schedule:"24h"}
 
  ],
  aao:[
@@ -298,10 +299,41 @@ function useMyLocation(){
 }
 
 
+
+function setUnitStatus(u,status){
+ u.status=String(status);
+ if(String(status)==="1"){
+   u.status1Since=Date.now();
+   // random return-to-station delay, always <= 10 minutes
+   u.status2Due=Date.now()+Math.floor((2+Math.random()*8)*60*1000);
+ }else{
+   delete u.status1Since;
+   delete u.status2Due;
+ }
+}
+function autoReturnToStation(){
+ const now=Date.now();
+ let changed=false;
+ db.units.forEach(u=>{
+   if(u.status==="1"){
+     if(!u.status2Due){
+       u.status1Since=now;
+       u.status2Due=now+Math.floor((2+Math.random()*8)*60*1000);
+       changed=true;
+     }else if(now>=u.status2Due){
+       u.status="2";
+       delete u.status1Since; delete u.status2Due;
+       changed=true;
+     }
+   }
+ });
+ if(changed)save();
+}
+
 function applyDutySchedule(){
  const h=new Date().getHours();
  const day=h>=7&&h<19;
- const set=(name,status)=>{const u=db.units.find(x=>x.name===name);if(u&&["1","2","6"].includes(u.status))u.status=status};
+ const set=(name,status)=>{const u=db.units.find(x=>x.name===name);if(u&&["1","2","6"].includes(u.status)&&u.status!==status)setUnitStatus(u,status)};
  set("81-83-02",day?"1":"6");
  set("82-83-02",day?"1":"6");
  set("81-93-01",day?"6":"1");
@@ -317,6 +349,45 @@ function availableUnits(type,org=null){
 }
 function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
 
+
+function realisticMode(){
+  applyDutySchedule();
+  const candidates=db.units.filter(u=>["Feuerwehr","Rettungsdienst"].includes(u.org) && !u.schedule && !["0","3","4","5","6","7"].includes(u.status));
+  // reset eligible units to plausible base state first
+  candidates.forEach(u=>u.status=(u.org==="Feuerwehr"?"2":"1"));
+  // random subset gets realistic non-free states
+  const shuffled=[...candidates].sort(()=>Math.random()-.5);
+  const n=Math.max(3,Math.min(10,Math.floor(shuffled.length*0.18)));
+  shuffled.slice(0,n).forEach((u,i)=>{
+    const states=["3","4","6","8"];
+    u.status=states[i%states.length];
+  });
+  // air rescue can also be occasionally unavailable/mission-bound, but keep less frequent
+  const c26=db.units.find(u=>u.name==="Christoph 26");
+  if(c26 && Math.random()<0.35) c26.status=Math.random()<0.7?"3":"8";
+  save(); toast("Realistischer Statusmix gesetzt"); render("mittel");
+}
+
+function extraResources(){
+  const c=db.currentCall;
+  if(!c){toast("Kein laufender Einsatz");return}
+  const opts=db.units.filter(u=>["1","2","8"].includes(u.status));
+  if(!opts.length){toast("Keine verfügbaren Mittel");return}
+  const types=[...new Set(opts.map(u=>u.type))].sort();
+  const type=prompt("Zusätzliches Rettungsmittel / Fahrzeugtyp:\n"+types.join(", "));
+  if(!type)return;
+  const matches=opts.filter(u=>u.type.toLowerCase()===type.trim().toLowerCase());
+  if(!matches.length){toast("Kein passendes verfügbares Mittel");return}
+  const chosen=matches[0];
+  c.proposedUnitIds=c.proposedUnitIds||[];
+  if(!c.proposedUnitIds.includes(chosen.id))c.proposedUnitIds.push(chosen.id);
+  c.proposal=c.proposal||[];
+  if(!c.proposal.some(x=>x.id===chosen.id))c.proposal.push(chosen);
+  c.suggestion=(c.suggestion?c.suggestion+" · ":"")+`${chosen.opta||chosen.name} – ${chosen.type} (zusätzlich)`;
+  c.history.push({q:"➕ Zusätzliches Rettungsmittel",a:`${chosen.opta||chosen.name} – ${chosen.type}`});
+  save(); toast("Zusätzliches Mittel ergänzt"); render("leitstelle");
+}
+
 function dashboard(){
  const c=db.currentCall;
  document.getElementById("app").innerHTML=`<div class="grid">
@@ -325,7 +396,7 @@ function dashboard(){
  <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
  <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div></div>
  <div class="suggest"><b>🧠 Automatischer Vorschlag</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>${c.nafo&&c.nafo.length?`<div class="card" style="margin-top:10px;background:#f8fafc"><h3>📟 Nachforderungen</h3>${c.nafo.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${new Date(n.time).toLocaleTimeString("de-DE")}</b> – ${esc(n.reason)}</div>`).join("")}</div>`:""}
- <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button onclick="render('karte')">🗺️ Notfallort</button><button class="primary" onclick="alarmProposal()">🚨 Vorschlag alarmieren</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
+ <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button onclick="render('karte')">🗺️ Notfallort</button><button class="primary" onclick="alarmProposal()">🚨 Vorschlag alarmieren</button><button onclick="extraResources()">➕ Zusätzliche Rettungsmittel</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
  </section>
  <aside><div class="card"><h2>🚤 Mittelübersicht</h2>${db.units.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
  <div class="card"><h2>AAO-Vorschläge</h2><p class="muted">Die AAO wird aus den Antworten des Notrufes ermittelt.</p>${db.aao.map(a=>`<div style="padding:8px 0"><b>${esc(a.name)}</b><br><small>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</small></div>`).join("")}</div></aside></div>`;
@@ -485,7 +556,7 @@ function alarmProposal(){
  for(const id of c.proposedUnitIds){
    const u=db.units.find(x=>x.id===id);
    if(!u)continue;
-   u.status="3";
+   setUnitStatus(u,"3");
    if(!c.alarmedUnits.includes(id))c.alarmedUnits.push(id);
  }
  c.alarmTime=now.toISOString();
@@ -495,10 +566,20 @@ function alarmProposal(){
  render("leitstelle");
 }
 
-function finishCall(){if(db.currentCall){db.currentCall=null;save();toast("Einsatz abgeschlossen");render("leitstelle")}}
-function mittel(){
- document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🚤 Rettungsmittel</h2><p class="muted">Eigene Einheiten, Fähigkeiten und Status verwalten.</p></div><button class="primary" onclick="addUnit()">＋ Einheit</button></div>
- <table><thead><tr><th>OPTA / Funkrufname</th><th>Organisation</th><th>Typ</th><th>Standort</th><th>Status</th><th></th></tr></thead><tbody>${db.units.map(u=>`<tr><td><b>${esc(u.opta||u.name)}</b><br><small>${esc(u.skills)}</small></td><td>${esc(u.org||"–")}</td><td>${esc(u.type)}</td><td>${esc(u.location)}</td><td><select onchange="setStatus(${u.id},this.value)">${Object.entries({0:"0 – Priorisierter Sprechwunsch",1:"1 – Frei über Funk",2:"2 – Frei auf Wache",3:"3 – Einsatz übernommen",4:"4 – Am Einsatzort",5:"5 – Sprechwunsch",6:"6 – Nicht einsatzbereit",7:"7 – Patient aufgenommen",8:"8 – bed. Verfügbar"}).map(([k,v])=>`<option value="${k}" ${u.status===k?"selected":""}>${v}</option>`).join("")}</select></td><td><button onclick="editUnit(${u.id})">Bearbeiten</button></td></tr>`).join("")}</tbody></table></div>`;
+function finishCall(){
+ const c=db.currentCall;
+ if(!c)return;
+ const ids=new Set([...(c.alarmedUnits||[]),...(c.proposedUnitIds||[])]);
+ ids.forEach(id=>{
+   const u=db.units.find(x=>x.id===id);
+   if(u) setUnitStatus(u,"1");
+ });
+ c.endTime=new Date().toISOString();
+ db.logs.unshift(c);
+ db.currentCall=null;
+ save();
+ toast("Einsatz abgeschlossen – Einsatzmittel Status 1");
+ render("leitstelle");
 }
 function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
 function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
@@ -515,7 +596,7 @@ function szenarien(){
 }
 function startScenario(id){let s=db.scenarios.find(x=>x.id===id);newCall({location:s.location,count:""});db.currentCall.answers={...s.answers};db.currentCall.location=s.location;db.currentCall.history=[];for(const [k,v] of Object.entries(s.answers)){let q=qs.find(x=>x[0]===k);if(q)db.currentCall.history.push({q:q[1],a:v})}evaluate();save();render("notruf")}
 function addScenario(){const name=prompt("Szenarioname");if(!name)return;const location=prompt("Einsatzort","Dangast");const note=prompt("Lagebeschreibung","Person im Wasser");db.scenarios.push({id:Date.now(),name,location,note,answers:{water:"ja",conscious:"nein"}});save();render("szenarien")}
-setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule()},1000);
+setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation()},1000);
 render("leitstelle");
 </script>
 </body></html>
