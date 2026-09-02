@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-5";
+const KEY="dlrg-jet-v2-6";
 const defaults={
  units:[
   
@@ -123,14 +123,20 @@ const defaults={
  ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+if(!Array.isArray(db.activeCalls))db.activeCalls=[];
+if(!Array.isArray(db.logs))db.logs=[];
+if(!Array.isArray(db.ivena))db.ivena=[
+ {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",status:"grün",note:"Übungsstatus – manuell pflegen"},
+ {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen"}
+];
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
 function statusName(s){return {0:"Priorisierter Sprechwunsch",1:"Frei über Funk",2:"Frei auf Wache",3:"Einsatz übernommen",4:"Am Einsatzort",5:"Sprechwunsch",6:"Nicht einsatzbereit",7:"Patient aufgenommen",8:"bed. Verfügbar"}[s]||s}
 function statusClass(s){return "s"+s}
 function nav(active){document.getElementById("nav").innerHTML=[
- ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["szenarien","🎓 Übungen"]
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["szenarien","🎓 Übungen"]
 ].map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}
 function render(page="leitstelle"){
  nav(page);
@@ -139,6 +145,7 @@ function render(page="leitstelle"){
  if(page==="karte") karte();
  if(page==="mittel") mittel();
  if(page==="aao") aao();
+ if(page==="ivena") ivena();
  if(page==="szenarien") szenarien();
 }
 
@@ -341,7 +348,6 @@ function applyDutySchedule(){
  set("82-93-01",day?"6":"1");
  set("84-93-01",day?"1":"6");
  set("87-83-02",day?"1":"6");
- save();
 }
 
 const OPTA_AREA_ORDER={
@@ -483,20 +489,71 @@ function extraResources(){
   save(); toast("Zusätzliches Mittel ergänzt"); render("leitstelle");
 }
 
-function dashboard(){
- const c=db.currentCall;
- document.getElementById("app").innerHTML=`<div class="grid">
- <section><div class="card"><div class="row between"><div><h2>Leitstellenübersicht</h2><div class="muted">Übungsbetrieb – keine reale Alarmierung</div></div><button class="primary" onclick="render('notruf')">＋ Neuer Notruf</button></div></div>
- ${c?`<div class="card call"><div class="row between"><div><h2>🚨 Einsatz #${c.id}</h2><div class="muted">${esc(c.location||"Ort noch nicht bekannt")}</div></div><span class="status s2">Bearbeitung</span></div><hr><div class="formgrid">
- <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
- <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div></div>
- <div class="suggest"><b>🧠 Automatischer Vorschlag</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>${c.nafo&&c.nafo.length?`<div class="card" style="margin-top:10px;background:#f8fafc"><h3>📟 Nachforderungen</h3>${c.nafo.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${new Date(n.time).toLocaleTimeString("de-DE")}</b> – ${esc(n.reason)}</div>`).join("")}</div>`:""}
- <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button onclick="render('karte')">🗺️ Notfallort</button><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="extraResources()">➕ Zusätzliche Rettungsmittel</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
- </section>
- <aside><div class="card"><h2>🚤 Mittelübersicht</h2>${db.units.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
- <div class="card"><h2>AAO-Vorschläge</h2><p class="muted">Die AAO wird aus den Antworten des Notrufes ermittelt.</p>${db.aao.map(a=>`<div style="padding:8px 0"><b>${esc(a.name)}</b><br><small>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</small></div>`).join("")}</div></aside></div>`;
+function allOpenCalls(){
+ const list=[];
+ if(db.currentCall)list.push(db.currentCall);
+ for(const c of (db.activeCalls||[]))if(c && !list.some(x=>String(x.id)===String(c.id)))list.push(c);
+ return list;
 }
-function newCall(pref={}){db.currentCall={id:Date.now().toString().slice(-5),location:pref.location||"",count:pref.count||"",answers:{},history:[],keyword:"",suggestion:""};save();render("notruf")}
+function parkCurrentCall(){
+ if(!db.currentCall)return;
+ db.activeCalls=db.activeCalls||[];
+ const i=db.activeCalls.findIndex(x=>String(x.id)===String(db.currentCall.id));
+ if(i>=0)db.activeCalls[i]=db.currentCall;
+ else db.activeCalls.unshift(db.currentCall);
+ db.currentCall=null;
+}
+function selectCall(id,page="leitstelle"){
+ id=String(id);
+ if(db.currentCall && String(db.currentCall.id)===id){render(page);return}
+ if(db.currentCall)parkCurrentCall();
+ const i=(db.activeCalls||[]).findIndex(x=>String(x.id)===id);
+ if(i<0){toast("Einsatz nicht gefunden");render("leitstelle");return}
+ db.currentCall=db.activeCalls.splice(i,1)[0];
+ save();
+ render(page);
+}
+function incidentCard(c,isSelected){
+ const state=c.alarmTime?"Alarmiert":"Bearbeitung";
+ const stateClass=c.alarmTime?"s3":"s2";
+ return `<div class="card call">
+   <div class="row between">
+    <div><h2>${c.alarmTime?"🚨":"📞"} Einsatz #${esc(c.id)}</h2><div class="muted">${esc(c.location||"Ort noch nicht bekannt")}</div></div>
+    <span class="status ${stateClass}">${state}</span>
+   </div>
+   <hr>
+   <div class="formgrid">
+    <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
+    <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div>
+   </div>
+   <div class="suggest"><b>🧠 Vorschlag / alarmierte Mittel</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>
+   <div class="row" style="margin-top:10px">
+    <button onclick="selectCall('${esc(c.id)}','notruf')">${isSelected?"Notruf öffnen":"Einsatz öffnen"}</button>
+    <button onclick="selectCall('${esc(c.id)}','karte')">🗺️ Karte</button>
+    ${!c.alarmTime?`<button class="primary" onclick="selectCall('${esc(c.id)}','notruf')">Weiter bearbeiten</button>`:""}
+    ${c.alarmTime?`<button class="btn blue" onclick="selectCall('${esc(c.id)}','leitstelle');setTimeout(openNafo,0)">📟 NAFO</button>`:""}
+    <button class="primary" onclick="finishCall('${esc(c.id)}')">✅ Einsatz abschließen</button>
+   </div>
+ </div>`;
+}
+function dashboard(){
+ const calls=allOpenCalls();
+ document.getElementById("app").innerHTML=`<div class="grid">
+ <section>
+  <div class="card"><div class="row between"><div><h2>Leitstellenübersicht</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">＋ Neuer Notruf</button></div></div>
+  ${calls.length?calls.map(c=>incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))).join(""):`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
+ </section>
+ <aside>
+  <div class="card"><h2>🚤 Mittelübersicht</h2>${geoSortUnits(db.units).map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
+  <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
+ </aside></div>`;
+}
+function newCall(pref={}){
+ if(db.currentCall)parkCurrentCall();
+ const stamp=Date.now().toString();
+ db.currentCall={id:stamp.slice(-6),location:pref.location||"",count:pref.count||"",answers:{},history:[],keyword:"",suggestion:"",createdAt:new Date().toISOString()};
+ save();render("notruf");
+}
 const qs=[
  ["location","📍 Wo genau ist der Notfallort?","text"],
  ["event","❓ Was ist passiert?","event112"],
@@ -802,23 +859,33 @@ function alarmProposal(){
  c.alarmTime=now.toISOString();
  c.history.push({q:"🚨 Alarmierung",a:`Vorschlag alarmiert – ${now.toLocaleTimeString("de-DE")}${c.alarmFreeText?` | Freitext: ${c.alarmFreeText}`:""}`});
  save();
- toast("Vorschlag im Simulator alarmiert");
+ toast("Vorschlag im Simulator alarmiert – weiterer Notruf möglich");
  render("leitstelle");
 }
 
-function finishCall(){
- const c=db.currentCall;
- if(!c)return;
+function finishCall(id=null){
+ const targetId=String(id ?? db.currentCall?.id ?? "");
+ let c=null, source="";
+ if(db.currentCall && String(db.currentCall.id)===targetId){c=db.currentCall;source="current";}
+ else{
+   const i=(db.activeCalls||[]).findIndex(x=>String(x.id)===targetId);
+   if(i>=0){c=db.activeCalls[i];source="active";}
+ }
+ if(!c){toast("Einsatz nicht gefunden");return}
+
  const ids=new Set([...(c.alarmedUnits||[]),...(c.proposedUnitIds||[])]);
- ids.forEach(id=>{
-   const u=db.units.find(x=>x.id===id);
-   if(u) setUnitStatus(u,"1");
+ ids.forEach(uid=>{
+   const u=db.units.find(x=>String(x.id)===String(uid));
+   if(u)setUnitStatus(u,"1");
  });
  c.endTime=new Date().toISOString();
  db.logs.unshift(c);
- db.currentCall=null;
+
+ if(source==="current")db.currentCall=null;
+ else db.activeCalls=db.activeCalls.filter(x=>String(x.id)!==targetId);
+
  save();
- toast("Einsatz abgeschlossen – Einsatzmittel Status 1");
+ toast("Einsatz abgeschlossen – zugeordnete Mittel Status 1");
  render("leitstelle");
 }
 function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
@@ -830,6 +897,43 @@ function aao(){
 }
 function addAAO(){const name=prompt("Name des Einsatzstichworts");if(!name)return;const water=prompt("Bedingung Wasser? (ja/nein/leer)","ja");const conscious=prompt("Bedingung Bewusstsein? (ja/nein/leer)","");const breathing=prompt("Bedingung Atmung? (ja/nein/leer)","");const types=prompt("Alarmierung, z.B. RTB:1,WR-Trupp:1,RTW:1","RTB:1,WR-Trupp:1");let rules={};if(water)rules.water=water;if(conscious)rules.conscious=conscious;if(breathing)rules.breathing=breathing;let units=types.split(",").map(s=>{let [type,n]=s.trim().split(":");return{type,n:Number(n)||1}});db.aao.push({id:Date.now(),name,rules,units});save();render("aao")}
 function deleteAAO(id){if(confirm("AAO wirklich löschen?")){db.aao=db.aao.filter(x=>x.id!==id);save();render("aao")}}
+
+function ivenaStatusClass(s){return s==="grün"?"s2":s==="gelb"?"s3":"s6"}
+function setIvenaStatus(id,status){
+ const h=db.ivena.find(x=>String(x.id)===String(id));if(!h)return;
+ h.status=status;save();render("ivena");
+}
+function editIvena(id){
+ const h=db.ivena.find(x=>String(x.id)===String(id));if(!h)return;
+ const note=prompt("Übungshinweis / Kapazität / Besonderheiten",h.note||"");
+ if(note===null)return;
+ h.note=note;save();render("ivena");
+}
+function addIvena(){
+ const name=prompt("Zielklinik / Einrichtung");if(!name)return;
+ const place=prompt("Ort","");
+ db.ivena.push({id:Date.now(),name,place,status:"grün",note:"Übungsstatus – manuell pflegen"});
+ save();render("ivena");
+}
+function deleteIvena(id){
+ if(!confirm("Eintrag aus der IVENA-Übungsansicht löschen?"))return;
+ db.ivena=db.ivena.filter(x=>String(x.id)!==String(id));save();render("ivena");
+}
+function ivena(){
+ document.getElementById("app").innerHTML=`<div class="card">
+  <div class="row between"><div><h2>🏥 IVENA – Übungsansicht</h2><p class="muted">Lokale Simulation für die Ausbildung. Keine Verbindung zum realen IVENA-System und keine Echtzeit-Kapazitätsdaten.</p></div><button class="primary" onclick="addIvena()">＋ Ziel hinzufügen</button></div>
+  <div style="overflow:auto"><table><thead><tr><th>Ziel</th><th>Ort</th><th>Übungsstatus</th><th>Hinweis</th><th>Aktionen</th></tr></thead><tbody>
+   ${db.ivena.map(h=>`<tr>
+    <td><b>${esc(h.name)}</b></td><td>${esc(h.place||"—")}</td>
+    <td><span class="status ${ivenaStatusClass(h.status)}">${esc(h.status.toUpperCase())}</span></td>
+    <td>${esc(h.note||"")}</td>
+    <td><div class="row"><button onclick="setIvenaStatus(${h.id},'grün')">🟢</button><button onclick="setIvenaStatus(${h.id},'gelb')">🟡</button><button onclick="setIvenaStatus(${h.id},'rot')">🔴</button><button onclick="editIvena(${h.id})">✏️</button><button onclick="deleteIvena(${h.id})">🗑️</button></div></td>
+   </tr>`).join("")}
+  </tbody></table></div>
+  <div class="card" style="margin-top:12px;background:#f8fafc"><b>Für Übungen gedacht:</b> Grün/Gelb/Rot und Hinweise können von der Übungsleitung frei gesetzt werden, z. B. „CT belegt“, „Schockraum frei“ oder „keine pädiatrische Aufnahme“.</div>
+ </div>`;
+}
+
 function szenarien(){
  document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🎓 Übungsszenarien</h2><p class="muted">Szenario auswählen und als Übungsnotruf starten.</p></div><button class="primary" onclick="addScenario()">＋ Szenario</button></div>
  ${db.scenarios.map(s=>`<div class="card" style="margin:10px 0;background:#f8fafc"><div class="row between"><div><h3>${esc(s.name)}</h3><div class="muted">📍 ${esc(s.location)}</div><p>${esc(s.note)}</p></div><button class="primary" onclick="startScenario(${s.id})">▶ Starten</button></div></div>`).join("")}</div>`;

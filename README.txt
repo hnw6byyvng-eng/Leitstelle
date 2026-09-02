@@ -73,3 +73,13 @@ Version 2.5:
 - Notruf-Freitext, XABCDE und Alarmierungs-Freitext werden im Einsatz gespeichert und in den Meldetext übernommen.
 - Bestehende lokale Daten aus v2.4 werden beim ersten Start übernommen.
 - JavaScript-Syntax geprüft.
+
+Version 2.6:
+- Parallele Notrufe/Einsätze: mehrere Einsätze können gleichzeitig offen und alarmiert sein.
+- Beim Start eines weiteren Notrufs bleibt der bisherige Einsatz erhalten.
+- Einsätze können in der Leitstellenübersicht einzeln geöffnet und abgeschlossen werden.
+- Einsatz-abschließen-Funktion neu aufgebaut und auf konkrete Einsatz-ID bezogen.
+- Beim Abschluss werden die zugeordneten/alarmierten Mittel auf Status 1 gesetzt.
+- Neuer Reiter IVENA als reine Übungssimulation (keine Verbindung zum realen IVENA, keine Echtzeitdaten).
+- IVENA-Ziele können hinzugefügt und mit Grün/Gelb/Rot sowie Übungshinweisen gepflegt werden.
+- JavaScript-Syntax geprüft.
