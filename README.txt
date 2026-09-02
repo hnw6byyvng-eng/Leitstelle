@@ -59,3 +59,17 @@ Version 2.4:
 - Bei medizinischen Notfällen/Reanimation wird XABCDE vollständig abgefragt:
   X kritische Blutung, A Atemweg, B Atmung, C Kreislauf, D Neurologie/Bewusstsein, E weitere Befunde/Umgebung.
 - JavaScript-Syntax vor Ausgabe mit Node geprüft.
+
+Version 2.5:
+- Geografische Fahrzeugauswahl korrigiert:
+  Bei manueller Ortsangabe wird der Einsatzort automatisch über OpenStreetMap/Nominatim geocodiert.
+  Die Fahrzeugauswahl wird anschließend nach Entfernung zum Einsatzort sortiert.
+  Damit wird nicht mehr pauschal 81-83-1 gewählt.
+- Vor der endgültigen Alarmierung öffnet sich eine eigene Alarmvorbereitung mit frei editierbarem Freitextfeld.
+- XABCDE ist vor Alarmierung verpflichtend bei Reanimation und immer dann, wenn eine Person verletzt,
+  erkrankt oder unmittelbar gefährdet ist.
+- XABCDE wird auch bei Person im Wasser, Verkehrsunfall und Feuer mit Menschengefährdung abgefragt.
+- Alarmierung wird blockiert, solange erforderliches XABCDE nicht vollständig ist.
+- Notruf-Freitext, XABCDE und Alarmierungs-Freitext werden im Einsatz gespeichert und in den Meldetext übernommen.
+- Bestehende lokale Daten aus v2.4 werden beim ersten Start übernommen.
+- JavaScript-Syntax geprüft.

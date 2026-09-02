@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-4";
+const KEY="dlrg-jet-v2-5";
 const defaults={
  units:[
   
@@ -123,7 +123,7 @@ const defaults={
  ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
@@ -393,31 +393,48 @@ function haversine(lat1,lon1,lat2,lon2){
  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
  return 2*R*Math.asin(Math.sqrt(a));
 }
-function incidentArea(){
+function incidentPoint(){
  const c=db.currentCall||{};
- const txt=((c.location||"")+" "+((c.answers&&c.answers.location)||"")+" "+(c.address||"")).toLowerCase();
- for(const area of Object.keys(AREA_CENTERS))if(txt.includes(area.toLowerCase()))return area;
- const lat=Number(c.lat||c.latitude),lon=Number(c.lng||c.lon||c.longitude);
- if(Number.isFinite(lat)&&Number.isFinite(lon)){
-   return Object.entries(AREA_CENTERS).sort((a,b)=>
-     haversine(lat,lon,a[1][0],a[1][1])-haversine(lat,lon,b[1][0],b[1][1])
-   )[0][0];
+ const lat=Number(c.lat??c.latitude), lon=Number(c.lng??c.lon??c.longitude);
+ if(Number.isFinite(lat)&&Number.isFinite(lon))return [lat,lon];
+ const txt=((c.location||"")+" "+(c.geocodedAddress||"")+" "+(c.answers?.location||"")).toLowerCase();
+ for(const [area,pt] of Object.entries(AREA_CENTERS)){
+   if(txt.includes(area.toLowerCase()))return pt;
  }
  return null;
 }
-function geographicRank(u){
- const target=incidentArea();
- if(!target)return Number(optaAreaDigit(u))||99;
- const areas=Object.keys(AREA_CENTERS);
+function incidentArea(){
+ const p=incidentPoint();
+ if(!p)return null;
+ return Object.entries(AREA_CENTERS).sort((a,b)=>
+   haversine(p[0],p[1],a[1][0],a[1][1])-haversine(p[0],p[1],b[1][0],b[1][1])
+ )[0][0];
+}
+function unitPoint(u){
  const a=optaAreaName(u);
- if(a===target)return 0;
- if(AREA_CENTERS[a]&&AREA_CENTERS[target]){
-   return haversine(AREA_CENTERS[target][0],AREA_CENTERS[target][1],AREA_CENTERS[a][0],AREA_CENTERS[a][1]);
- }
+ if(AREA_CENTERS[a])return AREA_CENTERS[a];
+ const loc=String(u.location||"").toLowerCase();
+ for(const [area,pt] of Object.entries(AREA_CENTERS))
+   if(loc.includes(area.toLowerCase()))return pt;
+ return null;
+}
+function geographicRank(u){
+ const target=incidentPoint(), home=unitPoint(u);
+ if(target&&home)return haversine(target[0],target[1],home[0],home[1]);
+ const area=incidentArea();
+ if(area&&optaAreaName(u)===area)return 0;
  return 999;
 }
 function nearestFirst(arr){
- return [...arr].sort((a,b)=>geographicRank(a)-geographicRank(b) || String(a.name).localeCompare(String(b.name),"de",{numeric:true}));
+ return [...arr].sort((a,b)=>{
+   const ga=geographicRank(a),gb=geographicRank(b);
+   if(ga!==gb)return ga-gb;
+   // status 1/2 preference remains, but geography wins first
+   const sa=a.status==="1"?0:a.status==="2"?1:2;
+   const sb=b.status==="1"?0:b.status==="2"?1:2;
+   if(sa!==sb)return sa-sb;
+   return String(a.name).localeCompare(String(b.name),"de",{numeric:true});
+ });
 }
 
 function availableUnits(type,org=null){
@@ -474,7 +491,7 @@ function dashboard(){
  <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
  <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div></div>
  <div class="suggest"><b>🧠 Automatischer Vorschlag</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>${c.nafo&&c.nafo.length?`<div class="card" style="margin-top:10px;background:#f8fafc"><h3>📟 Nachforderungen</h3>${c.nafo.map(n=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${new Date(n.time).toLocaleTimeString("de-DE")}</b> – ${esc(n.reason)}</div>`).join("")}</div>`:""}
- <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button onclick="render('karte')">🗺️ Notfallort</button><button class="primary" onclick="alarmProposal()">🚨 Vorschlag alarmieren</button><button onclick="extraResources()">➕ Zusätzliche Rettungsmittel</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
+ <div class="row" style="margin-top:10px"><button onclick="render('notruf')">Notruf fortsetzen</button><button onclick="render('karte')">🗺️ Notfallort</button><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="extraResources()">➕ Zusätzliche Rettungsmittel</button><button class="btn blue" onclick="openNafo()">📟 NAFO / Nachforderung</button><button class="primary" onclick="finishCall()">Einsatz abschließen</button></div></div>`:`<div class="card"><h2>Keine laufende Notrufabfrage</h2><p class="muted">Starte einen Übungsnotruf, um die SNA durchzuspielen.</p></div>`}
  </section>
  <aside><div class="card"><h2>🚤 Mittelübersicht</h2>${db.units.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
  <div class="card"><h2>AAO-Vorschläge</h2><p class="muted">Die AAO wird aus den Antworten des Notrufes ermittelt.</p>${db.aao.map(a=>`<div style="padding:8px 0"><b>${esc(a.name)}</b><br><small>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</small></div>`).join("")}</div></aside></div>`;
@@ -483,12 +500,20 @@ function newCall(pref={}){db.currentCall={id:Date.now().toString().slice(-5),loc
 const qs=[
  ["location","📍 Wo genau ist der Notfallort?","text"],
  ["event","❓ Was ist passiert?","event112"],
+ ["freeText","📝 Schilderung des Anrufers / Freitext","textarea"],
  ["count","👥 Wie viele Personen/Tiere sind betroffen?","count"],
  ["conscious","🧠 Ist die betroffene Person bei Bewusstsein?","ynMedical"],
  ["breathing","🫁 Atmet die betroffene Person normal?","ynMedical"],
  ["trapped","🚗 Ist jemand eingeklemmt oder eingeschlossen?","ynTech"],
  ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
  ["water","🌊 Befindet sich eine Person oder ein Tier im Wasser?","ynWater"],
+ ["personDanger","⚠️ Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
+ ["x_massive","X – Gibt es eine kritische / lebensbedrohliche Blutung?","xyn"],
+ ["a_airway","A – Ist der Atemweg frei?","xairway"],
+ ["b_breath","B – Wie ist die Atmung?","xbreathing"],
+ ["c_circ","C – Gibt es Kreislaufprobleme, Schockzeichen oder relevante Blutungen?","xcirc"],
+ ["d_disability","D – Wie ist der neurologische Zustand / das Bewusstsein?","xdisability"],
+ ["e_exposure","E – Weitere Verletzungen, Erkrankungszeichen oder Umgebungseinflüsse?","textarea"],
  ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
  ["callback","☎️ Wie lautet die Rückrufnummer?","text"]
 ];
@@ -497,19 +522,61 @@ function notruf(){
  const c=db.currentCall, idx=qs.findIndex(q=>!(q[0] in c.answers) && !(q[0]==="location"&&c.location));
  const q=idx<0?null:qs[idx];
  document.getElementById("app").innerHTML=`<div class="grid"><section><div class="card call"><div class="row between"><div><h2>📞 Eingehender Notruf #${c.id}</h2><div class="muted">„Notruf, DLRG-Leitstelle. Wo genau ist der Notfallort?“</div></div><button onclick="render('leitstelle')">Zur Übersicht</button></div>
- <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="alarmProposal()">🚨 Vorschlag alarmieren</button><button onclick="render(\'karte\')">🗺️ Notfallort prüfen</button></div><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div></div>
+ <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render(\'karte\')">🗺️ Notfallort prüfen</button></div><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div></div>
  <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div></section>
  <aside><div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div></aside></div>`;
 }
+function needsXABCDE(c=db.currentCall){
+ if(!c)return false;
+ const a=c.answers||{}, e=a.event||"";
+ if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return true;
+ if(e==="Feuer / Rauchentwicklung" && a.firePeople==="ja")return true;
+ if(e==="Boot in Notlage" && a.personDanger==="ja")return true;
+ if(["Technische Hilfeleistung","Sonstiger Notfall"].includes(e) && a.personDanger==="ja")return true;
+ if(a.personDanger==="ja")return true;
+ return false;
+}
+function xabcdeComplete(c=db.currentCall){
+ if(!needsXABCDE(c))return true;
+ const a=c?.answers||{};
+ return ["x_massive","a_airway","b_breath","c_circ","d_disability","e_exposure"].every(k=>k in a && String(a[k]).trim()!=="");
+}
 function questionHTML(q){
- const medIds=["x_massive","a_airway","b_breath","c_circ","d_disability","e_exposure"];
- if(medIds.includes(q.id)){
-   const ev=(db.currentCall?.answers?.event||"").toLowerCase();
-   if(!(ev.includes("medizin")||ev.includes("reanimation")||ev.includes("bewusstlos")))return "";
+ const [id,label,type]=q;
+ const c=db.currentCall, e=c?.answers?.event||"";
+ const medical=["Medizinischer Notfall","Reanimation"].includes(e);
+ const fire=e==="Feuer / Rauchentwicklung";
+ const tech=["Verkehrsunfall","Technische Hilfeleistung"].includes(e);
+ const water=["Person im Wasser","Tier im Wasser","Boot in Notlage"].includes(e);
+
+ const skip=(value)=>{
+   setTimeout(()=>answer(id,value),0);
+   return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`;
+ };
+
+ if(type==="ynMedical"&&!medical)return skip("nicht zutreffend");
+ if(type==="ynFire"&&!fire)return skip("nicht zutreffend");
+ if(type==="ynTech"&&!tech)return skip("nicht zutreffend");
+ if(type==="ynWater"&&!water)return skip("nein");
+
+ if(type==="ynPersonDanger"){
+   if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return skip("ja");
+   if(e==="Tier im Wasser")return skip("nein");
  }
 
- if(q[2]==="text"||q[2]==="count") return `<label>${q[1]}</label><div class="row"><input id="ans" type="${q[2]==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${q[0]}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
- if(q[2]==="event112") return `<label>${q[1]}</label><div class="answer">
+ if(["xyn","xairway","xbreathing","xcirc","xdisability"].includes(type) && !needsXABCDE(c))
+   return skip("nicht zutreffend");
+ if(id==="e_exposure" && !needsXABCDE(c))
+   return skip("nicht zutreffend");
+
+ if(type==="text"||type==="count"){
+   return `<label>${label}</label><div class="row"><input id="ans" type="${type==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
+ }
+ if(type==="textarea"){
+   const ph=id==="freeText"?"Freie Schilderung des Anrufers, zusätzliche Angaben, Besonderheiten …":"z. B. Verletzungen, Schmerzen, Haut, Temperatur, Unfallmechanismus, Vergiftung …";
+   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
+ }
+ if(type==="event112") return `<label>${label}</label><div class="answer">
    <button onclick="answer('event','Medizinischer Notfall')">🚑 Medizinischer Notfall</button>
    <button onclick="answer('event','Reanimation')">❤️ Reanimation / bewusstlos</button>
    <button onclick="answer('event','Feuer / Rauchentwicklung')">🔥 Feuer / Rauch</button>
@@ -520,20 +587,62 @@ function questionHTML(q){
    <button onclick="answer('event','Boot in Notlage')">🚤 Boot in Notlage</button>
    <button onclick="answer('event','Sonstiger Notfall')">❓ Sonstiger Notfall</button>
  </div>`;
- const e=db.currentCall?.answers?.event||"";
- const medical=["Medizinischer Notfall","Reanimation"].includes(e);
- const fire=e==="Feuer / Rauchentwicklung";
- const tech=["Verkehrsunfall","Technische Hilfeleistung"].includes(e);
- const water=["Person im Wasser","Tier im Wasser","Boot in Notlage"].includes(e);
- if(q[2]==="ynMedical"&&!medical) {setTimeout(()=>answer(q[0],"nicht zutreffend"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
- if(q[2]==="ynFire"&&!fire) {setTimeout(()=>answer(q[0],"nicht zutreffend"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
- if(q[2]==="ynTech"&&!tech) {setTimeout(()=>answer(q[0],"nicht zutreffend"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
- if(q[2]==="ynWater"&&!water) {setTimeout(()=>answer(q[0],"nein"),0); return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`}
- return `<label>${q[1]}</label><div class="answer"><button onclick="answer('${q[0]}','ja')">Ja</button><button onclick="answer('${q[0]}','nein')">Nein</button><button onclick="answer('${q[0]}','unbekannt')">Unbekannt</button></div>`;
+ if(type==="xyn") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Nein')">Nein</button>
+   <button onclick="answer('${id}','Ja')">Ja</button>
+   <button onclick="answer('${id}','Unklar')">Unklar</button></div>`;
+ if(type==="xairway") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Frei')">Frei</button>
+   <button onclick="answer('${id}','Gefährdet / verlegt')">Gefährdet / verlegt</button>
+   <button onclick="answer('${id}','Unklar')">Unklar</button></div>`;
+ if(type==="xbreathing") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Normal')">Normal</button>
+   <button onclick="answer('${id}','Auffällig')">Auffällig</button>
+   <button onclick="answer('${id}','Keine normale Atmung')">Keine normale Atmung</button>
+   <button onclick="answer('${id}','Unklar')">Unklar</button></div>`;
+ if(type==="xcirc") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Unauffällig')">Unauffällig</button>
+   <button onclick="answer('${id}','Auffällig / Schockzeichen')">Auffällig / Schockzeichen</button>
+   <button onclick="answer('${id}','Relevante Blutung')">Relevante Blutung</button>
+   <button onclick="answer('${id}','Unklar')">Unklar</button></div>`;
+ if(type==="xdisability") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Wach / orientiert')">Wach / orientiert</button>
+   <button onclick="answer('${id}','Bewusstseinsgetrübt')">Bewusstseinsgetrübt</button>
+   <button onclick="answer('${id}','Bewusstlos')">Bewusstlos</button>
+   <button onclick="answer('${id}','Krampfanfall / neurologisch auffällig')">Krampfanfall / neurologisch auffällig</button>
+   <button onclick="answer('${id}','Unklar')">Unklar</button></div>`;
+ return `<label>${label}</label><div class="answer"><button onclick="answer('${id}','ja')">Ja</button><button onclick="answer('${id}','nein')">Nein</button><button onclick="answer('${id}','unbekannt')">Unbekannt</button></div>`;
 }
-function answer(k,v){
- const c=db.currentCall;c.answers[k]=v;if(k==="location")c.location=v;if(k==="count")c.count=v;
- const q=qs.find(x=>x[0]===k);c.history.push({q:q[1],a:v}); evaluate();save();notruf()
+
+async function geocodeIncidentAddress(address){
+ if(!address || address.trim().length<3)return false;
+ try{
+   const q=encodeURIComponent(address.includes("Friesland")?address:`${address}, Landkreis Friesland, Niedersachsen, Deutschland`);
+   const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=de&q=${q}`,{headers:{"Accept":"application/json"}});
+   const rows=await res.json();
+   if(rows&&rows[0]){
+     const c=db.currentCall;
+     c.lat=Number(rows[0].lat); c.lng=Number(rows[0].lon);
+     c.geocodedAddress=rows[0].display_name||address;
+     return true;
+   }
+ }catch(e){}
+ return false;
+}
+
+async function answer(k,v){
+ const c=db.currentCall;
+ c.answers[k]=v;
+ if(k==="location"){
+   c.location=v;
+   await geocodeIncidentAddress(v);
+ }
+ if(k==="count")c.count=v;
+ const q=qs.find(x=>x[0]===k);
+ c.history.push({q:q?q[1]:k,a:v});
+ evaluate();
+ save();
+ notruf();
 }
 function evaluate(){
  applyDutySchedule();
@@ -593,7 +702,7 @@ function evaluate(){
  c.keyword=keyword;
  c.proposedUnitIds=selected.filter(x=>!x.missing).map(x=>x.id);
  c.proposal=selected;
- c.suggestion=selected.map(x=>x.missing?`⚠️ ${x.type} (${x.org||"beliebig"}) nicht verfügbar`:`${x.opta||x.name} – ${x.type}${x.firstResponder?" (First Responder)":""}`).join(" · ");
+ c.suggestion=selected.map(x=>x.missing?`⚠️ ${x.type} (${x.org||"beliebig"}) nicht verfügbar`:`${x.opta||x.name} – ${x.type}${x.firstResponder?" (First Responder)":""}${Number.isFinite(geographicRank(x))&&geographicRank(x)<999?` (~${geographicRank(x).toFixed(1)} km Luftlinie)`:``}`).join(" · ");
  c.sr=sr;
 }
 
@@ -602,6 +711,11 @@ function buildMeldertext(c, nafoReason=""){
   const lage=c.answers?.event||c.keyword||"Einsatz";
   const mittel=(c.suggestion||"").replace(/<[^>]*>/g,"");
   let txt=`${c.keyword||"EINSATZ"}\nOrt: ${ort}\nMeldung: ${lage}`;
+  if(c.answers?.freeText)txt+=`\nNotruf-Freitext: ${c.answers.freeText}`;
+  if(needsXABCDE(c)){
+    txt+=`\nXABCDE: X ${c.answers.x_massive}; A ${c.answers.a_airway}; B ${c.answers.b_breath}; C ${c.answers.c_circ}; D ${c.answers.d_disability}; E ${c.answers.e_exposure}`;
+  }
+  if(c.alarmFreeText)txt+=`\nAlarmierungs-Freitext: ${c.alarmFreeText}`;
   if(mittel) txt+=`\nWeitere Rettungsmittel: ${mittel}`;
   txt+=`\nAnfahrt: entsprechend AAO`;
   if(nafoReason) txt+=`\nNAFO-Grund: ${nafoReason}`;
@@ -632,9 +746,51 @@ function showNafo(text){
 }
 
 
+function prepareAlarm(){
+ const c=db.currentCall;
+ if(!c||!c.proposedUnitIds||!c.proposedUnitIds.length){toast("Kein alarmierbarer Vorschlag vorhanden");return}
+ if(needsXABCDE(c)&&!xabcdeComplete(c)){
+   toast("Vor Alarmierung muss XABCDE vollständig abgefragt werden");
+   render("notruf");
+   return;
+ }
+ const xtext=needsXABCDE(c)?[
+   `X: ${c.answers.x_massive}`,
+   `A: ${c.answers.a_airway}`,
+   `B: ${c.answers.b_breath}`,
+   `C: ${c.answers.c_circ}`,
+   `D: ${c.answers.d_disability}`,
+   `E: ${c.answers.e_exposure}`
+ ].join("\n"):"";
+ document.getElementById("app").innerHTML=`<div class="card call">
+   <div class="row between"><div><h2>🚨 Alarmierung vorbereiten</h2><div class="muted">Noch keine Alarmierung – Angaben prüfen und ergänzen.</div></div><button onclick="render('leitstelle')">Abbrechen</button></div>
+   <label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"—")}</div>
+   <label style="margin-top:12px">Vorgeschlagene Einsatzmittel</label>
+   <div class="suggest">${esc(c.suggestion||"—")}</div>
+   ${xtext?`<label style="margin-top:12px">XABCDE</label><pre style="white-space:pre-wrap;background:#f8fafc;padding:10px;border-radius:10px">${esc(xtext)}</pre>`:""}
+   <label style="margin-top:12px">📝 Freitext für die Alarmierung</label>
+   <textarea id="alarmFreeText" rows="7" placeholder="Zusätzliche Lageinformationen, Hinweise zur Anfahrt, Gefahren, Zugang, Ansprechpartner …">${esc(c.alarmFreeText||c.answers?.freeText||"")}</textarea>
+   <div class="row" style="margin-top:12px">
+     <button onclick="render('leitstelle')">Zurück</button>
+     <button class="primary" onclick="confirmAlarm()">🚨 Jetzt alarmieren</button>
+   </div>
+   <p class="muted">Simulation: Es wird keine reale Alarmierung ausgelöst.</p>
+ </div>`;
+}
+function confirmAlarm(){
+ const c=db.currentCall;
+ if(!c)return;
+ c.alarmFreeText=document.getElementById("alarmFreeText")?.value||"";
+ alarmProposal();
+}
 function alarmProposal(){
  const c=db.currentCall;
  if(!c||!c.proposedUnitIds||!c.proposedUnitIds.length){toast("Kein alarmierbarer Vorschlag vorhanden");return}
+ if(needsXABCDE(c)&&!xabcdeComplete(c)){
+   toast("XABCDE ist noch nicht vollständig");
+   render("notruf");
+   return;
+ }
  const now=new Date();
  c.alarmedUnits=c.alarmedUnits||[];
  for(const id of c.proposedUnitIds){
@@ -644,7 +800,7 @@ function alarmProposal(){
    if(!c.alarmedUnits.includes(id))c.alarmedUnits.push(id);
  }
  c.alarmTime=now.toISOString();
- c.history.push({q:"🚨 Alarmierung",a:`Vorschlag alarmiert – ${now.toLocaleTimeString("de-DE")}`});
+ c.history.push({q:"🚨 Alarmierung",a:`Vorschlag alarmiert – ${now.toLocaleTimeString("de-DE")}${c.alarmFreeText?` | Freitext: ${c.alarmFreeText}`:""}`});
  save();
  toast("Vorschlag im Simulator alarmiert");
  render("leitstelle");
