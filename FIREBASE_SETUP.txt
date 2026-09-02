@@ -1,0 +1,26 @@
+DLRG JET Leitstelle v3.0 – Firebase Realtime Database
+
+1. Auf https://console.firebase.google.com ein neues Projekt anlegen.
+2. Im Projekt: Build -> Realtime Database -> Datenbank erstellen.
+3. Region auswählen.
+4. Für eine reine, isolierte Übungsdatenbank können zum Testen vorübergehend offene Regeln verwendet werden:
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+WICHTIG: Keine echten Patientendaten oder sensiblen Informationen speichern. Offene Regeln sind nicht für produktive Systeme gedacht.
+
+5. Die Realtime-Database-URL kopieren, z.B.
+https://projektname-default-rtdb.europe-west1.firebasedatabase.app
+
+6. In der Leitstelle:
+Rettungsmittel -> Live-Verbindung -> URL einfügen -> Speichern & aktivieren.
+
+7. Danach bei jedem Fahrzeug:
+Rettungsmittel -> Link / QR.
+Der QR-Code enthält Fahrzeug-ID, Übungs-ID und Datenbank-URL.
+
+8. QR auf dem Fahrzeug-Handy öffnen. Dieses Terminal sieht nur die Einsätze, denen dieses Fahrzeug zugeordnet wurde.
+Statusänderungen am Fahrzeug werden an die Leitstelle zurückgeschrieben.

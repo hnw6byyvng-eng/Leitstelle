@@ -102,3 +102,14 @@ Version 2.8:
 - Separate „Nachforderung“ mit Grund/Lageänderung, Wahl des Mittels, Status 3 und NAFO-Meldetext.
 - Sichtbare Versionsanzeige v2.8.
 - JavaScript-Syntax geprüft.
+
+Version 3.0 – Fahrzeugterminal:
+- Pro Rettungsmittel eigener Fahrzeuglink und QR-Code.
+- Fahrzeugansicht zeigt nur dem Fahrzeug zugeordnete Einsätze.
+- Fahrzeug kann eigene Statusmeldungen senden.
+- Live-Synchronisation optional über Firebase Realtime Database.
+- Leitstelle überträgt Erstalarmierungen, Zusatzmittel und Nachforderungen.
+- Fahrzeugterminal aktualisiert sich automatisch im 2-Sekunden-Takt.
+- Leitstelle übernimmt Statusänderungen aus der Cloud.
+- QR-Code direkt im Reiter Rettungsmittel.
+- JavaScript-Syntax geprüft.

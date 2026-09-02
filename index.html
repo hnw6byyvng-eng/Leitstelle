@@ -41,13 +41,14 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 .coords{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v2.8</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.0</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-8";
+const KEY="dlrg-jet-v3-0";
 const defaults={
  units:[
   
@@ -123,8 +124,10 @@ const defaults={
  ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
+if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
+if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=[
  {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",status:"grün",note:"Übungsstatus – manuell pflegen"},
@@ -292,7 +295,7 @@ function applyMapLocation(){
   save();
   toast("Notfallort übernommen");
   applyDutySchedule();
-render("leitstelle");
+if(!initVehicleMode()) render("leitstelle");
 }
 
 function useMyLocation(){
@@ -572,6 +575,7 @@ function addResourceType(type,mode="additional"){
    c.history.push({q:"📟 Nachforderung",a:`${unitLabel(u)} | ${reason}`});
    delete c.pendingNafoReason;
    save();
+   if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
    toast(`${u.opta||u.name} nachgefordert`);
    showNafo(text);
    return;
@@ -582,6 +586,7 @@ function addResourceType(type,mode="additional"){
    a:unitLabel(u)
  });
  save();
+ if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
  toast(c.alarmTime?`${u.opta||u.name} zusätzlich alarmiert`:`${u.opta||u.name} zum Vorschlag ergänzt`);
  showResourcePicker("additional");
 }
@@ -950,6 +955,7 @@ function alarmProposal(){
  c.alarmTime=now.toISOString();
  c.history.push({q:"🚨 Alarmierung",a:`Vorschlag alarmiert – ${now.toLocaleTimeString("de-DE")}${c.alarmFreeText?` | Freitext: ${c.alarmFreeText}`:""}`});
  save();
+ if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
  toast("Vorschlag im Simulator alarmiert – weiterer Notruf möglich");
  render("leitstelle");
 }
@@ -970,6 +976,7 @@ function finishCall(id=null){
    if(u)setUnitStatus(u,"1");
  });
  c.endTime=new Date().toISOString();
+ if(db.cloud?.enabled)setTimeout(()=>closeCallCloud(c),0);
  db.logs.unshift(c);
 
  if(source==="current")db.currentCall=null;
@@ -982,10 +989,230 @@ function finishCall(id=null){
 function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
 function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
 function setStatus(id,s){db.units.find(x=>x.id===id).status=s;save();toast("Status geändert")}
+
+function cleanDatabaseURL(url){
+ return String(url||"").trim().replace(/\/+$/,"");
+}
+function cloudBase(){
+ const url=cleanDatabaseURL(db.cloud?.databaseURL);
+ const sid=encodeURIComponent(db.cloud?.sessionId||"");
+ return url&&sid?`${url}/sessions/${sid}`:"";
+}
+async function cloudRequest(path,method="GET",data=null){
+ if(!db.cloud?.enabled || !db.cloud?.databaseURL)return null;
+ const base=cloudBase(); if(!base)return null;
+ const url=`${base}/${path}.json`;
+ const opt={method,headers:{"Content-Type":"application/json"}};
+ if(data!==null)opt.body=JSON.stringify(data);
+ try{
+   const r=await fetch(url,opt);
+   if(!r.ok)throw new Error(`HTTP ${r.status}`);
+   return await r.json();
+ }catch(e){
+   console.warn("Cloud sync",e);
+   return null;
+ }
+}
+async function pushUnitCloud(u){
+ if(!u || !db.cloud?.enabled)return;
+ await cloudRequest(`units/${encodeURIComponent(String(u.id))}`,"PUT",{
+  id:u.id,name:u.name,opta:u.opta,type:u.type,org:u.org,location:u.location,status:String(u.status),
+  updatedAt:new Date().toISOString()
+ });
+}
+async function pushCallCloud(c){
+ if(!c || !db.cloud?.enabled)return;
+ const unitIds=[...(c.alarmedUnits||[]),...(c.proposedUnitIds||[])].map(String);
+ const units=(db.units||[]).filter(u=>unitIds.includes(String(u.id))).map(u=>({
+   id:u.id,name:u.name,opta:u.opta,type:u.type,org:u.org,status:String(u.status)
+ }));
+ await cloudRequest(`calls/${encodeURIComponent(String(c.id))}`,"PUT",{
+   id:c.id,location:c.location||"",keyword:c.keyword||"",count:c.count||"",
+   suggestion:c.suggestion||"",alarmFreeText:c.alarmFreeText||"",
+   alarmTime:c.alarmTime||null,endTime:c.endTime||null,
+   unitIds,units,history:c.history||[],nafo:c.nafo||[],
+   updatedAt:new Date().toISOString()
+ });
+ for(const u of units){
+   await cloudRequest(`unitCalls/${encodeURIComponent(String(u.id))}/${encodeURIComponent(String(c.id))}`,"PUT",{
+     callId:c.id,active:!c.endTime,updatedAt:new Date().toISOString()
+   });
+ }
+}
+async function closeCallCloud(c){
+ if(!c || !db.cloud?.enabled)return;
+ await pushCallCloud(c);
+ for(const id of [...(c.alarmedUnits||[]),...(c.proposedUnitIds||[])].map(String)){
+   await cloudRequest(`unitCalls/${encodeURIComponent(id)}/${encodeURIComponent(String(c.id))}`,"PUT",{
+     callId:c.id,active:false,updatedAt:new Date().toISOString()
+   });
+ }
+}
+function openCloudSetup(){
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>☁️ Live-Verbindung für Fahrzeugterminals</h2>
+  <p>Für echte Synchronisation zwischen Leitstellen-iPad und Fahrzeug-Handys wird eine Firebase Realtime Database verwendet.</p>
+  <label>Firebase Realtime Database URL</label>
+  <input id="cloudUrl" placeholder="https://dein-projekt-default-rtdb.europe-west1.firebasedatabase.app" value="${esc(db.cloud?.databaseURL||"")}">
+  <label>Übungs-/Sitzungs-ID</label>
+  <input id="cloudSid" value="${esc(db.cloud?.sessionId||"")}">
+  <div class="row" style="margin-top:12px">
+   <button onclick="saveCloudSetup(false)">💾 Speichern</button>
+   <button class="primary" onclick="saveCloudSetup(true)">☁️ Speichern & aktivieren</button>
+   <button onclick="disableCloud()">Offline</button>
+   <button onclick="render('mittel')">Zurück</button>
+  </div>
+  <hr>
+  <p class="muted">Die Datenbank muss für eure Übung Lese-/Schreibzugriff zulassen. Das ist nur für eine isolierte Übungsdatenbank gedacht, nicht für sensible oder echte Patientendaten.</p>
+ </div>`;
+}
+function saveCloudSetup(enable){
+ db.cloud.databaseURL=cleanDatabaseURL(document.getElementById("cloudUrl")?.value);
+ db.cloud.sessionId=(document.getElementById("cloudSid")?.value||"").trim()||("JET-"+Math.random().toString(36).slice(2,8).toUpperCase());
+ db.cloud.enabled=!!enable && !!db.cloud.databaseURL;
+ save();
+ toast(db.cloud.enabled?"Live-Verbindung aktiviert":"Cloud-Einstellungen gespeichert");
+ render("mittel");
+}
+function disableCloud(){db.cloud.enabled=false;save();toast("Live-Verbindung deaktiviert");render("mittel")}
+function vehicleURL(u){
+ const base=location.origin+location.pathname;
+ const q=new URLSearchParams();
+ q.set("vehicle",String(u.id));
+ q.set("sid",db.cloud?.sessionId||"");
+ if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
+ return `${base}?${q.toString()}`;
+}
+function showVehicleQR(id){
+ const u=db.units.find(x=>String(x.id)===String(id)); if(!u)return;
+ const url=vehicleURL(u);
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>📱 Fahrzeugterminal – ${esc(u.opta||u.name)}</h2>
+  <p class="muted">${db.cloud?.enabled?"Dieser Link kann auf einem zweiten Gerät geöffnet werden.":"QR-Link ist erzeugt; für Live-Alarmierungen bitte zuerst die Cloud-Verbindung aktivieren."}</p>
+  <div style="display:flex;justify-content:center;margin:18px"><canvas id="qrCanvas"></canvas></div>
+  <label>Fahrzeuglink</label>
+  <textarea id="vehicleLink" rows="4" readonly>${esc(url)}</textarea>
+  <div class="row" style="margin-top:12px">
+   <button onclick="copyVehicleLink()">📋 Link kopieren</button>
+   <button onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">👁️ Öffnen</button>
+   <button onclick="render('mittel')">Zurück</button>
+  </div>
+ </div>`;
+ if(window.QRCode)QRCode.toCanvas(document.getElementById("qrCanvas"),url,{width:280,margin:2});
+}
+async function copyVehicleLink(){
+ const val=document.getElementById("vehicleLink")?.value||"";
+ try{await navigator.clipboard.writeText(val);toast("Fahrzeuglink kopiert")}catch(e){toast("Link markieren und kopieren")}
+}
+function openVehiclePreview(id){location.href=vehicleURL(db.units.find(x=>String(x.id)===String(id)))}
+function initVehicleMode(){
+ const params=new URLSearchParams(location.search);
+ const vehicle=params.get("vehicle"); if(!vehicle)return false;
+ const dburl=cleanDatabaseURL(params.get("db")||"");
+ const sid=params.get("sid")||"";
+ document.querySelector("nav")?.remove();
+ renderVehicleTerminal(vehicle,dburl,sid);
+ return true;
+}
+function vehicleCloudURL(dburl,sid,path){
+ return `${cleanDatabaseURL(dburl)}/sessions/${encodeURIComponent(sid)}/${path}.json`;
+}
+async function vehicleFetch(dburl,sid,path,method="GET",data=null){
+ if(!dburl||!sid)return null;
+ const opt={method,headers:{"Content-Type":"application/json"}};
+ if(data!==null)opt.body=JSON.stringify(data);
+ try{
+  const r=await fetch(vehicleCloudURL(dburl,sid,path),opt);
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  return await r.json();
+ }catch(e){console.warn(e);return null}
+}
+let vehiclePollTimer=null;
+async function renderVehicleTerminal(unitId,dburl,sid){
+ const local=db.units.find(x=>String(x.id)===String(unitId));
+ document.getElementById("app").innerHTML=`<div class="card" id="vehicleTerminal">
+   <div class="row between"><div><h2>📱 Fahrzeugterminal</h2><div class="big">${esc(local?.opta||local?.name||unitId)}</div></div><span class="status s3" id="vehicleLive">VERBINDE…</span></div>
+   <div id="vehicleBody"><p class="muted">Alarmdaten werden geladen …</p></div>
+ </div>`;
+ async function refresh(){
+   if(!dburl||!sid){
+     document.getElementById("vehicleLive").textContent="OFFLINE";
+     document.getElementById("vehicleBody").innerHTML=`<div class="card"><h2>Keine Live-Verbindung</h2><p>Dieser QR-Code wurde ohne eingerichtete Firebase-Datenbank erzeugt.</p></div>`;
+     return;
+   }
+   const unit=await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`);
+   const refs=await vehicleFetch(dburl,sid,`unitCalls/${encodeURIComponent(unitId)}`)||{};
+   const activeIds=Object.values(refs).filter(x=>x&&x.active).map(x=>String(x.callId));
+   const calls=[];
+   for(const id of activeIds){
+     const c=await vehicleFetch(dburl,sid,`calls/${encodeURIComponent(id)}`);
+     if(c)calls.push(c);
+   }
+   const live=document.getElementById("vehicleLive");
+   if(live){live.textContent="LIVE";live.className="status s2"}
+   const body=document.getElementById("vehicleBody"); if(!body)return;
+   body.innerHTML=`<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
+    <div class="answer" style="margin-top:12px">
+      ${["1","2","3","4","5","6","7","8"].map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
+    </div></div>
+    ${calls.length?calls.map(c=>`<div class="card call">
+       <div class="row between"><h2>🚨 ${esc(c.keyword||"Einsatz")}</h2><span class="status s3">ALARM</span></div>
+       <div class="big">📍 ${esc(c.location||"Ort unbekannt")}</div>
+       ${c.alarmFreeText?`<div class="suggest"><b>Meldetext / Zusatz:</b><div>${esc(c.alarmFreeText)}</div></div>`:""}
+       <div class="suggest"><b>Alarmierte Mittel</b><div>${esc(c.suggestion||"—")}</div></div>
+       ${Array.isArray(c.nafo)&&c.nafo.length?`<div class="card" style="background:#fff7ed"><b>📟 Nachforderung / Lageänderung</b>${c.nafo.slice(-3).map(n=>`<div>${esc(n.reason||"")}</div>`).join("")}</div>`:""}
+     </div>`).join(""):`<div class="card"><h2>Kein aktueller Einsatz</h2><p class="muted">Dieses Fahrzeug sieht nur Einsätze, denen es zugeordnet wurde.</p></div>`}`;
+ }
+ await refresh();
+ clearInterval(vehiclePollTimer);
+ vehiclePollTimer=setInterval(refresh,2000);
+}
+async function vehicleSetStatus(unitId,status,dburl,sid){
+ await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`,"PATCH",{status:String(status),updatedAt:new Date().toISOString()});
+ toast(`Status ${status} gesendet`);
+}
+
 function mittel(){
  const units=geoSortUnits(db.units||[]);
- document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><h2>🚤 Rettungsmittel</h2><div class="row"><button onclick="realisticMode()">🎲 Realistisch</button><button class="primary" onclick="addUnit()">＋ Einheit</button></div></div><div style="overflow:auto"><table><thead><tr><th>OPTA / Funkrufname</th><th>Organisation</th><th>Typ</th><th>Bereich</th><th>Status</th><th>Aktion</th></tr></thead><tbody>${units.map(u=>`<tr><td><b>${esc(u.opta||u.name||"—")}</b></td><td>${esc(u.org||"—")}</td><td>${esc(u.type||"—")}</td><td>${esc(optaAreaName(u)||u.location||"—")}</td><td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td><td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">${["0","1","2","3","4","5","6","7","8"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div></div>`;
+ document.getElementById("app").innerHTML=`<div class="card">
+   <div class="row between">
+     <div>
+       <h2>🚤 Rettungsmittel</h2>
+       <p class="muted">Alle Einsatzmittel mit Status, geografischer Zuordnung und Fahrzeugterminal.</p>
+     </div>
+     <div class="row">
+       <button onclick="realisticMode()">🎲 Realistisch</button>
+       <button onclick="openCloudSetup()">☁️ Live-Verbindung</button>
+       <button class="primary" onclick="addUnit()">＋ Einheit</button>
+     </div>
+   </div>
+   <div class="card" style="margin:12px 0;background:#f8fafc">
+     <b>📱 Fahrzeugterminal:</b> Für jedes Fahrzeug kannst du einen eigenen Link bzw. QR-Code erzeugen.
+     ${db.cloud?.enabled?`<span class="status s2">LIVE · ${esc(db.cloud.sessionId)}</span>`:`<span class="status s3">Nur lokale Vorschau – Cloud noch nicht eingerichtet</span>`}
+   </div>
+   <div style="overflow:auto">
+    <table>
+     <thead>
+      <tr><th>OPTA / Funkrufname</th><th>Organisation</th><th>Typ</th><th>Bereich</th><th>Status</th><th>Fahrzeugterminal</th><th>Status ändern</th></tr>
+     </thead>
+     <tbody>
+      ${units.map(u=>`<tr>
+       <td><b>${esc(u.opta||u.name||"—")}</b></td>
+       <td>${esc(u.org||"—")}</td>
+       <td>${esc(u.type||"—")}</td>
+       <td>${esc(optaAreaName(u)||u.location||"—")}</td>
+       <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
+       <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button></div></td>
+       <td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">
+         ${["0","1","2","3","4","5","6","7","8"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}
+       </select></td>
+      </tr>`).join("")}
+     </tbody>
+    </table>
+   </div>
+ </div>`;
 }
+
 function setStatusFromSelect(id,status){
  const u=db.units.find(x=>String(x.id)===String(id));if(!u)return;
  setUnitStatus(u,String(status));save();render("mittel");
