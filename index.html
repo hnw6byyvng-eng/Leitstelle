@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-2";
+const KEY="dlrg-jet-v2-3";
 const defaults={
  units:[
   
@@ -66,7 +66,7 @@ const defaults={
   {id:109,name:"84-82-03",opta:"Rettung Friesland 84/82-03",type:"NEF",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notarzt / Reserve",verified:"BOS-Fahrzeuge"},
   {id:110,name:"84-83-01",opta:"Rettung Friesland 84/83-01",type:"RTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:111,name:"84-93-01",opta:"Rettung Friesland 84/93-01",type:"NKTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfalltransport, First Responder",schedule:"day_only",verified:"Nutzerangabe"},
-  {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Friesische Wehde",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"Nutzerangabe"},
+  {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"Nutzerangabe"},
 
   {id:201,name:"12-11-01",opta:"Florian Friesland 12-11-1",type:"ELW",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Einsatzleitung",verified:"Feuerwehr Varel"},
   {id:202,name:"12-17-01",opta:"Florian Friesland 12-17-1",type:"MTW",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"Feuerwehr Varel"},
@@ -331,6 +331,7 @@ function autoReturnToStation(){
 }
 
 function applyDutySchedule(){
+ syncLocationFromOpta();
  const h=new Date().getHours();
  const day=h>=7&&h<19;
  const set=(name,status)=>{const u=db.units.find(x=>x.name===name);if(u&&["1","2","6"].includes(u.status)&&u.status!==status)setUnitStatus(u,status)};
@@ -342,10 +343,44 @@ function applyDutySchedule(){
  set("87-83-02",day?"1":"6");
  save();
 }
+
+const OPTA_AREA_ORDER={
+ "1":"Jever",
+ "2":"Varel",
+ "3":"Zetel",
+ "4":"Sande",
+ "5":"Schortens",
+ "6":"Wangerland",
+ "7":"Bockhorn"
+};
+function optaAreaDigit(u){
+ const s=String(u.name||u.opta||"").replace(/[^\d]/g,"");
+ // Friesland tactical IDs in this simulator use the second digit of the numeric OPTA block.
+ return s.length>=2?s[1]:"9";
+}
+function optaAreaName(u){
+ return OPTA_AREA_ORDER[optaAreaDigit(u)]||u.location||"Sonstige";
+}
+function geoSortUnits(arr){
+ return [...arr].sort((a,b)=>{
+   const da=Number(optaAreaDigit(a)), db=Number(optaAreaDigit(b));
+   if(da!==db)return da-db;
+   return String(a.name).localeCompare(String(b.name),"de",{numeric:true});
+ });
+}
+function syncLocationFromOpta(){
+ db.units.forEach(u=>{
+   if(["Feuerwehr","Rettungsdienst"].includes(u.org)){
+     const area=OPTA_AREA_ORDER[optaAreaDigit(u)];
+     if(area)u.location=area;
+   }
+ });
+}
+
 function availableUnits(type,org=null){
- const prim=db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status));
+ const prim=geoSortUnits(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)));
  if(prim.length)return prim;
- return db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8");
+ return geoSortUnits(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"));
 }
 function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
 

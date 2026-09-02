@@ -39,3 +39,15 @@ Version 2.2:
 - Einsatz abschließen: alle dem Einsatz zugeordneten/alarmierten Einsatzmittel werden auf Status 1 gesetzt.
 - Status 1 wechselt automatisch nach zufälliger Rückkehrzeit von 2–10 Minuten auf Status 2.
 - Damit spätestens nach 10 Minuten „Frei auf Wache“.
+
+Version 2.3 – geografische OPTA-Zuordnung Friesland:
+1 = Jever
+2 = Varel
+3 = Zetel
+4 = Sande
+5 = Schortens
+6 = Wangerland
+7 = Bockhorn
+
+Rettungsdienst- und Feuerwehrmittel werden anhand der zweiten Ziffer des numerischen OPTA-Blocks
+dem Bereich zugeordnet und in der Mittelübersicht entsprechend 1–7 sortiert.
