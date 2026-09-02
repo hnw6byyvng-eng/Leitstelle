@@ -441,13 +441,6 @@ function evaluate(){
  c.suggestion=selected.map(x=>x.missing?`⚠️ ${x.type} (${x.org||"beliebig"}) nicht verfügbar`:`${x.opta||x.name} – ${x.type}${x.firstResponder?" (First Responder)":""}`).join(" · ");
  c.sr=sr;
 }
-let txt=avail.length?avail.map(u=>u.name+(u.status==="8"?" (Status 8)":"")).join(", "):"⚠️ nicht verfügbar";
-if(avail.length<w.n) txt+=" ⚠️ nur "+avail.length+"/"+w.n+" verfügbar";
-if(fallbackUsed) txt+=" · bedingt verfügbar";
-picks.push(`${w.n}× ${w.type}: ${txt}`)});c.suggestion=picks.join(" · ")}
- else if(a.water==="ja"){c.keyword="Wasserrettung – weitere Abklärung";c.suggestion="Noch kein vollständiger AAO-Treffer. Weitere Abfrage durchführen."}
- else c.keyword="Noch unklar"; 
-}
 
 function buildMeldertext(c, nafoReason=""){
   const ort=c.location||c.answers?.location||"Ort unbekannt";
