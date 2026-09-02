@@ -91,3 +91,14 @@ Version 2.7:
 - Button „Realistisch“ und „+ Einheit“ bleiben erhalten.
 - Sichtbare Versionsanzeige „Version 2.7“ ergänzt.
 - JavaScript-Syntax geprüft.
+
+Version 2.8:
+- Freitext aus der Notrufabfrage entfernt; Freitext vor Erstalarmierung bleibt.
+- „Weitere Rettungsmittel“ als separater Button am Einsatz und in der Alarmvorbereitung.
+- Schnellauswahl: RTW, NEF, NKTW, RTH, HLF, LF, RW, DLK, DLRG-Mittel, Polizei.
+- Je Fahrzeugtyp wird geografisch das nächste verfügbare Mittel gewählt.
+- Vor Erstalarmierung: Mittel wird zum Vorschlag ergänzt.
+- Nach Erstalarmierung: zusätzliches Mittel wird sofort Status 3 und dem Einsatz zugeordnet.
+- Separate „Nachforderung“ mit Grund/Lageänderung, Wahl des Mittels, Status 3 und NAFO-Meldetext.
+- Sichtbare Versionsanzeige v2.8.
+- JavaScript-Syntax geprüft.

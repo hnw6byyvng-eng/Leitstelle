@@ -43,11 +43,11 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </style>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v2.8</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-7";
+const KEY="dlrg-jet-v2-8";
 const defaults={
  units:[
   
@@ -123,7 +123,7 @@ const defaults={
  ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=[
@@ -469,24 +469,121 @@ function realisticMode(){
   save(); toast("Realistischer Statusmix gesetzt"); render("mittel");
 }
 
-function extraResources(){
-  const c=db.currentCall;
-  if(!c){toast("Kein laufender Einsatz");return}
-  const opts=db.units.filter(u=>["1","2","8"].includes(u.status));
-  if(!opts.length){toast("Keine verfügbaren Mittel");return}
-  const types=[...new Set(opts.map(u=>u.type))].sort();
-  const type=prompt("Zusätzliches Rettungsmittel / Fahrzeugtyp:\n"+types.join(", "));
-  if(!type)return;
-  const matches=opts.filter(u=>u.type.toLowerCase()===type.trim().toLowerCase());
-  if(!matches.length){toast("Kein passendes verfügbares Mittel");return}
-  const chosen=matches[0];
-  c.proposedUnitIds=c.proposedUnitIds||[];
-  if(!c.proposedUnitIds.includes(chosen.id))c.proposedUnitIds.push(chosen.id);
-  c.proposal=c.proposal||[];
-  if(!c.proposal.some(x=>x.id===chosen.id))c.proposal.push(chosen);
-  c.suggestion=(c.suggestion?c.suggestion+" · ":"")+`${chosen.opta||chosen.name} – ${chosen.type} (zusätzlich)`;
-  c.history.push({q:"➕ Zusätzliches Rettungsmittel",a:`${chosen.opta||chosen.name} – ${chosen.type}`});
-  save(); toast("Zusätzliches Mittel ergänzt"); render("leitstelle");
+
+
+
+const QUICK_RESOURCE_TYPES=[
+ "RTW","NEF","NKTW","RTH","HLF","LF","RW","DLK",
+ "GW Wasserrettung","MTW","GW Drohne","FuStW"
+];
+
+function activateCallById(id){
+ id=String(id);
+ if(db.currentCall && String(db.currentCall.id)===id)return db.currentCall;
+ if(db.currentCall)parkCurrentCall();
+ const i=(db.activeCalls||[]).findIndex(x=>String(x.id)===id);
+ if(i<0)return null;
+ db.currentCall=db.activeCalls.splice(i,1)[0];
+ save();
+ return db.currentCall;
+}
+function unitLabel(u){
+ return `${u.opta||u.name} – ${u.type}${u.location?` (${u.location})`:""}`;
+}
+function chooseAvailableByType(type){
+ const primary=nearestFirst(db.units.filter(u=>u.type===type && ["1","2"].includes(String(u.status))));
+ if(primary.length)return primary[0];
+ const fallback=nearestFirst(db.units.filter(u=>u.type===type && String(u.status)==="8"));
+ return fallback[0]||null;
+}
+function appendUnitToCall(c,u,label){
+ c.proposedUnitIds=c.proposedUnitIds||[];
+ c.proposal=c.proposal||[];
+ if(!c.proposedUnitIds.some(id=>String(id)===String(u.id)))c.proposedUnitIds.push(u.id);
+ if(!c.proposal.some(x=>String(x.id)===String(u.id)))c.proposal.push({...u});
+ const token=`${u.opta||u.name} – ${u.type}${label?` (${label})`:""}`;
+ if(!(c.suggestion||"").includes(u.opta||u.name))
+   c.suggestion=(c.suggestion?c.suggestion+" · ":"")+token;
+}
+function openAdditionalResources(id){
+ const c=activateCallById(id);
+ if(!c){toast("Einsatz nicht gefunden");return}
+ showResourcePicker("additional");
+}
+function openNachforderung(id){
+ const c=activateCallById(id);
+ if(!c){toast("Einsatz nicht gefunden");return}
+ if(!c.alarmTime){toast("Nachforderung erst nach der Erstalarmierung");return}
+ showResourcePicker("nafo");
+}
+function showResourcePicker(mode="additional"){
+ const c=db.currentCall;
+ if(!c){toast("Kein Einsatz ausgewählt");return}
+ const isNafo=mode==="nafo";
+ document.getElementById("app").innerHTML=`<div class="card call">
+  <div class="row between">
+   <div><h2>${isNafo?"📟 Nachforderung":"➕ Weitere Rettungsmittel"}</h2>
+   <div class="muted">Einsatz #${esc(c.id)} · ${esc(c.location||"Ort unbekannt")}</div></div>
+   <button onclick="render('leitstelle')">Zurück</button>
+  </div>
+  ${isNafo?`<label>Nachforderungsgrund / Lageänderung</label>
+    <textarea id="nafoReason" rows="4" placeholder="z. B. weiterer Patient, Zustand verschlechtert, zusätzliche technische Rettung erforderlich …">${esc(c.pendingNafoReason||"")}</textarea>`:""}
+  <label style="margin-top:12px">${isNafo?"Rettungsmittel nachfordern":"Rettungsmittel zum Einsatz hinzufügen"}</label>
+  <div class="answer">
+   ${QUICK_RESOURCE_TYPES.map(t=>{
+     const u=chooseAvailableByType(t);
+     const distance=u&&geographicRank(u)<999?`${geographicRank(u).toFixed(1)} km`:"verfügbar";
+     return `<button ${u?"":"disabled"} onclick="addResourceType('${t.replace(/'/g,"\\'")}','${mode}')">${esc(t)}<small style="display:block">${u?`${esc(u.opta||u.name)} · ${distance}`:"nicht verfügbar"}</small></button>`;
+   }).join("")}
+  </div>
+  <hr>
+  <label>Aktuell dem Einsatz zugeordnet</label>
+  <div class="suggest">${esc(c.suggestion||"Noch keine Mittel.")}</div>
+  <p class="muted">${isNafo?"Das gewählte Mittel wird sofort als Nachforderung alarmiert und auf Status 3 gesetzt.":"Bei bereits alarmiertem Einsatz wird das gewählte Mittel sofort dem Einsatz zugeordnet und auf Status 3 gesetzt. Vor der Erstalarmierung wird es nur dem Alarmvorschlag hinzugefügt."}</p>
+ </div>`;
+}
+function addResourceType(type,mode="additional"){
+ const c=db.currentCall;
+ if(!c)return;
+ const u=chooseAvailableByType(type);
+ if(!u){toast(`${type} nicht verfügbar`);showResourcePicker(mode);return}
+
+ const isNafo=mode==="nafo";
+ let reason="";
+ if(isNafo){
+   reason=(document.getElementById("nafoReason")?.value||"").trim();
+   if(!reason){toast("Bitte zuerst einen Nachforderungsgrund eintragen");return}
+   c.pendingNafoReason=reason;
+ }
+
+ appendUnitToCall(c,u,isNafo?"Nachforderung":"zusätzlich");
+
+ if(c.alarmTime || isNafo){
+   setUnitStatus(u,"3");
+   c.alarmedUnits=c.alarmedUnits||[];
+   if(!c.alarmedUnits.some(id=>String(id)===String(u.id)))c.alarmedUnits.push(u.id);
+ }
+
+ const now=new Date();
+ if(isNafo){
+   const text=buildMeldertext(c,reason)+`\nNachgefordertes Rettungsmittel: ${unitLabel(u)}`;
+   c.nafo=c.nafo||[];
+   c.nafo.push({time:now.toISOString(),reason,unitId:u.id,type:u.type,text});
+   c.history.push({q:"📟 Nachforderung",a:`${unitLabel(u)} | ${reason}`});
+   delete c.pendingNafoReason;
+   save();
+   toast(`${u.opta||u.name} nachgefordert`);
+   showNafo(text);
+   return;
+ }
+
+ c.history.push({
+   q:c.alarmTime?"➕ Zusätzliches Rettungsmittel alarmiert":"➕ Zum Alarmvorschlag ergänzt",
+   a:unitLabel(u)
+ });
+ save();
+ toast(c.alarmTime?`${u.opta||u.name} zusätzlich alarmiert`:`${u.opta||u.name} zum Vorschlag ergänzt`);
+ showResourcePicker("additional");
 }
 
 function allOpenCalls(){
@@ -531,7 +628,8 @@ function incidentCard(c,isSelected){
     <button onclick="selectCall('${esc(c.id)}','notruf')">${isSelected?"Notruf öffnen":"Einsatz öffnen"}</button>
     <button onclick="selectCall('${esc(c.id)}','karte')">🗺️ Karte</button>
     ${!c.alarmTime?`<button class="primary" onclick="selectCall('${esc(c.id)}','notruf')">Weiter bearbeiten</button>`:""}
-    ${c.alarmTime?`<button class="btn blue" onclick="selectCall('${esc(c.id)}','leitstelle');setTimeout(openNafo,0)">📟 NAFO</button>`:""}
+    <button onclick="openAdditionalResources('${esc(c.id)}')">➕ Weitere Rettungsmittel</button>
+    ${c.alarmTime?`<button class="btn blue" onclick="openNachforderung('${esc(c.id)}')">📟 Nachforderung</button>`:""}
     <button class="primary" onclick="finishCall('${esc(c.id)}')">✅ Einsatz abschließen</button>
    </div>
  </div>`;
@@ -571,7 +669,6 @@ const qs=[
  ["d_disability","D – Wie ist der neurologische Zustand / das Bewusstsein?","xdisability"],
  ["e_exposure","E – Weitere Verletzungen, Erkrankungszeichen oder Umgebungseinflüsse?","textarea"],
  ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
- ["freeText","📝 Freitext / zusätzliche Angaben","textarea"],
  ["callback","☎️ Wie lautet die Rückrufnummer?","text"]
 ];
 function notruf(){
@@ -768,7 +865,6 @@ function buildMeldertext(c, nafoReason=""){
   const lage=c.answers?.event||c.keyword||"Einsatz";
   const mittel=(c.suggestion||"").replace(/<[^>]*>/g,"");
   let txt=`${c.keyword||"EINSATZ"}\nOrt: ${ort}\nMeldung: ${lage}`;
-  if(c.answers?.freeText)txt+=`\nNotruf-Freitext: ${c.answers.freeText}`;
   if(needsXABCDE(c)){
     txt+=`\nXABCDE: X ${c.answers.x_massive}; A ${c.answers.a_airway}; B ${c.answers.b_breath}; C ${c.answers.c_circ}; D ${c.answers.d_disability}; E ${c.answers.e_exposure}`;
   }
@@ -779,15 +875,9 @@ function buildMeldertext(c, nafoReason=""){
   return txt;
 }
 function openNafo(){
-  const c=db.currentCall;
-  if(!c){toast("Kein laufender Einsatz");return}
-  const grund=prompt("NAFO-Grund / Nachforderungsgrund:");
-  if(!grund)return;
-  const text=buildMeldertext(c,grund);
-  if(!c.nafo)c.nafo=[];
-  c.nafo.push({time:new Date().toISOString(),reason:grund,text});
-  save();
-  showNafo(text);
+ const c=db.currentCall;
+ if(!c){toast("Kein laufender Einsatz");return}
+ openNachforderung(c.id);
 }
 function showNafo(text){
   document.getElementById("app").innerHTML=`<div class="card call">
@@ -826,9 +916,10 @@ function prepareAlarm(){
    <div class="suggest">${esc(c.suggestion||"—")}</div>
    ${xtext?`<label style="margin-top:12px">XABCDE</label><pre style="white-space:pre-wrap;background:#f8fafc;padding:10px;border-radius:10px">${esc(xtext)}</pre>`:""}
    <label style="margin-top:12px">📝 Freitext für die Alarmierung</label>
-   <textarea id="alarmFreeText" rows="7" placeholder="Zusätzliche Lageinformationen, Hinweise zur Anfahrt, Gefahren, Zugang, Ansprechpartner …">${esc(c.alarmFreeText||c.answers?.freeText||"")}</textarea>
+   <textarea id="alarmFreeText" rows="7" placeholder="Zusätzliche Lageinformationen, Hinweise zur Anfahrt, Gefahren, Zugang, Ansprechpartner …">${esc(c.alarmFreeText||"")}</textarea>
    <div class="row" style="margin-top:12px">
      <button onclick="render('leitstelle')">Zurück</button>
+     <button onclick="showResourcePicker('additional')">➕ Weitere Rettungsmittel</button>
      <button class="primary" onclick="confirmAlarm()">🚨 Jetzt alarmieren</button>
    </div>
    <p class="muted">Simulation: Es wird keine reale Alarmierung ausgelöst.</p>
