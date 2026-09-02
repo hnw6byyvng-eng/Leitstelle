@@ -51,3 +51,11 @@ Version 2.3 – geografische OPTA-Zuordnung Friesland:
 
 Rettungsdienst- und Feuerwehrmittel werden anhand der zweiten Ziffer des numerischen OPTA-Blocks
 dem Bereich zugeordnet und in der Mittelübersicht entsprechend 1–7 sortiert.
+
+Version 2.4:
+- Geografische Disposition: verfügbare Fahrzeuge werden anhand Einsatzort/Koordinaten nach Nähe priorisiert.
+- OPTA-Gebiete 1–7 bleiben Grundlage der Wach-/Ortszuordnung.
+- Notrufabfrage enthält ein manuelles Freitextfeld.
+- Bei medizinischen Notfällen/Reanimation wird XABCDE vollständig abgefragt:
+  X kritische Blutung, A Atemweg, B Atmung, C Kreislauf, D Neurologie/Bewusstsein, E weitere Befunde/Umgebung.
+- JavaScript-Syntax vor Ausgabe mit Node geprüft.

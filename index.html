@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v2-3";
+const KEY="dlrg-jet-v2-4";
 const defaults={
  units:[
   
@@ -377,10 +377,53 @@ function syncLocationFromOpta(){
  });
 }
 
+
+const AREA_CENTERS={
+ "Jever":[53.5737,7.8996],
+ "Varel":[53.3969,8.1362],
+ "Zetel":[53.4167,7.9833],
+ "Sande":[53.5044,8.0147],
+ "Schortens":[53.5333,7.9500],
+ "Wangerland":[53.6570,7.9200],
+ "Bockhorn":[53.3970,8.0200]
+};
+function haversine(lat1,lon1,lat2,lon2){
+ const R=6371,toRad=x=>x*Math.PI/180;
+ const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
+ const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+ return 2*R*Math.asin(Math.sqrt(a));
+}
+function incidentArea(){
+ const c=db.currentCall||{};
+ const txt=((c.location||"")+" "+((c.answers&&c.answers.location)||"")+" "+(c.address||"")).toLowerCase();
+ for(const area of Object.keys(AREA_CENTERS))if(txt.includes(area.toLowerCase()))return area;
+ const lat=Number(c.lat||c.latitude),lon=Number(c.lng||c.lon||c.longitude);
+ if(Number.isFinite(lat)&&Number.isFinite(lon)){
+   return Object.entries(AREA_CENTERS).sort((a,b)=>
+     haversine(lat,lon,a[1][0],a[1][1])-haversine(lat,lon,b[1][0],b[1][1])
+   )[0][0];
+ }
+ return null;
+}
+function geographicRank(u){
+ const target=incidentArea();
+ if(!target)return Number(optaAreaDigit(u))||99;
+ const areas=Object.keys(AREA_CENTERS);
+ const a=optaAreaName(u);
+ if(a===target)return 0;
+ if(AREA_CENTERS[a]&&AREA_CENTERS[target]){
+   return haversine(AREA_CENTERS[target][0],AREA_CENTERS[target][1],AREA_CENTERS[a][0],AREA_CENTERS[a][1]);
+ }
+ return 999;
+}
+function nearestFirst(arr){
+ return [...arr].sort((a,b)=>geographicRank(a)-geographicRank(b) || String(a.name).localeCompare(String(b.name),"de",{numeric:true}));
+}
+
 function availableUnits(type,org=null){
- const prim=geoSortUnits(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)));
+ const prim=nearestFirst(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)));
  if(prim.length)return prim;
- return geoSortUnits(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"));
+ return nearestFirst(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"));
 }
 function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
 
@@ -459,6 +502,12 @@ function notruf(){
  <aside><div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div></aside></div>`;
 }
 function questionHTML(q){
+ const medIds=["x_massive","a_airway","b_breath","c_circ","d_disability","e_exposure"];
+ if(medIds.includes(q.id)){
+   const ev=(db.currentCall?.answers?.event||"").toLowerCase();
+   if(!(ev.includes("medizin")||ev.includes("reanimation")||ev.includes("bewusstlos")))return "";
+ }
+
  if(q[2]==="text"||q[2]==="count") return `<label>${q[1]}</label><div class="row"><input id="ans" type="${q[2]==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${q[0]}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
  if(q[2]==="event112") return `<label>${q[1]}</label><div class="answer">
    <button onclick="answer('event','Medizinischer Notfall')">🚑 Medizinischer Notfall</button>
