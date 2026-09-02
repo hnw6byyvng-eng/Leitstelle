@@ -113,3 +113,10 @@ Version 3.0 – Fahrzeugterminal:
 - Leitstelle übernimmt Statusänderungen aus der Cloud.
 - QR-Code direkt im Reiter Rettungsmittel.
 - JavaScript-Syntax geprüft.
+
+Version 3.0.1:
+- QR-Code-Erzeugung repariert und auf qrcodejs umgestellt.
+- Fahrzeugmodus wird nun beim Seitenstart korrekt erkannt.
+- Fehler behoben, durch den initVehicleMode versehentlich in der Kartenfunktion saß.
+- QR-Seite zeigt weiterhin den Fahrzeuglink, falls die QR-Bibliothek nicht geladen werden kann.
+- JavaScript-Syntax geprüft.

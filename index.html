@@ -41,14 +41,14 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 .coords{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.0</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.0.1</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v3-0";
+const KEY="dlrg-jet-v3-0-1";
 const defaults={
  units:[
   
@@ -124,7 +124,7 @@ const defaults={
  ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
@@ -295,7 +295,7 @@ function applyMapLocation(){
   save();
   toast("Notfallort übernommen");
   applyDutySchedule();
-if(!initVehicleMode()) render("leitstelle");
+  render("leitstelle");
 }
 
 function useMyLocation(){
@@ -1076,6 +1076,7 @@ function saveCloudSetup(enable){
 }
 function disableCloud(){db.cloud.enabled=false;save();toast("Live-Verbindung deaktiviert");render("mittel")}
 function vehicleURL(u){
+ if(!u)return location.href;
  const base=location.origin+location.pathname;
  const q=new URLSearchParams();
  q.set("vehicle",String(u.id));
@@ -1089,7 +1090,7 @@ function showVehicleQR(id){
  document.getElementById("app").innerHTML=`<div class="card">
   <h2>📱 Fahrzeugterminal – ${esc(u.opta||u.name)}</h2>
   <p class="muted">${db.cloud?.enabled?"Dieser Link kann auf einem zweiten Gerät geöffnet werden.":"QR-Link ist erzeugt; für Live-Alarmierungen bitte zuerst die Cloud-Verbindung aktivieren."}</p>
-  <div style="display:flex;justify-content:center;margin:18px"><canvas id="qrCanvas"></canvas></div>
+  <div style="display:flex;justify-content:center;margin:18px"><div id="qrCanvas"></div></div>
   <label>Fahrzeuglink</label>
   <textarea id="vehicleLink" rows="4" readonly>${esc(url)}</textarea>
   <div class="row" style="margin-top:12px">
@@ -1098,13 +1099,22 @@ function showVehicleQR(id){
    <button onclick="render('mittel')">Zurück</button>
   </div>
  </div>`;
- if(window.QRCode)QRCode.toCanvas(document.getElementById("qrCanvas"),url,{width:280,margin:2});
+ const target=document.getElementById("qrCanvas");
+ if(window.QRCode && target){
+   new QRCode(target,{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});
+ }else if(target){
+   target.innerHTML='<div class="card"><b>QR-Code konnte nicht geladen werden.</b><br><span class="muted">Der Fahrzeuglink darunter kann trotzdem kopiert werden.</span></div>';
+ }
 }
 async function copyVehicleLink(){
  const val=document.getElementById("vehicleLink")?.value||"";
  try{await navigator.clipboard.writeText(val);toast("Fahrzeuglink kopiert")}catch(e){toast("Link markieren und kopieren")}
 }
-function openVehiclePreview(id){location.href=vehicleURL(db.units.find(x=>String(x.id)===String(id)))}
+function openVehiclePreview(id){
+ const u=db.units.find(x=>String(x.id)===String(id));
+ if(!u){toast("Fahrzeug nicht gefunden");return}
+ location.href=vehicleURL(u);
+}
 function initVehicleMode(){
  const params=new URLSearchParams(location.search);
  const vehicle=params.get("vehicle"); if(!vehicle)return false;
@@ -1267,7 +1277,7 @@ function szenarien(){
 }
 function startScenario(id){let s=db.scenarios.find(x=>x.id===id);newCall({location:s.location,count:""});db.currentCall.answers={...s.answers};db.currentCall.location=s.location;db.currentCall.history=[];for(const [k,v] of Object.entries(s.answers)){let q=qs.find(x=>x[0]===k);if(q)db.currentCall.history.push({q:q[1],a:v})}evaluate();save();render("notruf")}
 function addScenario(){const name=prompt("Szenarioname");if(!name)return;const location=prompt("Einsatzort","Dangast");const note=prompt("Lagebeschreibung","Person im Wasser");db.scenarios.push({id:Date.now(),name,location,note,answers:{water:"ja",conscious:"nein"}});save();render("szenarien")}
-setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation()},1000);
-render("leitstelle");
+setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation()},1000);
+if(!initVehicleMode()) render("leitstelle");
 </script>
 </body></html>
