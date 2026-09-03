@@ -228,3 +228,43 @@ Version 3.8:
   abgemeldet ist), S+/S- (Schockraum), NA+/NA- (mit/ohne Notarzt), Geschlecht/Alter und
   voraussichtliche Eintreffzeit.
 - JavaScript-Syntax geprüft.
+
+Version 3.9:
+- Fahrzeugterminal (QR-Code am Fahrzeug) kann jetzt für RTW und RTH selbst eine
+  IVENA-Zuweisung erstellen, sobald das Fahrzeug in Status 4 (Am Einsatzort) ist. Formular:
+  Zielklinik, Fachrichtung, Schockraum, Geschlecht, Alter, Notarzt an Bord, Eintreffzeit.
+- Beim Absenden wird das Fahrzeug sofort auf Status 7 gesetzt (danach automatisch nach ca.
+  20 Minuten auf Status 8) und die Zuweisung landet direkt in der Firebase-Datenbank.
+- Die Leitstelle holt neue, vom Fahrzeugterminal erstellte Zuweisungen automatisch beim
+  nächsten Live-Sync (alle 3 Sekunden) ab und zeigt sie im Reiter „IVENA-Zuweisungen“ an
+  (inkl. kurzer Benachrichtigung).
+- Leitstellen-seitig erstellte Zuweisungen werden umgekehrt ebenfalls in die Cloud
+  geschrieben, sodass beide Seiten synchron bleiben.
+- JavaScript-Syntax geprüft.
+
+Version 3.9:
+- Fahrzeugterminal (RTW/RTH): IVENA-Zuweisungen sind jetzt bestätigt vollständig nutzbar – inkl.
+  Live-Abgleich mit der Leitstelle über die Cloud-Verbindung.
+- Fahrzeugterminal zeigt jetzt zusätzlich eine kompakte IVENA-Kurzübersicht (Klinik, Übungsstatus,
+  aktuell abgemeldete Fachrichtungen), live aus der Cloud – die Besatzung sieht damit direkt, ob
+  die vorgesehene Fachrichtung am Ziel frei ist, bevor sie zuweist.
+- IVENA-Daten (Status, Abmeldungen) werden bei jeder Änderung in der Leitstelle automatisch in die
+  Firebase-Datenbank gespiegelt, damit Fahrzeugterminals stets aktuelle Werte sehen.
+- Neuer Button „📢 Lagemeldung (Status 4) senden“ am Fahrzeugterminal, nur sichtbar für
+  OrgL/LNA-Fahrzeuge, während sie in Status 4 (Am Einsatzort) stehen und einem Einsatz
+  zugeordnet sind. Die eingegebene Rückmeldung erscheint in der Leitstelle (Leitstellenübersicht
+  und Notruf-Detailansicht) als kleiner, rot hinterlegter Hinweistext direkt unter dem
+  betroffenen Einsatz.
+- JavaScript-Syntax geprüft.
+
+Version 3.10:
+- Neuer Button „📟 Nachfordern“ am Fahrzeugterminal – für JEDES Fahrzeug sichtbar, sobald es in
+  Status 4 (Am Einsatzort) steht und einem Einsatz zugeordnet ist. Freitext-Grund/Bedarf wird als
+  kleiner, rot hinterlegter Hinweis „(Nachforderung)“ unter dem betroffenen Einsatz in der
+  Leitstelle angezeigt (Leitstellenübersicht + Notruf-Detailansicht).
+- OrgL/LNA-Fahrzeuge können jetzt ebenfalls IVENA anmelden, sobald sie in Status 4 stehen. Da
+  OrgL/LNA selbst nie Patienten transportiert, wechselt dabei nicht das OrgL/LNA-Fahrzeug auf
+  Status 7, sondern optional ein am Fahrzeugterminal wählbares RTW/RTH (das ebenfalls live aus
+  der Cloud als „in Status 4“ erkannt wird). Ohne Auswahl eines Transportmittels wird die
+  Anmeldung trotzdem an die Leitstelle übermittelt, nur ohne Status-Änderung.
+- JavaScript-Syntax geprüft.
