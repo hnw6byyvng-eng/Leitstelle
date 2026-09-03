@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.12</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.13</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -160,14 +160,15 @@ if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=[
- {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen"},
- {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen"},
- {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen"},
- {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen"},
- {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen"}
+ {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
+ {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","Psychiatrie","HNO","Augenheilkunde","Intensivmedizin","Schockraum"]},
+ {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
+ {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Intensivmedizin","Augenheilkunde","Gynäkologie/Geburtshilfe"]},
+ {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]}
 ];
-db.ivena.forEach(h=>{if(!h.area)h.area="Wilhelmshaven"; if(!Array.isArray(h.closures))h.closures=[]});
+db.ivena.forEach(h=>{if(!h.area)h.area="Wilhelmshaven"; if(!Array.isArray(h.closures))h.closures=[]; if(!Array.isArray(h.fachrichtungen))h.fachrichtungen=[]});
 if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund"];
+if(!db.ivenaViewMode)db.ivenaViewMode="klinik";
 if(!db.ivenaMode)db.ivenaMode="manual";
 if(!Array.isArray(db.ivenaAssignments))db.ivenaAssignments=[];
 const IVENA_FACHRICHTUNGEN=["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","Schockraum","Psychiatrie","HNO","Augenheilkunde","Urologie"];
@@ -176,6 +177,9 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
 function statusName(s){return {0:"Priorisierter Sprechwunsch",1:"Frei über Funk",2:"Frei auf Wache",3:"Einsatz übernommen",4:"Am Einsatzort",5:"Sprechwunsch",6:"Nicht einsatzbereit",7:"Patient aufgenommen",8:"bed. Verfügbar"}[s]||s}
 function statusClass(s){return "s"+s}
+function vehicleLabelBlock(u){
+ return `<b>${esc(u.type||"—")}</b><br><small class="muted">${esc(u.opta||u.name||"—")}</small>`;
+}
 function statusOptionsFor(u){
  // Rettungsdienst-spezifische Status (7 = Patient aufgenommen, 8 = bedingt verfügbar)
  // ergeben für Feuerwehr, THW und DLRG fachlich keinen Sinn.
@@ -284,7 +288,7 @@ function renderVehiclePositionsOnMap(){
    });
    const age=u.gpsUpdatedAt?new Date(u.gpsUpdatedAt).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):null;
    L.marker([Number(u.lat),Number(u.lng)],{icon}).addTo(leafletMap)
-     .bindPopup(`<b>${esc(u.opta||u.name)}</b><br>${esc(u.type)} · Status ${esc(String(u.status))}${age?`<br><small>GPS-Stand: ${age}</small>`:""}`);
+     .bindPopup(`${vehicleLabelBlock(u)}<br>Status ${esc(String(u.status))}${age?`<br><small>GPS-Stand: ${age}</small>`:""}`);
  });
 }
 
@@ -738,15 +742,26 @@ function incidentCard(c,isSelected){
    </div>
  </div>`;
 }
+function sprechwunschUnits(){
+ return db.units.filter(u=>["0","5"].includes(String(u.status)));
+}
 function dashboard(){
  const calls=allOpenCalls();
- document.getElementById("app").innerHTML=`<div class="grid">
+ const sprech=sprechwunschUnits();
+ document.getElementById("app").innerHTML=`
+ ${sprech.length?`<div class="card" style="border:2px solid #f59e0b;background:#fffbeb;margin-bottom:14px">
+   <h2 style="color:#92400e;margin-bottom:6px">📻 Sprechwunsch (${sprech.length})</h2>
+   <div class="row" style="flex-wrap:wrap;gap:10px">
+    ${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="cursor:pointer" onclick="render('mittel')" title="Zur Rettungsmittelübersicht">${esc(u.opta||u.name)} · ${esc(statusName(u.status))}</div>`).join("")}
+   </div>
+  </div>`:""}
+ <div class="grid">
  <section>
   <div class="card"><div class="row between"><div><h2>Leitstellenübersicht</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">＋ Neuer Notruf</button></div></div>
   ${calls.length?calls.map(c=>incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))).join(""):`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
  </section>
  <aside>
-  <div class="card"><h2>🚤 Mittelübersicht</h2>${geoSortUnits(db.units).map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.name)}</b><br><small class="muted">${esc(u.type)}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
+  <div class="card"><h2>🚤 Mittelübersicht</h2>${geoSortUnits(db.units).map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>${vehicleLabelBlock(u)}</span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join("")}</div>
   <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
  </aside></div>`;
 }
@@ -805,7 +820,7 @@ function notruf(){
  </section>
  <aside>
   <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div>
-  <div class="card"><h2>🚑 Nächste verfügbare Mittel</h2>${nearest.length?nearest.map(u=>`<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.opta||u.name)}</b><br><small class="muted">${esc(u.type)}${geographicRank(u)<999?` · ~${geographicRank(u).toFixed(1)} km`:``}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join(""):`<span class="muted">Keine verfügbaren Mittel</span>`}</div>
+  <div class="card"><h2>🚑 Nächste verfügbare Mittel</h2>${nearest.length?nearest.map(u=>`<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.type||"—")}</b><br><small class="muted">${esc(u.opta||u.name||"—")}${geographicRank(u)<999?` · ~${geographicRank(u).toFixed(1)} km`:``}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join(""):`<span class="muted">Keine verfügbaren Mittel</span>`}</div>
  </aside></div>`;
  if(q && q[0]==="location") setTimeout(initNotrufMap,0);
 }
@@ -1756,11 +1771,10 @@ function mittel(){
      const rows=geoSortUnits(orgUnits.filter(u=>(u.location||"Sonstige")===loc));
      return `<h3 style="margin-top:14px">📍 ${esc(loc)}</h3>
       <div style="overflow:auto"><table>
-       <thead><tr><th>OPTA / Funkrufname</th><th>Typ</th><th>Status</th><th>Fahrzeugterminal</th><th>Status ändern</th></tr></thead>
+       <thead><tr><th>Fahrzeug</th><th>Status</th><th>Fahrzeugterminal</th><th>Status ändern</th></tr></thead>
        <tbody>
         ${rows.map(u=>`<tr>
-         <td><b>${esc(u.opta||u.name||"—")}</b>${u.gpsUpdatedAt&&(Date.now()-new Date(u.gpsUpdatedAt).getTime())<120000?` <span title="Live-GPS aktiv" style="font-size:11px">📍</span>`:""}</td>
-         <td>${esc(u.type||"—")}</td>
+         <td>${vehicleLabelBlock(u)}${u.gpsUpdatedAt&&(Date.now()-new Date(u.gpsUpdatedAt).getTime())<120000?` <span title="Live-GPS aktiv" style="font-size:11px">📍</span>`:""}</td>
          <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
          <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button><button onclick="deleteUnit('${String(u.id)}')" title="Fahrzeug löschen">🗑️</button></div></td>
          <td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">
@@ -1999,10 +2013,36 @@ function ivenaZuweisungen(){
   </tbody></table></div>
  </div>`;
 }
+function openIvenaFachrichtungen(hid){
+ const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ const current=new Set(h.fachrichtungen||[]);
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>🏷️ Fachrichtungen – ${esc(h.name)}</h2>
+  <p class="muted">Welche Fachrichtungen bietet diese Klinik real an? Wird für die Fachrichtungs-Ansicht und für IVENA-Anmeldungen genutzt – bitte bei Bedarf an die tatsächlichen Fachabteilungen anpassen.</p>
+  <div class="answer" id="fachBoxes" style="flex-direction:column;align-items:flex-start">
+   ${IVENA_FACHRICHTUNGEN.map(f=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 0"><input type="checkbox" value="${esc(f)}" ${current.has(f)?"checked":""}> ${esc(f)}</label>`).join("")}
+  </div>
+  <div class="row" style="margin-top:14px">
+   <button onclick="render('ivena')">Abbrechen</button>
+   <button class="primary" onclick="saveIvenaFachrichtungen('${hid}')">✅ Speichern</button>
+  </div>
+ </div>`;
+}
+function saveIvenaFachrichtungen(hid){
+ const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ const boxes=document.querySelectorAll('#fachBoxes input[type="checkbox"]');
+ h.fachrichtungen=[...boxes].filter(b=>b.checked).map(b=>b.value);
+ save();pushIvenaCloud();toast("Fachrichtungen gespeichert");render("ivena");
+}
+function toggleIvenaViewMode(){
+ db.ivenaViewMode=db.ivenaViewMode==="fachrichtung"?"klinik":"fachrichtung";
+ save();render("ivena");
+}
 function ivena(){
  const areas=[...new Set(db.ivena.map(h=>h.area||"Sonstige"))];
  const rows=db.ivena.filter(h=>db.ivenaAreaFilter.includes(h.area||"Sonstige"));
  const isAuto=db.ivenaMode==="auto";
+ const byFach=db.ivenaViewMode==="fachrichtung";
  document.getElementById("app").innerHTML=`<div class="card">
   <div class="row between"><div><h2>🏥 IVENA – Übungsansicht</h2><p class="muted">Lokale Simulation für die Ausbildung. Keine Verbindung zum realen IVENA-System und keine Echtzeit-Kapazitätsdaten.</p></div><button class="primary" onclick="addIvena()">＋ Ziel hinzufügen</button></div>
   <label style="margin-top:4px">Leitstellenbereiche</label>
@@ -2015,6 +2055,24 @@ function ivena(){
     ${isAuto?`<button onclick="randomizeIvenaClosures()">🎲 Neu auswürfeln</button>`:""}
    </div>
   </div>
+  <div class="row" style="margin-top:12px">
+   <button class="${byFach?"":"primary"}" onclick="${byFach?"toggleIvenaViewMode()":""}">🏥 Nach Klinik</button>
+   <button class="${byFach?"primary":""}" onclick="${byFach?"":"toggleIvenaViewMode()"}">🏷️ Nach Fachrichtung</button>
+  </div>
+  ${byFach?`
+  <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Fachrichtung</th><th>Kliniken (grün = frei, rot = abgemeldet)</th></tr></thead><tbody>
+   ${IVENA_FACHRICHTUNGEN.map(fach=>{
+     const offering=rows.filter(h=>Array.isArray(h.fachrichtungen)&&h.fachrichtungen.includes(fach));
+     if(!offering.length)return"";
+     return `<tr><td><b>${esc(fach)}</b></td><td>
+       ${offering.map(h=>{
+         const closed=ivenaActiveClosures(h).some(cl=>cl.fach===fach);
+         const until=closed?ivenaActiveClosures(h).find(cl=>cl.fach===fach):null;
+         return `<div style="display:inline-block;margin:3px 6px 3px 0;padding:4px 10px;border-radius:8px;${closed?"background:#fee2e2;color:#991b1b":"background:#dcfce7;color:#166534"}">${closed?"🚫 ":"✅ "}${esc(h.name)}${closed&&until?` (bis ${new Date(until.until).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})})`:""}</div>`;
+       }).join("")}
+     </td></tr>`;
+   }).join("")||`<tr><td colspan="2" class="muted">Noch keine Fachrichtungen hinterlegt – bei den Kliniken über „🏷️ Fachrichtungen“ pflegen.</td></tr>`}
+  </tbody></table></div>`:`
   <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Ziel</th><th>Ort</th><th>Bereich</th><th>Übungsstatus</th><th>Abgemeldete Fachrichtungen</th><th>Hinweis</th><th>Aktionen</th></tr></thead><tbody>
    ${rows.map(h=>{
      const closures=ivenaActiveClosures(h);
@@ -2026,11 +2084,11 @@ function ivena(){
      ${!isAuto?`<div><button onclick="openIvenaClosure(${h.id})">🚫 Fachrichtung abmelden</button></div>`:""}
     </td>
     <td>${esc(h.note||"")}</td>
-    <td><div class="row"><button onclick="setIvenaStatus(${h.id},'grün')">🟢</button><button onclick="setIvenaStatus(${h.id},'gelb')">🟡</button><button onclick="setIvenaStatus(${h.id},'rot')">🔴</button><button onclick="editIvena(${h.id})">✏️</button><button onclick="deleteIvena(${h.id})">🗑️</button></div></td>
+    <td><div class="row"><button onclick="setIvenaStatus(${h.id},'grün')">🟢</button><button onclick="setIvenaStatus(${h.id},'gelb')">🟡</button><button onclick="setIvenaStatus(${h.id},'rot')">🔴</button><button onclick="openIvenaFachrichtungen(${h.id})" title="Fachrichtungen pflegen">🏷️</button><button onclick="editIvena(${h.id})">✏️</button><button onclick="deleteIvena(${h.id})">🗑️</button></div></td>
    </tr>`;
    }).join("")}
-  </tbody></table></div>
-  <div class="card" style="margin-top:12px;background:#f8fafc"><b>Für Übungen gedacht:</b> Grün/Gelb/Rot, Fachrichtungs-Abmeldungen und Hinweise können von der Übungsleitung frei gesetzt werden, z. B. „CT belegt“, „Schockraum frei“ oder „keine pädiatrische Aufnahme“.</div>
+  </tbody></table></div>`}
+  <div class="card" style="margin-top:12px;background:#f8fafc"><b>Für Übungen gedacht:</b> Grün/Gelb/Rot, Fachrichtungs-Abmeldungen und Hinweise können von der Übungsleitung frei gesetzt werden, z. B. „CT belegt“, „Schockraum frei“ oder „keine pädiatrische Aufnahme“. Die real angebotenen Fachrichtungen je Klinik lassen sich über 🏷️ anpassen.</div>
  </div>`;
 }
 

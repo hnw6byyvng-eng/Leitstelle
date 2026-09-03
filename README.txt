@@ -296,3 +296,20 @@ Version 3.12:
   bevorzugt die echte Live-Position eines Fahrzeugs, falls vorhanden, statt nur den groben
   Wach-/Ortsstandort.
 - JavaScript-Syntax geprüft.
+
+Version 3.13:
+- Neues Sprechwunsch-Fenster auf der Startseite (Leitstellenübersicht): Fahrzeuge in Status 0
+  (Priorisierter Sprechwunsch) oder 5 (Sprechwunsch) werden ganz oben auffällig eingeblendet,
+  solange mindestens eines vorliegt.
+- In allen Fahrzeug-Übersichten (Startseite, Rettungsmittelübersicht, „Nächste verfügbare
+  Mittel“ im Notruf, Kartenmarker) steht jetzt der Fahrzeugtyp (z. B. RTW, NEF) groß oben,
+  die OPTA/der Funkrufname klein darunter – vorher war es umgekehrt.
+- IVENA: neue Ansicht „🏷️ Nach Fachrichtung“ neben der bisherigen „Nach Klinik“-Ansicht. Zeigt
+  je Fachrichtung, welche Kliniken sie real anbieten, grün hinterlegt wenn frei, rot hinterlegt
+  wenn aktuell dafür abgemeldet.
+- Die real angebotenen Fachrichtungen sind für die 5 hinterlegten Kliniken auf Basis
+  veröffentlichter Fachabteilungs-/Qualitätsberichtsdaten vorbelegt (Nordwest-Krankenhaus
+  Sanderbusch, Klinikum Wilhelmshaven, Klinikum Oldenburg, Pius-Hospital Oldenburg,
+  Kreiskrankenhaus Wittmund) und über den neuen Button 🏷️ pro Klinik frei anpassbar, falls sich
+  etwas geändert hat oder ihr weitere Kliniken ergänzt.
+- JavaScript-Syntax geprüft.
