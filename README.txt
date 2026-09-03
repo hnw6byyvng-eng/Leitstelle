@@ -279,3 +279,20 @@ Version 3.11:
   für sich selbst (NEF transportiert ausnahmsweise selbst, Status 7) oder für ein begleitendes
   RTW/RTH (live aus der Cloud als „in Status 4“ erkannt).
 - JavaScript-Syntax geprüft.
+
+Version 3.12:
+- Fahrzeugterminal: Alarmton + Vibration bei neu eingehendem Einsatz. Der Ton ist ein
+  synthetischer, zweitoniger Wechselton (angelehnt an klassische Meldeempfänger wie den
+  Swissphone X35 – kein Audio-Sample, sondern per Web Audio API erzeugt, da Originaltöne
+  urheberrechtlich geschützt sind). Button „🔔 Alarmton testen“ aktiviert/entsperrt Ton und
+  Vibration einmalig (Browser-Vorgabe: Audio benötigt eine Nutzerinteraktion).
+- Fahrzeugterminal: neuer Button „📍 Standort teilen“ überträgt den echten GPS-Standort des
+  Handys laufend (alle ca. 5 Sekunden bei Bewegung) an die Leitstelle.
+- Leitstelle: Live-GPS-Positionen erscheinen als Marker auf der Einsatzkarte (Symbol je nach
+  Organisation) inkl. Fahrzeugname, Typ, Status und Zeitstempel im Popup.
+- Rettungsmittelübersicht zeigt ein kleines 📍-Symbol bei Fahrzeugen mit aktuellem Live-GPS
+  (jünger als 2 Minuten).
+- Geografische Fahrzeugauswahl (Nächste verfügbare Mittel, automatische Disposition) nutzt jetzt
+  bevorzugt die echte Live-Position eines Fahrzeugs, falls vorhanden, statt nur den groben
+  Wach-/Ortsstandort.
+- JavaScript-Syntax geprüft.

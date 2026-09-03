@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.11</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.12</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -257,12 +257,35 @@ function initMap(){
   }).addTo(leafletMap);
 
   if(c?.lat&&c?.lng) setIncidentMarker(Number(c.lat),Number(c.lng),false);
+  renderVehiclePositionsOnMap();
 
   leafletMap.on("click", async e=>{
     setIncidentMarker(e.latlng.lat,e.latlng.lng,true);
     await reverseGeocode(e.latlng.lat,e.latlng.lng);
   });
   setTimeout(()=>leafletMap.invalidateSize(),150);
+}
+function vehicleMapEmoji(u){
+ if(u.org==="Feuerwehr")return"🚒";
+ if(u.org==="DLRG")return"🌊";
+ if(u.org==="Luftrettung")return"🚁";
+ if(u.type==="OrgL/LNA")return"🚗";
+ if(u.org==="THW")return"🛠️";
+ if(u.org==="Polizei")return"👮";
+ return"🚑";
+}
+function renderVehiclePositionsOnMap(){
+ if(!leafletMap||typeof L==="undefined")return;
+ const withGps=(db.units||[]).filter(u=>Number.isFinite(Number(u.lat))&&Number.isFinite(Number(u.lng)));
+ withGps.forEach(u=>{
+   const icon=L.divIcon({
+     html:`<div style="background:#0b1220;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">${vehicleMapEmoji(u)}</div>`,
+     className:"", iconSize:[26,26], iconAnchor:[13,13]
+   });
+   const age=u.gpsUpdatedAt?new Date(u.gpsUpdatedAt).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):null;
+   L.marker([Number(u.lat),Number(u.lng)],{icon}).addTo(leafletMap)
+     .bindPopup(`<b>${esc(u.opta||u.name)}</b><br>${esc(u.type)} · Status ${esc(String(u.status))}${age?`<br><small>GPS-Stand: ${age}</small>`:""}`);
+ });
 }
 
 function setIncidentMarker(lat,lng,updateSelection=true){
@@ -484,6 +507,7 @@ function incidentArea(){
  )[0][0];
 }
 function unitPoint(u){
+ if(Number.isFinite(Number(u.lat)) && Number.isFinite(Number(u.lng)))return [Number(u.lat),Number(u.lng)];
  const a=optaAreaName(u);
  if(AREA_CENTERS[a])return AREA_CENTERS[a];
  const loc=String(u.location||"").toLowerCase();
@@ -1313,6 +1337,10 @@ async function pollCloudUnits(){
        }
        changed=true;
      }
+     if(u && ru.lat!=null && ru.lng!=null && (u.lat!==ru.lat || u.lng!==ru.lng)){
+       u.lat=ru.lat; u.lng=ru.lng; u.gpsAccuracy=ru.gpsAccuracy; u.gpsUpdatedAt=ru.gpsUpdatedAt;
+       changed=true;
+     }
    }
  }
  const remoteAsg=await cloudRequest("ivenaAssignments");
@@ -1345,7 +1373,7 @@ async function pollCloudUnits(){
    save();
    // Only auto-refresh screens that display live status, so we don't interrupt
    // someone mid-typing on the Notruf or Karte tabs.
-   if(["leitstelle","mittel","ivenaZuweisungen"].includes(currentPage))render(currentPage);
+   if(["leitstelle","mittel","ivenaZuweisungen","karte"].includes(currentPage))render(currentPage);
  }
 }
 async function pushAllUnitsCloud(){
@@ -1452,11 +1480,76 @@ async function vehicleFetch(dburl,sid,path,method="GET",data=null){
   return await r.json();
  }catch(e){console.warn(e);return null}
 }
-let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null;
+let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null, vehicleKnownCallIds=null;
+let vehicleAudioCtx=null, vehicleGeoWatchId=null, vehicleGeoLastPush=0;
+function playAlarmTone(){
+ try{
+   if(!vehicleAudioCtx)vehicleAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+   if(vehicleAudioCtx.state==="suspended")vehicleAudioCtx.resume();
+   const now=vehicleAudioCtx.currentTime;
+   const freqs=[970,1300]; // zweitoniger Wechselton, angelehnt an klassische Pager-/Meldeempfänger-Alarmierung (Swissphone X35 u.ä.)
+   const toneLen=0.4, gap=0.05, repeats=6;
+   let t=now;
+   for(let i=0;i<repeats;i++){
+     const osc=vehicleAudioCtx.createOscillator();
+     const gain=vehicleAudioCtx.createGain();
+     osc.type="square";
+     osc.frequency.setValueAtTime(freqs[i%2],t);
+     gain.gain.setValueAtTime(0.0001,t);
+     gain.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+     gain.gain.setValueAtTime(0.25,t+toneLen-0.05);
+     gain.gain.exponentialRampToValueAtTime(0.0001,t+toneLen);
+     osc.connect(gain).connect(vehicleAudioCtx.destination);
+     osc.start(t); osc.stop(t+toneLen);
+     t+=toneLen+gap;
+   }
+ }catch(e){console.warn("Alarmton fehlgeschlagen",e)}
+}
+function vibrateAlarm(){
+ if(navigator.vibrate)navigator.vibrate([500,200,500,200,500,200,500]);
+}
+function unlockVehicleAudio(){
+ try{
+   if(!vehicleAudioCtx)vehicleAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+   if(vehicleAudioCtx.state==="suspended")vehicleAudioCtx.resume();
+ }catch(e){}
+ playAlarmTone();
+ vibrateAlarm();
+ toast("Alarmton aktiviert – bei neuem Einsatz ertönt er automatisch");
+}
+function toggleVehicleGeo(unitId,dburl,sid){
+ if(vehicleGeoWatchId){
+   navigator.geolocation.clearWatch(vehicleGeoWatchId);
+   vehicleGeoWatchId=null;
+   toast("Standortfreigabe beendet");
+   renderVehicleTerminal(unitId,dburl,sid);
+   return;
+ }
+ if(!navigator.geolocation){toast("Geolocation wird von diesem Browser nicht unterstützt");return}
+ vehicleGeoWatchId=navigator.geolocation.watchPosition(async pos=>{
+   const now=Date.now();
+   if(now-vehicleGeoLastPush<5000)return;
+   vehicleGeoLastPush=now;
+   await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`,"PATCH",{
+     lat:pos.coords.latitude, lng:pos.coords.longitude,
+     gpsAccuracy:Math.round(pos.coords.accuracy||0),
+     gpsUpdatedAt:new Date().toISOString()
+   });
+ },err=>{
+   toast("Standort konnte nicht ermittelt werden: "+(err.message||"Fehler"));
+ },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+ toast("Standortfreigabe aktiviert");
+ renderVehicleTerminal(unitId,dburl,sid);
+}
 async function renderVehicleTerminal(unitId,dburl,sid){
  const local=db.units.find(x=>String(x.id)===String(unitId));
+ vehicleKnownCallIds=null;
  document.getElementById("app").innerHTML=`<div class="card" id="vehicleTerminal">
    <div class="row between"><div><h2>📱 Fahrzeugterminal</h2><div class="big">${esc(local?.opta||local?.name||unitId)}</div></div><span class="status s3" id="vehicleLive">VERBINDE…</span></div>
+   <div class="row" style="margin-top:8px">
+     <button onclick="unlockVehicleAudio()" title="Alarmton/Vibration testen und aktivieren">🔔 Alarmton testen</button>
+     <button onclick="toggleVehicleGeo('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')" title="Eigenen Standort live an die Leitstelle übermitteln">${vehicleGeoWatchId?"📍 GPS aktiv (stoppen)":"📍 Standort teilen"}</button>
+   </div>
    <div id="vehicleBody"><p class="muted">Alarmdaten werden geladen …</p></div>
  </div>`;
  async function refresh(){
@@ -1473,6 +1566,12 @@ async function renderVehicleTerminal(unitId,dburl,sid){
      const c=await vehicleFetch(dburl,sid,`calls/${encodeURIComponent(id)}`);
      if(c)calls.push(c);
    }
+   const newIds=new Set(calls.map(c=>String(c.id)));
+   if(vehicleKnownCallIds!==null){
+     const brandNew=[...newIds].some(id=>!vehicleKnownCallIds.has(id));
+     if(brandNew){playAlarmTone();vibrateAlarm()}
+   }
+   vehicleKnownCallIds=newIds;
    const remoteIvena=await vehicleFetch(dburl,sid,"ivena");
    if(Array.isArray(remoteIvena))vehicleIvenaCache=remoteIvena;
    else if(remoteIvena&&typeof remoteIvena==="object")vehicleIvenaCache=Object.values(remoteIvena).filter(Boolean);
@@ -1485,7 +1584,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    const inCallStatus4=String(unit?.status)==="4" && calls.length>0;
    const canAssign=String(unit?.status)==="4" && ["RTW","RTH","OrgL/LNA","NEF"].includes(vType);
    const canOrglFeedback=vType==="OrgL/LNA" && inCallStatus4;
-   body.innerHTML=`<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
+   body.innerHTML=`${vehicleGeoWatchId?`<div class="pill" style="margin-bottom:8px">📍 Standort wird live übertragen</div>`:""}<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
     <div class="answer" style="margin-top:12px">
       ${statusOptionsFor(local).filter(s=>s!=="0").map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
     </div>
@@ -1660,7 +1759,7 @@ function mittel(){
        <thead><tr><th>OPTA / Funkrufname</th><th>Typ</th><th>Status</th><th>Fahrzeugterminal</th><th>Status ändern</th></tr></thead>
        <tbody>
         ${rows.map(u=>`<tr>
-         <td><b>${esc(u.opta||u.name||"—")}</b></td>
+         <td><b>${esc(u.opta||u.name||"—")}</b>${u.gpsUpdatedAt&&(Date.now()-new Date(u.gpsUpdatedAt).getTime())<120000?` <span title="Live-GPS aktiv" style="font-size:11px">📍</span>`:""}</td>
          <td>${esc(u.type||"—")}</td>
          <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
          <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button><button onclick="deleteUnit('${String(u.id)}')" title="Fahrzeug löschen">🗑️</button></div></td>
