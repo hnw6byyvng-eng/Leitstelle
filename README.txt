@@ -136,3 +136,41 @@ Version 3.1:
 - MANV als eigene 112-Einsatzkategorie: löst XABCDE-Pflicht aus, staffelt RTW-Anzahl nach
   Betroffenenzahl und alarmiert zusätzlich NEF, OrgL/LNA, HLF und ELW.
 - JavaScript-Syntax geprüft.
+
+Version 3.2:
+- App umbenannt in „DLRG JET Rettungsleitstelle“ (Titel, Header, Speicher-Schlüssel; alte
+  lokale Daten aus v3.0/v3.0.1/v3.1 werden beim ersten Start automatisch übernommen).
+- Reiter „Übungen“ entfernt.
+- Die drei zuletzt hinzugefügten, nicht offiziell verifizierten Fahrzeuge (RTW 86-83-01,
+  OrgL/LNA Varel, OrgL/LNA Sande) wieder entfernt – erfundene OPTA-Nummern widersprechen dem
+  Projektgrundsatz, keine operative OPTA zu erfinden. Reale Fahrzeuge können weiterhin über
+  „+ Einheit“ ergänzt werden.
+- Status 7 (Patient aufgenommen) und 8 (bedingt verfügbar) sind für Feuerwehr, THW und DLRG
+  nicht mehr auswählbar (weder in der Rettungsmittelübersicht noch am Fahrzeugterminal noch
+  im „Realistisch“-Zufallsmodus) – diese Status ergeben nur für den Rettungsdienst Sinn.
+- Reiter „Rettungsmittel“ jetzt nach Organisation und Standort gruppiert statt als eine große
+  Tabelle.
+- MANV als eigene Notfallkategorie entfernt. Stattdessen wird automatisch in die MANV-Eskalation
+  gewechselt, sobald bei „Wie viele Personen sind betroffen?“ mehr als 3 angegeben werden.
+  Dabei entfällt die Einzel-XABCDE-Abfrage (Sichtung statt Einzelbefund) sowie die Abfrage der
+  Rückrufnummer.
+- Notfallort-Abfrage zeigt jetzt direkt eine Karte mit Adresssuche; der Ort kann auch per
+  Kartenklick/Marker gewählt werden, alternativ weiterhin per Texteingabe.
+- Eingehender-Notruf-Bildschirm überarbeitet: Fortschrittsanzeige, MANV-Hinweis, und neue
+  Seitenleiste „Nächste verfügbare Mittel“ mit Status und Entfernung zum Einsatzort.
+- IVENA-Übungsansicht: Kliniken können jetzt einzelne Fachrichtungen mit „Abgemeldet bis“
+  markiert werden. Schalter zwischen manueller Pflege (selbst abmelden) und automatischem
+  Zufallsmodus („Neu auswürfeln“). Weiterhin reine Simulation ohne Verbindung zum realen
+  IVENA-System.
+- JavaScript-Syntax geprüft.
+
+Version 3.3:
+- Rückrufnummer-Abfrage komplett entfernt (nicht nur bei MANV übersprungen, sondern generell
+  nicht mehr Teil der 112-Abfrage).
+- Je eine einsatzbereite OrgL/LNA-Einheit für Varel und Sande ergänzt. Bewusst ohne erfundene
+  BOS-/OPTA-Nummer benannt ("OrgL/LNA Varel" / "OrgL/LNA Sande"), verified: Nutzerangabe – bei
+  Bedarf könnt ihr die echte Kennung über "+ Einheit"/Bearbeiten ergänzen.
+- OrgL/LNA-Einheiten können nicht mehr auf Status 6 (Nicht einsatzbereit), 7 (Patient
+  aufgenommen) oder 8 (bedingt verfügbar) gesetzt werden – weder in der Rettungsmittelübersicht
+  noch am Fahrzeugterminal noch im „Realistisch“-Zufallsmodus.
+- JavaScript-Syntax geprüft.

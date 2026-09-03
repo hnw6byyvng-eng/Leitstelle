@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
-<title>DLRG JET Leitstelle</title>
+<title>DLRG JET Rettungsleitstelle</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -44,11 +44,11 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET LEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.0.1</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.3</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v3-0-1";
+const KEY="dlrg-jet-v3-2";
 const defaults={
  units:[
   
@@ -68,9 +68,8 @@ const defaults={
   {id:110,name:"84-83-01",opta:"Rettung Friesland 84/83-01",type:"RTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:111,name:"84-93-01",opta:"Rettung Friesland 84/93-01",type:"NKTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfalltransport, First Responder",schedule:"day_only",verified:"Nutzerangabe"},
   {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"Nutzerangabe"},
-  {id:113,name:"86-83-01",opta:"Rettung Friesland 86/83-01",type:"RTW",org:"Rettungsdienst",location:"Wangerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"Nutzerangabe"},
-  {id:114,name:"82-84-01",opta:"Rettung Friesland 82/84-01",type:"OrgL/LNA",org:"Rettungsdienst",location:"Varel",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
-  {id:115,name:"84-84-01",opta:"Rettung Friesland 84/84-01",type:"OrgL/LNA",org:"Rettungsdienst",location:"Sande",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
+  {id:113,name:"OrgL/LNA Varel",opta:"Rettungsdienst Friesland – OrgL/LNA Varel",type:"OrgL/LNA",org:"Rettungsdienst",location:"Varel",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
+  {id:114,name:"OrgL/LNA Sande",opta:"Rettungsdienst Friesland – OrgL/LNA Sande",type:"OrgL/LNA",org:"Rettungsdienst",location:"Sande",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
 
   {id:201,name:"12-11-01",opta:"Florian Friesland 12-11-1",type:"ELW",org:"Feuerwehr",location:"Varel",status:"2",crew:"6",skills:"Einsatzleitung",verified:"Feuerwehr Varel"},
   {id:202,name:"12-17-01",opta:"Florian Friesland 12-17-1",type:"MTW",org:"Feuerwehr",location:"Varel",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"Feuerwehr Varel"},
@@ -124,16 +123,12 @@ const defaults={
   {id:6,name:"Feuerwehr 1 – Feuer/Rauch",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1},{type:"LF",n:1}]},
   {id:7,name:"Feuerwehr 2 – Feuer mit Personengefährdung",rules:{event:"Feuer / Rauchentwicklung",firePeople:"ja"},units:[{type:"HLF",n:1},{type:"LF",n:1},{type:"DLK",n:1},{type:"RTW",n:1}]},
   {id:8,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall mit eingeklemmter Person",rules:{event:"Verkehrsunfall",trapped:"ja"},units:[{type:"HLF",n:1},{type:"RTW",n:1},{type:"RW",n:1}]},
-  {id:9,name:"MANV – Massenanfall von Verletzten",rules:{event:"MANV"},units:[{type:"RTW",n:2},{type:"NEF",n:1},{type:"OrgL/LNA",n:1},{type:"HLF",n:1},{type:"ELW",n:1}]}
+  {id:9,name:"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)",rules:{count:">3"},units:[{type:"RTW",n:2},{type:"NEF",n:1},{type:"OrgL/LNA",n:1},{type:"ELW",n:1}]}
  ],
  calls:[],
- scenarios:[
-  {id:1,name:"Person nach Untergang",location:"Dangast, Strandaufgang 4",answers:{water:"ja",visible:"nein",conscious:"nein",breathing:"nein",count:"1"},note:"Untergang vor ca. 2 Minuten beobachtet."},
-  {id:2,name:"Badeunfall – ansprechbar",location:"Strandbad, Steg 2",answers:{water:"ja",visible:"ja",conscious:"ja",breathing:"ja",count:"1"},note:"Person klagt über Schmerzen am Bein."}
- ],
  currentCall:null
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
@@ -145,15 +140,27 @@ if(!Array.isArray(db.ivena))db.ivena=[
  {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen"},
  {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen"}
 ];
-db.ivena.forEach(h=>{if(!h.area)h.area="Wilhelmshaven"});
+db.ivena.forEach(h=>{if(!h.area)h.area="Wilhelmshaven"; if(!Array.isArray(h.closures))h.closures=[]});
 if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund"];
+if(!db.ivenaMode)db.ivenaMode="manual";
+const IVENA_FACHRICHTUNGEN=["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","Schockraum","Psychiatrie","HNO","Augenheilkunde","Urologie"];
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
 function statusName(s){return {0:"Priorisierter Sprechwunsch",1:"Frei über Funk",2:"Frei auf Wache",3:"Einsatz übernommen",4:"Am Einsatzort",5:"Sprechwunsch",6:"Nicht einsatzbereit",7:"Patient aufgenommen",8:"bed. Verfügbar"}[s]||s}
 function statusClass(s){return "s"+s}
+function statusOptionsFor(u){
+ // Rettungsdienst-spezifische Status (7 = Patient aufgenommen, 8 = bedingt verfügbar)
+ // ergeben für Feuerwehr, THW und DLRG fachlich keinen Sinn.
+ const restricted=["Feuerwehr","THW","DLRG"].includes(u?.org);
+ let opts=restricted?["0","1","2","3","4","5","6"]:["0","1","2","3","4","5","6","7","8"];
+ // OrgL/LNA soll immer einsatzbereit bleiben: kein "Nicht einsatzbereit" (6),
+ // "Patient aufgenommen" (7) oder "bedingt verfügbar" (8).
+ if(u?.type==="OrgL/LNA")opts=opts.filter(s=>!["6","7","8"].includes(s));
+ return opts;
+}
 function nav(active){document.getElementById("nav").innerHTML=[
- ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["szenarien","🎓 Übungen"]
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"]
 ].map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}
 let currentPage="leitstelle";
 function render(page="leitstelle"){
@@ -165,7 +172,6 @@ function render(page="leitstelle"){
  if(page==="mittel") mittel();
  if(page==="aao") aao();
  if(page==="ivena") ivena();
- if(page==="szenarien") szenarien();
 }
 
 let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
@@ -479,8 +485,10 @@ function realisticMode(){
   const shuffled=[...candidates].sort(()=>Math.random()-.5);
   const n=Math.max(3,Math.min(10,Math.floor(shuffled.length*0.18)));
   shuffled.slice(0,n).forEach((u,i)=>{
-    const states=["3","4","6","8"];
-    setUnitStatus(u,states[i%states.length]);
+    const wanted=u.org==="Feuerwehr"?["3","4","6"]:["3","4","6","8"];
+    const allowed=wanted.filter(s=>statusOptionsFor(u).includes(s));
+    if(!allowed.length)return;
+    setUnitStatus(u,allowed[i%allowed.length]);
   });
   // air rescue can also be occasionally unavailable/mission-bound, but keep less frequent
   const c26=db.units.find(u=>u.name==="Christoph 26");
@@ -689,22 +697,47 @@ const qs=[
  ["c_circ","C – Gibt es Kreislaufprobleme, Schockzeichen oder relevante Blutungen?","xcirc"],
  ["d_disability","D – Wie ist der neurologische Zustand / das Bewusstsein?","xdisability"],
  ["e_exposure","E – Weitere Verletzungen, Erkrankungszeichen oder Umgebungseinflüsse?","textarea"],
- ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
- ["callback","☎️ Wie lautet die Rückrufnummer?","text"]
+ ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"]
 ];
+function nearestAvailableUnits(limit=6){
+ const avail=db.units.filter(u=>["1","2","8"].includes(String(u.status)));
+ return nearestFirst(avail).slice(0,limit);
+}
 function notruf(){
  if(!db.currentCall){document.getElementById("app").innerHTML=`<div class="card"><h2>📞 Übungsnotruf</h2><p>Starte einen neuen Anruf. Die Software führt dich Schritt für Schritt durch die Abfrage.</p><button class="primary" onclick="newCall()">Notruf annehmen</button></div>`;return}
  const c=db.currentCall, idx=qs.findIndex(q=>!(q[0] in c.answers) && !(q[0]==="location"&&c.location));
  const q=idx<0?null:qs[idx];
- document.getElementById("app").innerHTML=`<div class="grid"><section><div class="card call"><div class="row between"><div><h2>📞 Eingehender Notruf #${c.id}</h2><div class="muted">„Notruf, DLRG-Leitstelle. Wo genau ist der Notfallort?“</div></div><button onclick="render('leitstelle')">Zur Übersicht</button></div>
- <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render(\'karte\')">🗺️ Notfallort prüfen</button></div><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div></div>
- <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div></section>
- <aside><div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div></aside></div>`;
+ const answeredCount=qs.filter(x=>x[0] in c.answers || (x[0]==="location"&&c.location)).length;
+ const nearest=nearestAvailableUnits();
+ document.getElementById("app").innerHTML=`<div class="grid"><section>
+  <div class="card call" style="border-left-width:6px">
+   <div class="row between">
+    <div class="row" style="gap:12px">
+     <div style="width:46px;height:46px;border-radius:50%;background:#e30613;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto">📞</div>
+     <div><h2 style="margin-bottom:2px">Eingehender Notruf #${c.id}</h2><div class="muted">${isManv(c)?"🚨 MANV – Massenanfall von Verletzten":q?"„Notruf, DLRG-Leitstelle …“":"Abfrage abgeschlossen"}</div></div>
+    </div>
+    <button onclick="render('leitstelle')">Zur Übersicht</button>
+   </div>
+   ${q?`<div class="muted" style="margin-top:10px">Frage ${answeredCount+1} von ${qs.length}</div>
+   <div style="height:6px;background:#eef2f6;border-radius:999px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${Math.round(100*answeredCount/qs.length)}%;background:#e30613"></div></div>`:""}
+   <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render('karte')">🗺️ Notfallort prüfen</button></div><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div>
+  </div>
+  <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div>
+ </section>
+ <aside>
+  <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div>
+  <div class="card"><h2>🚑 Nächste verfügbare Mittel</h2>${nearest.length?nearest.map(u=>`<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.opta||u.name)}</b><br><small class="muted">${esc(u.type)}${geographicRank(u)<999?` · ~${geographicRank(u).toFixed(1)} km`:``}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join(""):`<span class="muted">Keine verfügbaren Mittel</span>`}</div>
+ </aside></div>`;
+ if(q && q[0]==="location") setTimeout(initNotrufMap,0);
+}
+function isManv(c=db.currentCall){
+ return Number(c?.answers?.count)>3;
 }
 function needsXABCDE(c=db.currentCall){
  if(!c)return false;
+ if(isManv(c))return false; // MANV: Sichtung statt Einzel-XABCDE
  const a=c.answers||{}, e=a.event||"";
- if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall","MANV"].includes(e))return true;
+ if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return true;
  if(e==="Feuer / Rauchentwicklung" && a.firePeople==="ja")return true;
  if(e==="Boot in Notlage" && a.personDanger==="ja")return true;
  if(["Technische Hilfeleistung","Sonstiger Notfall"].includes(e) && a.personDanger==="ja")return true;
@@ -744,6 +777,17 @@ function questionHTML(q){
  if(id==="e_exposure" && !needsXABCDE(c))
    return skip("nicht zutreffend");
 
+ if(id==="location"){
+   return `<label>${label}</label>
+    <div class="mapSearch" style="margin-bottom:8px">
+     <input id="notrufMapQuery" placeholder="Adresse suchen, z. B. Edo-Wiemken-Straße 61, Varel">
+     <button class="primary" onclick="searchNotrufMap()">🔎 Suchen</button>
+    </div>
+    <div id="notrufMapResults"></div>
+    <div id="notrufMap" style="height:260px;border-radius:12px;border:1px solid var(--line);overflow:hidden;margin-bottom:8px"></div>
+    <div class="coords" id="notrufMapCoords" style="margin-bottom:8px">Noch kein Ort auf der Karte gewählt</div>
+    <div class="row"><input id="ans" type="text" placeholder="…oder Ort manuell eingeben" style="flex:1"><button class="primary" onclick="answer('location',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
+ }
  if(type==="text"||type==="count"){
    return `<label>${label}</label><div class="row"><input id="ans" type="${type==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
  }
@@ -760,7 +804,6 @@ function questionHTML(q){
    <button onclick="answer('event','Person im Wasser')">🌊 Person im Wasser</button>
    <button onclick="answer('event','Tier im Wasser')">🐕 Tier im Wasser</button>
    <button onclick="answer('event','Boot in Notlage')">🚤 Boot in Notlage</button>
-   <button onclick="answer('event','MANV')">🚑👥 MANV / Massenanfall von Verletzten</button>
    <button onclick="answer('event','Sonstiger Notfall')">❓ Sonstiger Notfall</button>
  </div>`;
  if(type==="xyn") return `<label>${label}</label><div class="answer">
@@ -806,12 +849,83 @@ async function geocodeIncidentAddress(address){
  return false;
 }
 
+let notrufLeafletMap=null, notrufMarker=null, notrufSelected=null;
+function initNotrufMap(){
+ const el=document.getElementById("notrufMap");
+ if(!el)return;
+ if(typeof L==="undefined"){el.innerHTML='<div style="padding:16px">Kartenbibliothek konnte nicht geladen werden. Internetverbindung prüfen.</div>';return}
+ const c=db.currentCall;
+ const lat=Number(c?.lat)||53.3965, lng=Number(c?.lng)||8.1364; // Varel
+ notrufLeafletMap=L.map("notrufMap").setView([lat,lng], c?.lat?16:11);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+   maxZoom:19,
+   attribution:'&copy; OpenStreetMap-Mitwirkende'
+ }).addTo(notrufLeafletMap);
+ if(c?.lat&&c?.lng)setNotrufMarker(Number(c.lat),Number(c.lng));
+ notrufLeafletMap.on("click", async e=>{
+   setNotrufMarker(e.latlng.lat,e.latlng.lng);
+   await reverseGeocodeForNotruf(e.latlng.lat,e.latlng.lng);
+ });
+ setTimeout(()=>notrufLeafletMap.invalidateSize(),150);
+}
+function setNotrufMarker(lat,lng){
+ if(!notrufLeafletMap)return;
+ if(notrufMarker)notrufLeafletMap.removeLayer(notrufMarker);
+ notrufMarker=L.marker([lat,lng],{draggable:true}).addTo(notrufLeafletMap);
+ notrufMarker.bindPopup("📍 Notfallort").openPopup();
+ notrufSelected={lat,lng};
+ const coordsEl=document.getElementById("notrufMapCoords");
+ if(coordsEl)coordsEl.textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+ notrufMarker.on("dragend", async ev=>{
+   const pos=ev.target.getLatLng();
+   notrufSelected={lat:pos.lat,lng:pos.lng};
+   const ce=document.getElementById("notrufMapCoords");
+   if(ce)ce.textContent=`${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+   await reverseGeocodeForNotruf(pos.lat,pos.lng);
+ });
+}
+async function reverseGeocodeForNotruf(lat,lng){
+ let address=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+ try{
+   const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,{headers:{"Accept":"application/json"}});
+   const r=await res.json();
+   if(r?.display_name)address=r.display_name;
+ }catch(e){}
+ const input=document.getElementById("ans");
+ if(input)input.value=address;
+}
+async function searchNotrufMap(){
+ const q=document.getElementById("notrufMapQuery")?.value?.trim();
+ if(!q)return;
+ try{
+   const query=encodeURIComponent(q.includes("Friesland")?q:`${q}, Landkreis Friesland, Niedersachsen, Deutschland`);
+   const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=de&q=${query}`,{headers:{"Accept":"application/json"}});
+   const rows=await res.json();
+   window._notrufSearchResults=rows;
+   const box=document.getElementById("notrufMapResults");
+   if(box)box.innerHTML=rows.length?rows.map((r,i)=>`<div class="mapResult" onclick="chooseNotrufMapResult(${i})">${esc(r.display_name)}</div>`).join(""):`<div class="muted" style="padding:8px">Keine Treffer</div>`;
+ }catch(e){toast("Adresssuche fehlgeschlagen")}
+}
+function chooseNotrufMapResult(i){
+ const r=window._notrufSearchResults?.[i];if(!r)return;
+ const lat=Number(r.lat), lng=Number(r.lon);
+ if(notrufLeafletMap)notrufLeafletMap.setView([lat,lng],17);
+ setNotrufMarker(lat,lng);
+ const input=document.getElementById("ans");if(input)input.value=r.display_name;
+ const box=document.getElementById("notrufMapResults");if(box)box.innerHTML="";
+}
+
 async function answer(k,v){
  const c=db.currentCall;
  c.answers[k]=v;
  if(k==="location"){
    c.location=v;
-   await geocodeIncidentAddress(v);
+   if(notrufSelected){
+     c.lat=notrufSelected.lat; c.lng=notrufSelected.lng; c.geocodedAddress=v;
+     notrufSelected=null;
+   }else{
+     await geocodeIncidentAddress(v);
+   }
  }
  if(k==="count")c.count=v;
  const q=qs.find(x=>x[0]===k);
@@ -859,15 +973,18 @@ function evaluate(){
  } else if(e==="Medizinischer Notfall"){
    keyword="MEDIZINISCHER NOTFALL R1";
    add("RTW",1,"Rettungsdienst");
- } else if(e==="MANV"){
-   const cnt=Math.max(1,Number(a.count)||1);
-   keyword=`MANV – ${cnt} Verletzte`;
-   add("RTW",Math.max(2,Math.ceil(cnt/3)),"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
-   add("OrgL/LNA",1,"Rettungsdienst");
-   add("HLF",1,"Feuerwehr"); add("ELW",1,"Feuerwehr");
  } else if(e==="Sonstiger Notfall"){
    keyword="NOTFALL – Disponentenentscheidung";
    sr=false;
+ }
+
+ const cnt=Number(a.count)||0;
+ if(cnt>3){
+   add("RTW",Math.max(1,Math.ceil(cnt/3)),"Rettungsdienst");
+   add("NEF",1,"Rettungsdienst");
+   add("OrgL/LNA",1,"Rettungsdienst");
+   add("ELW",1,"Feuerwehr");
+   keyword=`MANV – ${keyword} – ${cnt} Verletzte`;
  }
 
  let selected=[], used=new Set();
@@ -1228,7 +1345,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    const body=document.getElementById("vehicleBody"); if(!body)return;
    body.innerHTML=`<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
     <div class="answer" style="margin-top:12px">
-      ${["1","2","3","4","5","6","7","8"].map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
+      ${statusOptionsFor(local).filter(s=>s!=="0").map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
     </div></div>
     ${calls.length?calls.map(c=>`<div class="card call">
        <div class="row between"><h2>🚨 ${esc(c.keyword||"Einsatz")}</h2><span class="status s3">ALARM</span></div>
@@ -1247,13 +1364,45 @@ async function vehicleSetStatus(unitId,status,dburl,sid){
  toast(`Status ${status} gesendet`);
 }
 
+const ORG_ORDER=["DLRG","Rettungsdienst","Feuerwehr","THW","Polizei","Luftrettung"];
+const ORG_ICON={"DLRG":"🌊","Rettungsdienst":"🚑","Feuerwehr":"🚒","THW":"🛠️","Polizei":"👮","Luftrettung":"🚁"};
 function mittel(){
- const units=geoSortUnits(db.units||[]);
+ const units=db.units||[];
+ const orgs=[...new Set(units.map(u=>u.org||"Sonstige"))].sort((a,b)=>{
+   const ia=ORG_ORDER.indexOf(a), ib=ORG_ORDER.indexOf(b);
+   return (ia<0?99:ia)-(ib<0?99:ib);
+ });
+ const orgBlocks=orgs.map(org=>{
+   const orgUnits=units.filter(u=>(u.org||"Sonstige")===org);
+   const locs=[...new Set(orgUnits.map(u=>u.location||"Sonstige"))].sort((a,b)=>a.localeCompare(b,"de"));
+   const locBlocks=locs.map(loc=>{
+     const rows=geoSortUnits(orgUnits.filter(u=>(u.location||"Sonstige")===loc));
+     return `<h3 style="margin-top:14px">📍 ${esc(loc)}</h3>
+      <div style="overflow:auto"><table>
+       <thead><tr><th>OPTA / Funkrufname</th><th>Typ</th><th>Status</th><th>Fahrzeugterminal</th><th>Status ändern</th></tr></thead>
+       <tbody>
+        ${rows.map(u=>`<tr>
+         <td><b>${esc(u.opta||u.name||"—")}</b></td>
+         <td>${esc(u.type||"—")}</td>
+         <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
+         <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button></div></td>
+         <td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">
+           ${statusOptionsFor(u).map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}
+         </select></td>
+        </tr>`).join("")}
+       </tbody>
+      </table></div>`;
+   }).join("");
+   return `<div class="card" style="margin-top:16px">
+     <h2>${ORG_ICON[org]||"🚗"} ${esc(org)}</h2>
+     ${locBlocks}
+   </div>`;
+ }).join("");
  document.getElementById("app").innerHTML=`<div class="card">
    <div class="row between">
      <div>
        <h2>🚤 Rettungsmittel</h2>
-       <p class="muted">Alle Einsatzmittel mit Status, geografischer Zuordnung und Fahrzeugterminal.</p>
+       <p class="muted">Nach Organisation und Standort gruppiert, mit Status und Fahrzeugterminal.</p>
      </div>
      <div class="row">
        <button onclick="realisticMode()">🎲 Realistisch</button>
@@ -1265,27 +1414,8 @@ function mittel(){
      <b>📱 Fahrzeugterminal:</b> Für jedes Fahrzeug kannst du einen eigenen Link bzw. QR-Code erzeugen.
      ${db.cloud?.enabled?`<span class="status s2">LIVE · ${esc(db.cloud.sessionId)}</span>`:`<span class="status s3">Nur lokale Vorschau – Cloud noch nicht eingerichtet</span>`}
    </div>
-   <div style="overflow:auto">
-    <table>
-     <thead>
-      <tr><th>OPTA / Funkrufname</th><th>Organisation</th><th>Typ</th><th>Bereich</th><th>Status</th><th>Fahrzeugterminal</th><th>Status ändern</th></tr>
-     </thead>
-     <tbody>
-      ${units.map(u=>`<tr>
-       <td><b>${esc(u.opta||u.name||"—")}</b></td>
-       <td>${esc(u.org||"—")}</td>
-       <td>${esc(u.type||"—")}</td>
-       <td>${esc(optaAreaName(u)||u.location||"—")}</td>
-       <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
-       <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button></div></td>
-       <td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">
-         ${["0","1","2","3","4","5","6","7","8"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}
-       </select></td>
-      </tr>`).join("")}
-     </tbody>
-    </table>
-   </div>
- </div>`;
+ </div>
+ ${orgBlocks}`;
 }
 
 function setStatusFromSelect(id,status){
@@ -1327,31 +1457,93 @@ function deleteIvena(id){
  if(!confirm("Eintrag aus der IVENA-Übungsansicht löschen?"))return;
  db.ivena=db.ivena.filter(x=>String(x.id)!==String(id));save();render("ivena");
 }
+function toggleIvenaMode(){
+ db.ivenaMode=db.ivenaMode==="auto"?"manual":"auto";
+ save();render("ivena");
+}
+function ivenaActiveClosures(h){
+ const now=Date.now();
+ return (h.closures||[]).filter(cl=>new Date(cl.until).getTime()>now);
+}
+function openIvenaClosure(hid){
+ const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>🚫 Fachrichtung abmelden</h2>
+  <p class="muted">${esc(h.name)} · ${esc(h.place||"")}</p>
+  <label>Fachrichtung</label>
+  <select id="closureFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select>
+  <label style="margin-top:10px">Abgemeldet bis</label>
+  <input id="closureUntil" type="datetime-local">
+  <div class="row" style="margin-top:14px">
+   <button onclick="render('ivena')">Abbrechen</button>
+   <button class="primary" onclick="saveIvenaClosure('${hid}')">✅ Abmelden speichern</button>
+  </div>
+ </div>`;
+ const dt=new Date(Date.now()+2*3600*1000);
+ const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+ document.getElementById("closureUntil").value=iso;
+}
+function saveIvenaClosure(hid){
+ const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ const fach=document.getElementById("closureFach")?.value;
+ const untilRaw=document.getElementById("closureUntil")?.value;
+ if(!fach||!untilRaw){toast("Bitte Fachrichtung und Zeitpunkt wählen");return}
+ h.closures=h.closures||[];
+ h.closures.push({id:Date.now(),fach,until:new Date(untilRaw).toISOString()});
+ save();toast("Fachrichtung abgemeldet");render("ivena");
+}
+function deleteIvenaClosure(hid,cid){
+ const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ h.closures=(h.closures||[]).filter(c=>String(c.id)!==String(cid));
+ save();render("ivena");
+}
+function randomizeIvenaClosures(){
+ const now=Date.now();
+ db.ivena.forEach(h=>{
+   h.closures=ivenaActiveClosures(h);
+   if(Math.random()<0.4){
+     const fach=IVENA_FACHRICHTUNGEN[Math.floor(Math.random()*IVENA_FACHRICHTUNGEN.length)];
+     const hours=1+Math.floor(Math.random()*7);
+     h.closures.push({id:Date.now()+Math.random(),fach,until:new Date(now+hours*3600*1000).toISOString()});
+   }
+ });
+ save();toast("Zufällige Abmeldungen gewürfelt");render("ivena");
+}
 function ivena(){
  const areas=[...new Set(db.ivena.map(h=>h.area||"Sonstige"))];
  const rows=db.ivena.filter(h=>db.ivenaAreaFilter.includes(h.area||"Sonstige"));
+ const isAuto=db.ivenaMode==="auto";
  document.getElementById("app").innerHTML=`<div class="card">
   <div class="row between"><div><h2>🏥 IVENA – Übungsansicht</h2><p class="muted">Lokale Simulation für die Ausbildung. Keine Verbindung zum realen IVENA-System und keine Echtzeit-Kapazitätsdaten.</p></div><button class="primary" onclick="addIvena()">＋ Ziel hinzufügen</button></div>
   <label style="margin-top:4px">Leitstellenbereiche</label>
   <div class="row">${areas.map(a=>`<button class="${db.ivenaAreaFilter.includes(a)?"primary":""}" onclick="toggleIvenaArea('${a.replace(/'/g,"\\'")}')">${db.ivenaAreaFilter.includes(a)?"✅ ":""}${esc(a)}</button>`).join("")}</div>
-  <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Ziel</th><th>Ort</th><th>Bereich</th><th>Übungsstatus</th><th>Hinweis</th><th>Aktionen</th></tr></thead><tbody>
-   ${rows.map(h=>`<tr>
+  <div class="row between" style="margin-top:14px;background:#f8fafc;border-radius:10px;padding:10px 12px">
+   <div><b>Fachrichtungs-Abmeldungen:</b> <span class="muted">${isAuto?"Werden zufällig gewürfelt.":"Werden manuell pro Klinik gepflegt."}</span></div>
+   <div class="row">
+    <button class="${isAuto?"":"primary"}" onclick="${isAuto?"toggleIvenaMode()":""}">🖐️ Manuell</button>
+    <button class="${isAuto?"primary":""}" onclick="${isAuto?"":"toggleIvenaMode()"}">🎲 Automatisch</button>
+    ${isAuto?`<button onclick="randomizeIvenaClosures()">🎲 Neu auswürfeln</button>`:""}
+   </div>
+  </div>
+  <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Ziel</th><th>Ort</th><th>Bereich</th><th>Übungsstatus</th><th>Abgemeldete Fachrichtungen</th><th>Hinweis</th><th>Aktionen</th></tr></thead><tbody>
+   ${rows.map(h=>{
+     const closures=ivenaActiveClosures(h);
+     return `<tr>
     <td><b>${esc(h.name)}</b></td><td>${esc(h.place||"—")}</td><td>${esc(h.area||"—")}</td>
     <td><span class="status ${ivenaStatusClass(h.status)}">${esc(h.status.toUpperCase())}</span></td>
+    <td>
+     ${closures.length?closures.map(cl=>`<div class="pill" style="margin:2px 0;display:inline-flex;gap:6px;align-items:center">🚫 ${esc(cl.fach)} bis ${new Date(cl.until).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})} <span style="cursor:pointer" onclick="deleteIvenaClosure(${h.id},'${cl.id}')">✕</span></div><br>`).join(""):`<span class="muted">keine</span>`}
+     ${!isAuto?`<div><button onclick="openIvenaClosure(${h.id})">🚫 Fachrichtung abmelden</button></div>`:""}
+    </td>
     <td>${esc(h.note||"")}</td>
     <td><div class="row"><button onclick="setIvenaStatus(${h.id},'grün')">🟢</button><button onclick="setIvenaStatus(${h.id},'gelb')">🟡</button><button onclick="setIvenaStatus(${h.id},'rot')">🔴</button><button onclick="editIvena(${h.id})">✏️</button><button onclick="deleteIvena(${h.id})">🗑️</button></div></td>
-   </tr>`).join("")}
+   </tr>`;
+   }).join("")}
   </tbody></table></div>
-  <div class="card" style="margin-top:12px;background:#f8fafc"><b>Für Übungen gedacht:</b> Grün/Gelb/Rot und Hinweise können von der Übungsleitung frei gesetzt werden, z. B. „CT belegt“, „Schockraum frei“ oder „keine pädiatrische Aufnahme“.</div>
+  <div class="card" style="margin-top:12px;background:#f8fafc"><b>Für Übungen gedacht:</b> Grün/Gelb/Rot, Fachrichtungs-Abmeldungen und Hinweise können von der Übungsleitung frei gesetzt werden, z. B. „CT belegt“, „Schockraum frei“ oder „keine pädiatrische Aufnahme“.</div>
  </div>`;
 }
 
-function szenarien(){
- document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🎓 Übungsszenarien</h2><p class="muted">Szenario auswählen und als Übungsnotruf starten.</p></div><button class="primary" onclick="addScenario()">＋ Szenario</button></div>
- ${db.scenarios.map(s=>`<div class="card" style="margin:10px 0;background:#f8fafc"><div class="row between"><div><h3>${esc(s.name)}</h3><div class="muted">📍 ${esc(s.location)}</div><p>${esc(s.note)}</p></div><button class="primary" onclick="startScenario(${s.id})">▶ Starten</button></div></div>`).join("")}</div>`;
-}
-function startScenario(id){let s=db.scenarios.find(x=>x.id===id);newCall({location:s.location,count:""});db.currentCall.answers={...s.answers};db.currentCall.location=s.location;db.currentCall.history=[];for(const [k,v] of Object.entries(s.answers)){let q=qs.find(x=>x[0]===k);if(q)db.currentCall.history.push({q:q[1],a:v})}evaluate();save();render("notruf")}
-function addScenario(){const name=prompt("Szenarioname");if(!name)return;const location=prompt("Einsatzort","Dangast");const note=prompt("Lagebeschreibung","Person im Wasser");db.scenarios.push({id:Date.now(),name,location,note,answers:{water:"ja",conscious:"nein"}});save();render("szenarien")}
 setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation()},1000);
 if(!initVehicleMode()){
  render("leitstelle");
