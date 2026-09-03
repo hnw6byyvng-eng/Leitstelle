@@ -313,3 +313,32 @@ Version 3.13:
   Kreiskrankenhaus Wittmund) und über den neuen Button 🏷️ pro Klinik frei anpassbar, falls sich
   etwas geändert hat oder ihr weitere Kliniken ergänzt.
 - JavaScript-Syntax geprüft.
+
+Version 3.14 – Bugfixes:
+- Wichtiger Fix: Bei bereits laufenden Installationen (die IVENA schon vor v3.13 genutzt haben)
+  wurden die real hinterlegten Fachrichtungen der Kliniken NICHT übernommen, da die Klinikliste
+  schon lokal gespeichert war und die neuen Felder deshalb leer blieben. Wird jetzt beim Laden
+  automatisch nachgezogen (Zuordnung über den Kliniknamen), ohne bereits gepflegte Status/
+  Hinweise/Abmeldungen zu verändern.
+- Gleicher Fehler auch bei der AAO-Liste behoben: neu hinzugekommene Einsatzstichworte
+  (Rettungsdienst/Feuerwehr/XABCDE/MANV) wurden bei bereits genutzten Installationen nicht
+  automatisch ergänzt. Wird jetzt beim Laden nachgezogen (Zuordnung über den Stichwort-Namen).
+- Beide Mechanismen ergänzen künftig auch automatisch neu hinzukommende Standard-Kliniken bzw.
+  -Stichworte bei bestehenden Installationen, analog zum bereits vorhandenen Abgleich der
+  Fahrzeugliste.
+- Vollständige Durchsicht des Codes auf verwaiste/undefinierte Funktionsaufrufe und doppelte
+  Funktionsdefinitionen durchgeführt – keine weiteren gefunden.
+- JavaScript-Syntax geprüft.
+
+Version 3.15:
+- Doppelabfrage in der Notrufabfrage entfernt: „Ist die Person bei Bewusstsein?“ und „Atmet die
+  Person normal?“ überschnitten sich inhaltlich mit D (Bewusstsein) und B (Atmung) aus dem
+  XABCDE-Schema und wurden für dieselben Ereignisse (Medizinischer Notfall/Reanimation) ohnehin
+  zusätzlich zu XABCDE abgefragt.
+- Ist XABCDE indiziert, läuft die Abfrage jetzt ausschließlich über XABCDE (X/A/B/C/D/E) statt
+  vorher zusätzlich über die separaten Bewusstsein-/Atmung-Fragen.
+- Die automatische Reanimations-Erkennung (Eskalation auf RTW+NEF+First-Responder-NKTW auch bei
+  ursprünglich anders gewähltem Ereignis) läuft jetzt auf Basis der XABCDE-Antworten B und D
+  statt der entfernten Duplikat-Fragen – keine Funktionseinbuße, nur die doppelte Abfrage entfällt.
+- AAO-Referenzeinträge „DLRG Wasser 2/3“ auf die tatsächlich erhobenen XABCDE-Felder umgestellt.
+- JavaScript-Syntax geprüft.

@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.13</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.15</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -116,8 +116,8 @@ const defaults={
  ],
  aao:[
   {id:1,name:"DLRG Wasser 1 – Person im Wasser",rules:{water:"ja"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1}]},
-  {id:2,name:"DLRG Wasser 2 – bewusstlose Person im Wasser",rules:{water:"ja",conscious:"nein"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
-  {id:3,name:"DLRG Wasser 3 – keine normale Atmung",rules:{water:"ja",breathing:"nein"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
+  {id:2,name:"DLRG Wasser 2 – bewusstlose Person im Wasser",rules:{water:"ja",d_disability:"Bewusstlos"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
+  {id:3,name:"DLRG Wasser 3 – keine normale Atmung",rules:{water:"ja",b_breath:"Keine normale Atmung"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
   {id:4,name:"Rettungsdienst 1 – Medizinischer Notfall",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1}]},
   {id:5,name:"Rettungsdienst 2 – Reanimation",rules:{event:"Reanimation"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
   {id:6,name:"Feuerwehr 1 – Feuer/Rauch",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1},{type:"LF",n:1}]},
@@ -155,6 +155,13 @@ db.units=db.units.filter(u=>!RETIRED_UNIT_OPTAS.includes(u.opta));
    if(u.opta && !existingOptas.has(u.opta)) db.units.push({...u});
  });
 }
+if(!Array.isArray(db.aao))db.aao=[];
+{
+ const existingAaoNames=new Set(db.aao.map(a=>a.name));
+ defaults.aao.forEach(a=>{
+   if(!existingAaoNames.has(a.name))db.aao.push({...a});
+ });
+}
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
@@ -166,7 +173,22 @@ if(!Array.isArray(db.ivena))db.ivena=[
  {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Intensivmedizin","Augenheilkunde","Gynäkologie/Geburtshilfe"]},
  {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]}
 ];
-db.ivena.forEach(h=>{if(!h.area)h.area="Wilhelmshaven"; if(!Array.isArray(h.closures))h.closures=[]; if(!Array.isArray(h.fachrichtungen))h.fachrichtungen=[]});
+db.ivena.forEach(h=>{
+ if(!h.area)h.area="Wilhelmshaven";
+ if(!Array.isArray(h.closures))h.closures=[];
+ if(!Array.isArray(h.fachrichtungen)||h.fachrichtungen.length===0){
+   const def=defaults.ivena.find(d=>d.name===h.name);
+   if(def&&Array.isArray(def.fachrichtungen))h.fachrichtungen=[...def.fachrichtungen];
+   else if(!Array.isArray(h.fachrichtungen))h.fachrichtungen=[];
+ }
+});
+{
+ // Bei bereits genutzten Installationen fehlende, später hinzugekommene Kliniken ergänzen
+ const existingHospitalNames=new Set(db.ivena.map(h=>h.name));
+ defaults.ivena.forEach(h=>{
+   if(!existingHospitalNames.has(h.name))db.ivena.push({...h});
+ });
+}
 if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund"];
 if(!db.ivenaViewMode)db.ivenaViewMode="klinik";
 if(!db.ivenaMode)db.ivenaMode="manual";
@@ -776,8 +798,6 @@ const qs=[
  ["location","📍 Wo genau ist der Notfallort?","text"],
  ["event","❓ Was ist passiert?","event112"],
  ["count","👥 Wie viele Personen/Tiere sind betroffen?","count"],
- ["conscious","🧠 Ist die betroffene Person bei Bewusstsein?","ynMedical"],
- ["breathing","🫁 Atmet die betroffene Person normal?","ynMedical"],
  ["trapped","🚗 Ist jemand eingeklemmt oder eingeschlossen?","ynTech"],
  ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
  ["water","🌊 Befindet sich eine Person oder ein Tier im Wasser?","ynWater"],
@@ -846,7 +866,6 @@ function xabcdeComplete(c=db.currentCall){
 function questionHTML(q){
  const [id,label,type]=q;
  const c=db.currentCall, e=c?.answers?.event||"";
- const medical=["Medizinischer Notfall","Reanimation"].includes(e);
  const fire=e==="Feuer / Rauchentwicklung";
  const tech=["Verkehrsunfall","Technische Hilfeleistung"].includes(e);
  const water=["Person im Wasser","Tier im Wasser","Boot in Notlage"].includes(e);
@@ -856,7 +875,6 @@ function questionHTML(q){
    return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`;
  };
 
- if(type==="ynMedical"&&!medical)return skip("nicht zutreffend");
  if(type==="ynFire"&&!fire)return skip("nicht zutreffend");
  if(type==="ynTech"&&!tech)return skip("nicht zutreffend");
  if(type==="ynWater"&&!water)return skip("nein");
@@ -1035,7 +1053,7 @@ function evaluate(){
 
  const add=(type,n=1,org=null)=>{for(let i=0;i<n;i++)req.push({type,org})};
 
- if(e==="Reanimation" || (a.conscious==="nein" && a.breathing==="nein")){
+ if(e==="Reanimation" || (a.b_breath==="Keine normale Atmung" && a.d_disability==="Bewusstlos")){
    keyword="REANIMATION R1N1";
    add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
    const nktw=availableUnits("NKTW","Rettungsdienst")[0];
