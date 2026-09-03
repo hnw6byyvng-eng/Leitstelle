@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.10</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.11</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -684,9 +684,8 @@ function selectCall(id,page="leitstelle"){
 function renderVehicleFeedbackBadges(c){
  if(!c.orglFeedback||!c.orglFeedback.length)return"";
  return c.orglFeedback.slice(0,3).map(fb=>{
-   const isNafo=fb.kind==="nafo";
-   const icon=isNafo?"📟":"📢";
-   const tag=isNafo?" (Nachforderung)":"";
+   const icon=fb.kind==="nafo"?"📟":fb.kind==="abbestellen"?"↩️":"📢";
+   const tag=fb.kind==="nafo"?" (Nachforderung)":fb.kind==="abbestellen"?" (Abbestellung)":"";
    return `<div style="margin-top:8px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:8px;font-size:12px"><b>${icon} ${esc(fb.unitLabel||"Fahrzeug")}${tag}:</b> ${esc(fb.text)} <span style="opacity:.7">· ${new Date(fb.time).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span></div>`;
  }).join("");
 }
@@ -1484,15 +1483,15 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    const body=document.getElementById("vehicleBody"); if(!body)return;
    const vType=unit?.type||local?.type;
    const inCallStatus4=String(unit?.status)==="4" && calls.length>0;
-   const canAssign=String(unit?.status)==="4" && ["RTW","RTH","OrgL/LNA"].includes(vType);
+   const canAssign=String(unit?.status)==="4" && ["RTW","RTH","OrgL/LNA","NEF"].includes(vType);
    const canOrglFeedback=vType==="OrgL/LNA" && inCallStatus4;
    body.innerHTML=`<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
     <div class="answer" style="margin-top:12px">
       ${statusOptionsFor(local).filter(s=>s!=="0").map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
     </div>
-    ${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">🏥 IVENA-${vType==="OrgL/LNA"?"Anmeldung":"Zuweisung"}</button></div>`:""}
+    ${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">🏥 IVENA-${["OrgL/LNA","NEF"].includes(vType)?"Anmeldung":"Zuweisung"}</button></div>`:""}
     ${inCallStatus4?`<div class="row" style="margin-top:12px"><button onclick="sendVehicleFeedback('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}','nafo')">📟 Nachfordern</button></div>`:""}
-    ${canOrglFeedback?`<div class="row" style="margin-top:12px"><button class="primary" onclick="sendVehicleFeedback('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}','lage')">📢 Lagemeldung (Status 4) senden</button></div>`:""}
+    ${canOrglFeedback?`<div class="row" style="margin-top:12px"><button class="primary" onclick="sendOrglSituationReport('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}')">📢 Lagemeldung (Status 4) senden</button></div>`:""}
     </div>
     ${calls.length?calls.map(c=>`<div class="card call">
        <div class="row between"><h2>🚨 ${esc(c.keyword||"Einsatz")}</h2><span class="status s3">ALARM</span></div>
@@ -1520,14 +1519,46 @@ function renderIvenaMini(hospitals){
   </table></div>
  </div>`;
 }
+async function pushFeedbackEntry(dburl,sid,partial){
+ const entry={id:Date.now()+Math.floor(Math.random()*1000),time:new Date().toISOString(),...partial};
+ await vehicleFetch(dburl,sid,`orglFeedback/${encodeURIComponent(String(entry.id))}`,"PUT",entry);
+}
 async function sendVehicleFeedback(unitId,dburl,sid,callId,kind){
  const local=db.units.find(x=>String(x.id)===String(unitId));
  const promptText=kind==="nafo"?"Nachforderung – was wird benötigt / Grund?":"Kurze Lagemeldung / Rückmeldung an die Leitstelle:";
  const text=(prompt(promptText)||"").trim();
  if(!text)return;
- const entry={id:Date.now(),callId,unitId,unitLabel:local?.opta||local?.name||unitId,text,kind,time:new Date().toISOString()};
- await vehicleFetch(dburl,sid,`orglFeedback/${encodeURIComponent(String(entry.id))}`,"PUT",entry);
+ await pushFeedbackEntry(dburl,sid,{callId,unitId,unitLabel:local?.opta||local?.name||unitId,text,kind});
  toast(kind==="nafo"?"Nachforderung gesendet":"Lagemeldung gesendet");
+}
+async function sendOrglSituationReport(unitId,dburl,sid,callId){
+ const local=db.units.find(x=>String(x.id)===String(unitId));
+ const unitLabel=local?.opta||local?.name||unitId;
+ const patientsRaw=prompt("Anzahl der Patienten am Einsatzort:");
+ if(patientsRaw===null)return;
+ const patients=parseInt(patientsRaw,10);
+ if(isNaN(patients)||patients<0){toast("Bitte eine gültige Zahl eingeben");return}
+ const noteText=(prompt("Zusätzliche Lagemeldung (optional):")||"").trim();
+ const call=await vehicleFetch(dburl,sid,`calls/${encodeURIComponent(callId)}`);
+ const rtwCount=(call?.units||[]).filter(u=>u.type==="RTW").length;
+ const diff=patients-rtwCount;
+ await pushFeedbackEntry(dburl,sid,{
+   callId,unitId,unitLabel,kind:"lage",
+   text:`${patients} Patient(en) vor Ort${noteText?` – ${noteText}`:""} (${rtwCount} RTW alarmiert)`
+ });
+ if(diff>0){
+   await pushFeedbackEntry(dburl,sid,{
+     callId,unitId,unitLabel,kind:"nafo",
+     text:`Automatisch: ${diff} weitere${diff===1?"s":""} RTW nachfordern (${patients} Patienten, ${rtwCount} RTW alarmiert)`
+   });
+ }else if(diff<0){
+   const surplus=-diff;
+   await pushFeedbackEntry(dburl,sid,{
+     callId,unitId,unitLabel,kind:"abbestellen",
+     text:`Automatisch: ${surplus} RTW können abbestellt werden (${patients} Patienten, ${rtwCount} RTW alarmiert)`
+   });
+ }
+ toast("Lagemeldung gesendet");
 }
 async function vehicleSetStatus(unitId,status,dburl,sid){
  await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`,"PATCH",{status:String(status),updatedAt:new Date().toISOString()});
@@ -1537,14 +1568,15 @@ function openVehicleIvenaAssignment(unitId,dburl,sid){
  const local=db.units.find(x=>String(x.id)===String(unitId));
  const hospitals=(vehicleIvenaCache&&vehicleIvenaCache.length)?vehicleIvenaCache:(db.ivena||[]);
  if(!hospitals.length){toast("Keine Kliniken hinterlegt");return}
- const isOrgl=local?.type==="OrgL/LNA";
- const transportOptions=isOrgl?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH"].includes(u.type)&&String(u.status)==="4"):[];
+ const isAnnounceType=["OrgL/LNA","NEF"].includes(local?.type);
+ const allowSelf=local?.type==="NEF";
+ const transportOptions=isAnnounceType?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH"].includes(u.type)&&String(u.status)==="4"):[];
  clearInterval(vehiclePollTimer);
  const dt=new Date(Date.now()+20*60*1000);
  const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
  document.getElementById("app").innerHTML=`<div class="card">
-  <h2>🏥 IVENA-${isOrgl?"Anmeldung":"Zuweisung"}</h2>
-  <p class="muted">${isOrgl?"Patient beim Zielklinikum voranmelden. Bei Auswahl eines Transportmittels wird dessen Status auf 7 gesetzt.":`${esc(local?.opta||local?.name||unitId)} → Zielklinik. Setzt diesen Wagen sofort auf Status 7.`}</p>
+  <h2>🏥 IVENA-${isAnnounceType?"Anmeldung":"Zuweisung"}</h2>
+  <p class="muted">${isAnnounceType?"Patient beim Zielklinikum voranmelden. Bei Auswahl eines Transportmittels wird dessen Status auf 7 gesetzt.":`${esc(local?.opta||local?.name||unitId)} → Zielklinik. Setzt diesen Wagen sofort auf Status 7.`}</p>
   <label>Zielklinik</label>
   <select id="vAsgHospital">${hospitals.map(h=>`<option value="${h.id}">${esc(h.name)}${h.place?` (${esc(h.place)})`:""}</option>`).join("")}</select>
   <div class="formgrid">
@@ -1553,19 +1585,23 @@ function openVehicleIvenaAssignment(unitId,dburl,sid){
    <div><label>Geschlecht</label><select id="vAsgGender"><option value="M">M</option><option value="W">W</option></select></div>
    <div><label>Alter</label><input id="vAsgAlter" type="number" min="0" max="120" placeholder="Jahre"></div>
    <div><label>Notarzt an Bord</label><select id="vAsgNA"><option value="nein">NA- (ohne)</option><option value="ja">NA+ (mit)</option></select></div>
-   ${isOrgl?`<div><label>Transportmittel (Status 4, optional)</label><select id="vAsgTransport"><option value="">– noch nicht festgelegt –</option>${transportOptions.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}</option>`).join("")}</select></div>`:""}
+   ${isAnnounceType?`<div><label>Transportmittel (Status 4, optional)</label><select id="vAsgTransport">
+     <option value="">– noch nicht festgelegt –</option>
+     ${allowSelf?`<option value="self">${esc(local?.opta||local?.name||unitId)} selbst (NEF)</option>`:""}
+     ${transportOptions.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}</option>`).join("")}
+   </select></div>`:""}
   </div>
   <label style="margin-top:10px">Voraussichtliche Eintreffzeit</label>
   <input id="vAsgEta" type="datetime-local" value="${iso}">
   <div class="row" style="margin-top:14px">
    <button onclick="renderVehicleTerminal('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">Abbrechen</button>
-   <button class="primary" onclick="saveVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">✅ ${isOrgl?"Anmelden":"Zuweisen"}</button>
+   <button class="primary" onclick="saveVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">✅ ${isAnnounceType?"Anmelden":"Zuweisen"}</button>
   </div>
  </div>`;
 }
 async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  const local=db.units.find(x=>String(x.id)===String(unitId));
- const isOrgl=local?.type==="OrgL/LNA";
+ const isAnnounceType=["OrgL/LNA","NEF"].includes(local?.type);
  const hospital=((vehicleIvenaCache&&vehicleIvenaCache.length)?vehicleIvenaCache:(db.ivena||[])).find(h=>String(h.id)===String(document.getElementById("vAsgHospital")?.value));
  if(!hospital){toast("Bitte Zielklinik wählen");return}
  const fach=document.getElementById("vAsgFach")?.value;
@@ -1576,16 +1612,18 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  const etaRaw=document.getElementById("vAsgEta")?.value;
  let vehicleIds=[unitId];
  let vehicleLabels=[`${local?.opta||local?.name||unitId} (${local?.type||"?"})`];
- if(isOrgl){
-   const transportId=document.getElementById("vAsgTransport")?.value;
-   if(transportId){
-     const t=(vehicleUnitsCache||[]).find(u=>String(u.id)===String(transportId));
-     vehicleIds=[transportId];
-     vehicleLabels=[`${t?.opta||t?.name||transportId} (${t?.type||"?"})`];
-     await vehicleFetch(dburl,sid,`units/${encodeURIComponent(String(transportId))}`,"PATCH",{status:"7",updatedAt:new Date().toISOString()});
+ if(isAnnounceType){
+   const transportVal=document.getElementById("vAsgTransport")?.value;
+   if(transportVal==="self"){
+     await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`,"PATCH",{status:"7",updatedAt:new Date().toISOString()});
+   }else if(transportVal){
+     const t=(vehicleUnitsCache||[]).find(u=>String(u.id)===String(transportVal));
+     vehicleIds=[transportVal];
+     vehicleLabels=[`${t?.opta||t?.name||transportVal} (${t?.type||"?"})`];
+     await vehicleFetch(dburl,sid,`units/${encodeURIComponent(String(transportVal))}`,"PATCH",{status:"7",updatedAt:new Date().toISOString()});
    }else{
      vehicleIds=[];
-     vehicleLabels=[`Angemeldet von ${local?.opta||local?.name||unitId} (OrgL/LNA)`];
+     vehicleLabels=[`Angemeldet von ${local?.opta||local?.name||unitId} (${local?.type||"?"})`];
    }
  }else{
    await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`,"PATCH",{status:"7",updatedAt:new Date().toISOString()});
@@ -1600,7 +1638,7 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
    source:"vehicle"
  };
  await vehicleFetch(dburl,sid,`ivenaAssignments/${encodeURIComponent(String(assignment.id))}`,"PUT",assignment);
- toast(isOrgl?"Anmeldung gesendet":"Zuweisung gesendet – Status 7 gesetzt");
+ toast(isAnnounceType?"Anmeldung gesendet":"Zuweisung gesendet – Status 7 gesetzt");
  renderVehicleTerminal(unitId,dburl,sid);
 }
 

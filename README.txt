@@ -268,3 +268,14 @@ Version 3.10:
   der Cloud als „in Status 4“ erkannt wird). Ohne Auswahl eines Transportmittels wird die
   Anmeldung trotzdem an die Leitstelle übermittelt, nur ohne Status-Änderung.
 - JavaScript-Syntax geprüft.
+
+Version 3.11:
+- OrgL/LNA-Lagemeldung fragt jetzt zusätzlich die Anzahl der Patienten am Einsatzort ab.
+  Anhand der alarmierten RTW-Zahl des Einsatzes wird automatisch eine weitere Meldung erzeugt:
+  zu wenige RTW → automatische Nachforderungs-Meldung („📟 … Nachforderung“); zu viele RTW →
+  automatische Abbestellungs-Meldung („↩️ … Abbestellung“). Beide erscheinen wie gewohnt als
+  rot hinterlegter Hinweis unter dem Einsatz in der Leitstelle.
+- NEF-Fahrzeuge können jetzt ebenfalls IVENA anmelden, sobald sie in Status 4 stehen – wahlweise
+  für sich selbst (NEF transportiert ausnahmsweise selbst, Status 7) oder für ein begleitendes
+  RTW/RTH (live aus der Cloud als „in Status 4“ erkannt).
+- JavaScript-Syntax geprüft.
