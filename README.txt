@@ -174,3 +174,31 @@ Version 3.3:
   aufgenommen) oder 8 (bedingt verfügbar) gesetzt werden – weder in der Rettungsmittelübersicht
   noch am Fahrzeugterminal noch im „Realistisch“-Zufallsmodus.
 - JavaScript-Syntax geprüft.
+
+Version 3.4:
+- NEF „Rettung Friesland 84/82-03“ (Sande) entfernt.
+- RTW „Rettung Friesland 87/83-01“ (Bockhorn) neu ergänzt, ergänzt den bereits vorhandenen
+  Tagesdienst-RTW 87/83-02.
+- JavaScript-Syntax geprüft.
+
+Version 3.5:
+- AAO-Liste für den Rettungsdienst um XABCDE-basierte Einträge erweitert.
+- Neue, spezifischere Meldestichworte, die abhängig vom XABCDE-Ergebnis automatisch zum
+  Grund-Einsatzstichwort ergänzt werden (unabhängig vom auslösenden Ereignis, sofern XABCDE
+  erhoben wurde – also auch bei Wasser-, VU- oder Feuer-Einsätzen mit Personengefährdung):
+  RD_X (kritische Blutung), RD_A (Atemweg gefährdet), RD_B (Atemstillstand / Atmung auffällig),
+  RD_C (relevante Blutung / Schockzeichen), RD_D (bewusstlos / Krampfanfall / Bewusstsein
+  getrübt).
+- Bei kritischen Befunden (RD_X, RD_B Atemstillstand, RD_C relevante Blutung) wird automatisch
+  zusätzlich ein RTW und/oder NEF zum Alarmvorschlag ergänzt und ein Hinweis zur
+  Schockraum-Voranmeldung ins Meldestichwort aufgenommen.
+- Bei MANV (>3 Verletzte) entfällt diese Eskalation weiterhin, da dort keine Einzel-XABCDE
+  erhoben wird.
+- JavaScript-Syntax geprüft.
+
+Version 3.6:
+- Nach abgeschlossener Notruf-Abfrage werden die internen Einsatzstichwort-Codes und die
+  rohen Antworten (JSON) nicht mehr direkt angezeigt, sondern standardmäßig ausgeblendet.
+- Neuer Button „Interne Codes & Rohdaten anzeigen“ blendet sie bei Bedarf (z. B. zur
+  Übungsauswertung) wieder ein.
+- JavaScript-Syntax geprüft.

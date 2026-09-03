@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.3</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.6</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -64,10 +64,10 @@ const defaults={
   {id:106,name:"82-93-01",opta:"Rettung Friesland 82/93-01",type:"NKTW",org:"Rettungsdienst",location:"Varel",status:"6",crew:"2",skills:"Notfalltransport, First Responder",schedule:"night_replacement_82",verified:"Nutzerangabe"},
   {id:107,name:"82-82-01",opta:"Rettung Friesland 82/82-01",type:"NEF",org:"Rettungsdienst",location:"Varel",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge"},
   {id:108,name:"84-82-01",opta:"Rettung Friesland 84/82-01",type:"NEF",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge"},
-  {id:109,name:"84-82-03",opta:"Rettung Friesland 84/82-03",type:"NEF",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notarzt / Reserve",verified:"BOS-Fahrzeuge"},
   {id:110,name:"84-83-01",opta:"Rettung Friesland 84/83-01",type:"RTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:111,name:"84-93-01",opta:"Rettung Friesland 84/93-01",type:"NKTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfalltransport, First Responder",schedule:"day_only",verified:"Nutzerangabe"},
   {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"Nutzerangabe"},
+  {id:115,name:"87-83-01",opta:"Rettung Friesland 87/83-01",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",verified:"Nutzerangabe"},
   {id:113,name:"OrgL/LNA Varel",opta:"Rettungsdienst Friesland – OrgL/LNA Varel",type:"OrgL/LNA",org:"Rettungsdienst",location:"Varel",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
   {id:114,name:"OrgL/LNA Sande",opta:"Rettungsdienst Friesland – OrgL/LNA Sande",type:"OrgL/LNA",org:"Rettungsdienst",location:"Sande",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
 
@@ -123,7 +123,14 @@ const defaults={
   {id:6,name:"Feuerwehr 1 – Feuer/Rauch",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1},{type:"LF",n:1}]},
   {id:7,name:"Feuerwehr 2 – Feuer mit Personengefährdung",rules:{event:"Feuer / Rauchentwicklung",firePeople:"ja"},units:[{type:"HLF",n:1},{type:"LF",n:1},{type:"DLK",n:1},{type:"RTW",n:1}]},
   {id:8,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall mit eingeklemmter Person",rules:{event:"Verkehrsunfall",trapped:"ja"},units:[{type:"HLF",n:1},{type:"RTW",n:1},{type:"RW",n:1}]},
-  {id:9,name:"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)",rules:{count:">3"},units:[{type:"RTW",n:2},{type:"NEF",n:1},{type:"OrgL/LNA",n:1},{type:"ELW",n:1}]}
+  {id:9,name:"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)",rules:{count:">3"},units:[{type:"RTW",n:2},{type:"NEF",n:1},{type:"OrgL/LNA",n:1},{type:"ELW",n:1}]},
+  {id:10,name:"Rettungsdienst – RD_X kritische Blutung",rules:{x_massive:"Ja"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
+  {id:11,name:"Rettungsdienst – RD_B Atemstillstand",rules:{b_breath:"Keine normale Atmung"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
+  {id:12,name:"Rettungsdienst – RD_C relevante Blutung",rules:{c_circ:"Relevante Blutung"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
+  {id:13,name:"Rettungsdienst – RD_C Schockzeichen",rules:{c_circ:"Auffällig / Schockzeichen"},units:[{type:"NEF",n:1}]},
+  {id:14,name:"Rettungsdienst – RD_A Atemweg gefährdet",rules:{a_airway:"Gefährdet / verlegt"},units:[{type:"NEF",n:1}]},
+  {id:15,name:"Rettungsdienst – RD_D Bewusstlos",rules:{d_disability:"Bewusstlos"},units:[{type:"NEF",n:1}]},
+  {id:16,name:"Rettungsdienst – RD_D Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1}]}
  ],
  calls:[],
  currentCall:null
@@ -677,6 +684,7 @@ function dashboard(){
 }
 function newCall(pref={}){
  if(db.currentCall)parkCurrentCall();
+ notrufDetailsVisible=false;
  const stamp=Date.now().toString();
  db.currentCall={id:stamp.slice(-6),location:pref.location||"",count:pref.count||"",answers:{},history:[],keyword:"",suggestion:"",createdAt:new Date().toISOString()};
  save();render("notruf");
@@ -699,6 +707,8 @@ const qs=[
  ["e_exposure","E – Weitere Verletzungen, Erkrankungszeichen oder Umgebungseinflüsse?","textarea"],
  ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"]
 ];
+let notrufDetailsVisible=false;
+function toggleNotrufDetails(){notrufDetailsVisible=!notrufDetailsVisible;notruf();}
 function nearestAvailableUnits(limit=6){
  const avail=db.units.filter(u=>["1","2","8"].includes(String(u.status)));
  return nearestFirst(avail).slice(0,limit);
@@ -720,7 +730,7 @@ function notruf(){
    </div>
    ${q?`<div class="muted" style="margin-top:10px">Frage ${answeredCount+1} von ${qs.length}</div>
    <div style="height:6px;background:#eef2f6;border-radius:999px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${Math.round(100*answeredCount/qs.length)}%;background:#e30613"></div></div>`:""}
-   <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>🧠 Abfrage abgeschlossen</h2><div class="big">${esc(c.keyword)}</div><p>${c.suggestion}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render('karte')">🗺️ Notfallort prüfen</button></div><hr><b>Antworten</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div>`}</div>
+   <div style="margin-top:15px">${q?questionHTML(q):`<div class="suggest"><h2>✅ Abfrage abgeschlossen</h2><p>${c.suggestion||"Kein Alarmvorschlag verfügbar."}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render('karte')">🗺️ Notfallort prüfen</button></div><button onclick="toggleNotrufDetails()">🔍 ${notrufDetailsVisible?"Details verbergen":"Interne Codes & Rohdaten anzeigen"}</button><div class="${notrufDetailsVisible?"":"hidden"}" style="margin-top:10px"><hr><b>Einsatzstichwort (intern)</b><div class="big">${esc(c.keyword)}</div><b>Antworten (Rohdaten)</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div></div>`}</div>
   </div>
   <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div>
  </section>
@@ -976,6 +986,40 @@ function evaluate(){
  } else if(e==="Sonstiger Notfall"){
    keyword="NOTFALL – Disponentenentscheidung";
    sr=false;
+ }
+
+ // XABCDE-Ergebnis kann den Rettungsdienst-Anteil der Alarmierung verschärfen und
+ // liefert ein eigenes, spezifischeres Meldestichwort – unabhängig vom Grundereignis
+ // (Wasser, VU, Feuer mit Personengefährdung, …), sofern XABCDE erhoben wurde.
+ if(needsXABCDE(c)){
+   let xLabel=null;
+   if(a.x_massive==="Ja"){
+     add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+     xLabel="RD_X – Kritische Blutung (Schockraum voranmelden)";
+   } else if(a.b_breath==="Keine normale Atmung"){
+     add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+     xLabel="RD_B – Atemstillstand / reanimationspflichtig";
+   } else if(a.c_circ==="Relevante Blutung"){
+     add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+     xLabel="RD_C – Relevante Blutung (Schockraum voranmelden)";
+   } else if(a.c_circ==="Auffällig / Schockzeichen"){
+     add("NEF",1,"Rettungsdienst");
+     xLabel="RD_C – Schockzeichen";
+   } else if(a.a_airway==="Gefährdet / verlegt"){
+     add("NEF",1,"Rettungsdienst");
+     xLabel="RD_A – Atemweg gefährdet";
+   } else if(a.d_disability==="Bewusstlos"){
+     add("NEF",1,"Rettungsdienst");
+     xLabel="RD_D – Bewusstlos";
+   } else if(a.d_disability==="Krampfanfall / neurologisch auffällig"){
+     add("NEF",1,"Rettungsdienst");
+     xLabel="RD_D – Krampfanfall";
+   } else if(a.b_breath==="Auffällig"){
+     xLabel="RD_B – Atmung auffällig";
+   } else if(a.d_disability==="Bewusstseinsgetrübt"){
+     xLabel="RD_D – Bewusstsein getrübt";
+   }
+   if(xLabel) keyword=`${keyword} · ${xLabel}`;
  }
 
  const cnt=Number(a.count)||0;
