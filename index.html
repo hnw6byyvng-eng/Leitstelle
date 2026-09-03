@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.15</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.16</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -133,7 +133,14 @@ const defaults={
   {id:16,name:"Rettungsdienst – RD_D Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1}]}
  ],
  calls:[],
- currentCall:null
+ currentCall:null,
+ ivena:[
+  {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
+  {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","Psychiatrie","HNO","Augenheilkunde","Intensivmedizin","Schockraum"]},
+  {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
+  {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Intensivmedizin","Augenheilkunde","Gynäkologie/Geburtshilfe"]},
+  {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]}
+ ]
 };
 let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
 if(!Array.isArray(db.units))db.units=[];
@@ -166,13 +173,7 @@ if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
 if(!Array.isArray(db.logs))db.logs=[];
-if(!Array.isArray(db.ivena))db.ivena=[
- {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
- {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","Psychiatrie","HNO","Augenheilkunde","Intensivmedizin","Schockraum"]},
- {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
- {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Intensivmedizin","Augenheilkunde","Gynäkologie/Geburtshilfe"]},
- {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]}
-];
+if(!Array.isArray(db.ivena))db.ivena=defaults.ivena.map(h=>({...h,closures:[],fachrichtungen:[...h.fachrichtungen]}));
 db.ivena.forEach(h=>{
  if(!h.area)h.area="Wilhelmshaven";
  if(!Array.isArray(h.closures))h.closures=[];

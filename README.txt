@@ -342,3 +342,19 @@ Version 3.15:
   statt der entfernten Duplikat-Fragen – keine Funktionseinbuße, nur die doppelte Abfrage entfällt.
 - AAO-Referenzeinträge „DLRG Wasser 2/3“ auf die tatsächlich erhobenen XABCDE-Felder umgestellt.
 - JavaScript-Syntax geprüft.
+
+Version 3.16 – kritischer Absturzfix:
+- Ursache für die komplett weiße Seite gefunden und behoben: Die IVENA-Kliniken waren nie
+  wirklich Teil des zentralen "defaults"-Objekts, sondern nur als separater Startwert für
+  db.ivena hinterlegt. Dadurch war "defaults.ivena" bei jeder Installation, die IVENA schon
+  einmal genutzt hatte, "undefined" – der Abgleich der Fachrichtungen aus v3.14 griff dann ins
+  Leere und ließ das komplette Skript mit einem JavaScript-Fehler abstürzen, bevor irgendetwas
+  gerendert wurde (daher die weiße Seite).
+- IVENA-Kliniken jetzt korrekt als festen Bestandteil von "defaults" definiert.
+- Den Fix mit einem headless Browser (Playwright) gegen simulierte Altbestände geprüft:
+  Seitenaufruf, alle Reiter (Leitstelle, Notruf, Karte, Rettungsmittel, AAO, IVENA,
+  IVENA-Zuweisungen) sowie ein kompletter Notruf-Durchlauf laufen jetzt fehlerfrei durch, auch
+  mit Daten aus einer alten, unvollständigen Installation.
+- Dabei bestätigt: Fachrichtungen, AAO-Einträge und Fahrzeuge werden bei bestehenden
+  Installationen jetzt zuverlässig nachgezogen, ohne eigene Anpassungen zu überschreiben.
+- JavaScript-Syntax geprüft.
