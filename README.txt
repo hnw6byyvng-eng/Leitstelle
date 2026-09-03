@@ -120,3 +120,19 @@ Version 3.0.1:
 - Fehler behoben, durch den initVehicleMode versehentlich in der Kartenfunktion saß.
 - QR-Seite zeigt weiterhin den Fahrzeuglink, falls die QR-Bibliothek nicht geladen werden kann.
 - JavaScript-Syntax geprüft.
+
+Version 3.1:
+- Cloud-Sync repariert: Statusänderungen (manuell, „Realistisch“, automatische Rückkehr auf Wache)
+  werden jetzt zuverlässig an Firebase gepusht.
+- Neu: Die Leitstelle pollt Firebase alle 3 Sekunden und übernimmt Statusmeldungen, die vom
+  Fahrzeugterminal aus gesendet wurden (vorher nur einseitig Leitstelle -> Fahrzeug).
+- Beim Aktivieren der Live-Verbindung wird der komplette Fuhrpark einmalig hochgeladen; Polling
+  startet automatisch neu, falls die Verbindung aus einer vorherigen Sitzung noch aktiv war.
+- IVENA-Übungsansicht: Leitstellenbereiche als Filter (Wilhelmshaven, Oldenburg, Wittmund, alle
+  vorausgewählt) mit passenden Klinik-Einträgen je Bereich. Weiterhin reine Simulation ohne
+  Verbindung zum realen IVENA-System.
+- Neue Fahrzeuge: RTW 86-83-01 (Wangerland), OrgL/LNA 82-84-01 (Varel), OrgL/LNA 84-84-01 (Sande).
+- AAO-Liste ergänzt um Rettungsdienst- und Feuerwehr-Einträge sowie eine MANV-AAO.
+- MANV als eigene 112-Einsatzkategorie: löst XABCDE-Pflicht aus, staffelt RTW-Anzahl nach
+  Betroffenenzahl und alarmiert zusätzlich NEF, OrgL/LNA, HLF und ELW.
+- JavaScript-Syntax geprüft.
