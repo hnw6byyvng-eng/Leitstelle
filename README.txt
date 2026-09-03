@@ -202,3 +202,15 @@ Version 3.6:
 - Neuer Button „Interne Codes & Rohdaten anzeigen“ blendet sie bei Bedarf (z. B. zur
   Übungsauswertung) wieder ein.
 - JavaScript-Syntax geprüft.
+
+Version 3.7:
+- Fahrzeugliste wird beim Laden jetzt automatisch mit den aktuellen Standarddaten abgeglichen:
+  neu hinzugekommene Standardfahrzeuge (z. B. RTW 87/83-01) werden bei bereits genutzten
+  Installationen automatisch nachgezogen, ohne eigene/manuell angelegte Einträge zu verändern.
+- Fahrzeuge mit früher ausgelieferter, aber inzwischen zurückgezogener erfundener OPTA-Nummer
+  (86/83-01, 82/84-01, 84/84-01, 84/82-03) werden bei bereits laufenden Installationen
+  automatisch entfernt.
+- Neuer 🗑️-Button pro Fahrzeug in der Rettungsmittelübersicht, damit auch manuell angelegte
+  Einträge (über „+ Einheit“, ohne Organisation – erscheinen unter „Sonstige“) selbst wieder
+  gelöscht werden können.
+- JavaScript-Syntax geprüft.

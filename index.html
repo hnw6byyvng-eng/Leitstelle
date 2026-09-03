@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.6</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.7</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -136,6 +136,25 @@ const defaults={
  currentCall:null
 };
 let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+if(!Array.isArray(db.units))db.units=[];
+// Fahrzeuge, die in früheren Versionen mit erfundener OPTA-Nummer ausgeliefert wurden
+// und inzwischen bewusst zurückgezogen wurden – bei bereits laufenden Installationen
+// automatisch entfernen, damit sie nicht dauerhaft in der lokal gespeicherten Flotte hängen.
+const RETIRED_UNIT_OPTAS=[
+ "Rettung Friesland 86/83-01",
+ "Rettung Friesland 82/84-01",
+ "Rettung Friesland 84/84-01",
+ "Rettung Friesland 84/82-03"
+];
+db.units=db.units.filter(u=>!RETIRED_UNIT_OPTAS.includes(u.opta));
+// Neu hinzugekommene Standardfahrzeuge (z. B. per Update ergänzt) bei bereits genutzten
+// Installationen automatisch nachziehen, ohne eigene/manuell angelegte Einträge anzutasten.
+{
+ const existingOptas=new Set(db.units.map(u=>u.opta).filter(Boolean));
+ defaults.units.forEach(u=>{
+   if(u.opta && !existingOptas.has(u.opta)) db.units.push({...u});
+ });
+}
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
@@ -1172,6 +1191,13 @@ function finishCall(id=null){
 }
 function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
 function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
+function deleteUnit(id){
+ const u=db.units.find(x=>String(x.id)===String(id));
+ if(!u)return;
+ if(!confirm(`„${u.opta||u.name}“ wirklich aus der Rettungsmittelliste entfernen?`))return;
+ db.units=db.units.filter(x=>String(x.id)!==String(id));
+ save();toast("Fahrzeug entfernt");render("mittel");
+}
 function setStatus(id,s){db.units.find(x=>x.id===id).status=s;save();toast("Status geändert")}
 
 function cleanDatabaseURL(url){
@@ -1429,7 +1455,7 @@ function mittel(){
          <td><b>${esc(u.opta||u.name||"—")}</b></td>
          <td>${esc(u.type||"—")}</td>
          <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
-         <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button></div></td>
+         <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button><button onclick="deleteUnit('${String(u.id)}')" title="Fahrzeug löschen">🗑️</button></div></td>
          <td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">
            ${statusOptionsFor(u).map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}
          </select></td>
