@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.7</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.8</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -169,6 +169,7 @@ if(!Array.isArray(db.ivena))db.ivena=[
 db.ivena.forEach(h=>{if(!h.area)h.area="Wilhelmshaven"; if(!Array.isArray(h.closures))h.closures=[]});
 if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund"];
 if(!db.ivenaMode)db.ivenaMode="manual";
+if(!Array.isArray(db.ivenaAssignments))db.ivenaAssignments=[];
 const IVENA_FACHRICHTUNGEN=["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","Schockraum","Psychiatrie","HNO","Augenheilkunde","Urologie"];
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -186,7 +187,7 @@ function statusOptionsFor(u){
  return opts;
 }
 function nav(active){document.getElementById("nav").innerHTML=[
- ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"]
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"]
 ].map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}
 let currentPage="leitstelle";
 function render(page="leitstelle"){
@@ -198,6 +199,7 @@ function render(page="leitstelle"){
  if(page==="mittel") mittel();
  if(page==="aao") aao();
  if(page==="ivena") ivena();
+ if(page==="ivenaZuweisungen") ivenaZuweisungen();
 }
 
 let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
@@ -360,15 +362,29 @@ function useMyLocation(){
 
 function setUnitStatus(u,status){
  u.status=String(status);
+ delete u.status1Since; delete u.status2Due;
+ delete u.status7Since; delete u.status8Due;
  if(String(status)==="1"){
    u.status1Since=Date.now();
    // random return-to-station delay, always <= 10 minutes
    u.status2Due=Date.now()+Math.floor((2+Math.random()*8)*60*1000);
- }else{
-   delete u.status1Since;
-   delete u.status2Due;
+ } else if(String(status)==="7"){
+   u.status7Since=Date.now();
+   // IVENA-Zuweisung: nach ca. 20 Minuten Übergabe -> "bedingt verfügbar"
+   u.status8Due=Date.now()+20*60*1000;
  }
  if(db.cloud?.enabled) setTimeout(()=>pushUnitCloud(u),0);
+}
+function autoPatientHandover(){
+ const now=Date.now();
+ let changed=false;
+ db.units.forEach(u=>{
+   if(u.status==="7" && u.status8Due && now>=u.status8Due){
+     setUnitStatus(u,"8");
+     changed=true;
+   }
+ });
+ if(changed)save();
 }
 function autoReturnToStation(){
  const now=Date.now();
@@ -1579,6 +1595,116 @@ function randomizeIvenaClosures(){
  });
  save();toast("Zufällige Abmeldungen gewürfelt");render("ivena");
 }
+function assignableTransportUnits(){
+ return db.units.filter(u=>["RTW","RTH"].includes(u.type) && String(u.status)==="4");
+}
+function assignableNefUnits(){
+ return db.units.filter(u=>["NEF","RTH"].includes(u.type) && String(u.status)==="4");
+}
+function toggleAsgNefField(){
+ const na=document.getElementById("asgNA")?.value;
+ const wrap=document.getElementById("asgNefWrap");
+ if(wrap) wrap.classList.toggle("hidden", na!=="ja");
+}
+function openIvenaAssignment(){
+ const hospitals=db.ivena;
+ const transportUnits=assignableTransportUnits();
+ const nefUnits=assignableNefUnits();
+ if(!hospitals.length){toast("Bitte zuerst eine Klinik unter IVENA anlegen");return}
+ if(!transportUnits.length){toast("Kein RTW/RTH in Status 4 (Am Einsatzort) verfügbar");return}
+ const dt=new Date(Date.now()+20*60*1000);
+ const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>🚑🏥 Neue IVENA-Zuweisung</h2>
+  <p class="muted">Nur Fahrzeuge in Status 4 (Am Einsatzort) können zugewiesen werden. Sie wechseln danach direkt auf Status 7 und nach ca. 20 Minuten automatisch auf Status 8.</p>
+  <label>Zielklinik</label>
+  <select id="asgHospital">${hospitals.map(h=>`<option value="${h.id}">${esc(h.name)}${h.place?` (${esc(h.place)})`:""}</option>`).join("")}</select>
+  <div class="formgrid">
+   <div><label>Fachrichtung</label><select id="asgFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div>
+   <div><label>Schockraum</label><select id="asgSchock"><option value="nein">S- (nein)</option><option value="ja">S+ (ja)</option></select></div>
+   <div><label>Geschlecht</label><select id="asgGender"><option value="M">M</option><option value="W">W</option></select></div>
+   <div><label>Alter</label><input id="asgAlter" type="number" min="0" max="120" placeholder="Jahre"></div>
+   <div><label>Notarzt</label><select id="asgNA" onchange="toggleAsgNefField()"><option value="nein">NA- (ohne)</option><option value="ja">NA+ (mit)</option></select></div>
+   <div><label>Transportmittel (Status 4)</label><select id="asgTransport">${transportUnits.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}${u.location?` (${esc(u.location)})`:""}</option>`).join("")}</select></div>
+  </div>
+  <div id="asgNefWrap" class="hidden">
+   <label style="margin-top:10px">Begleitendes NEF/RTH (optional, Status 4)</label>
+   <select id="asgNef"><option value="">– kein separates Begleitfahrzeug –</option>${nefUnits.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}${u.location?` (${esc(u.location)})`:""}</option>`).join("")}</select>
+  </div>
+  <label style="margin-top:10px">Voraussichtliche Eintreffzeit</label>
+  <input id="asgEta" type="datetime-local" value="${iso}">
+  <div class="row" style="margin-top:14px">
+   <button onclick="render('ivenaZuweisungen')">Abbrechen</button>
+   <button class="primary" onclick="saveIvenaAssignment()">✅ Zuweisen</button>
+  </div>
+ </div>`;
+}
+function saveIvenaAssignment(){
+ const hospital=db.ivena.find(h=>String(h.id)===String(document.getElementById("asgHospital")?.value));
+ const fach=document.getElementById("asgFach")?.value;
+ const schockraum=document.getElementById("asgSchock")?.value==="ja";
+ const geschlecht=document.getElementById("asgGender")?.value;
+ const alter=document.getElementById("asgAlter")?.value;
+ const na=document.getElementById("asgNA")?.value==="ja";
+ const transport=db.units.find(u=>String(u.id)===String(document.getElementById("asgTransport")?.value));
+ const nefId=document.getElementById("asgNef")?.value;
+ if(!hospital||!transport){toast("Bitte Klinik und Transportmittel wählen");return}
+ if(String(transport.status)!=="4"){toast("Transportmittel ist nicht mehr in Status 4");render("ivenaZuweisungen");return}
+ let companion=null;
+ if(na && nefId){
+   const c=db.units.find(u=>String(u.id)===String(nefId));
+   if(c && String(c.id)!==String(transport.id)){
+     if(String(c.status)!=="4"){toast("Begleitfahrzeug ist nicht mehr in Status 4");render("ivenaZuweisungen");return}
+     companion=c;
+   }
+ }
+ const etaRaw=document.getElementById("asgEta")?.value;
+ const vehicles=companion?[transport,companion]:[transport];
+ vehicles.forEach(u=>setUnitStatus(u,"7"));
+ db.ivenaAssignments=db.ivenaAssignments||[];
+ db.ivenaAssignments.unshift({
+   id:Date.now(),
+   hospitalId:hospital.id, hospitalName:hospital.name,
+   fach, schockraum, geschlecht, alter, na,
+   vehicleIds:vehicles.map(u=>u.id),
+   vehicleLabels:vehicles.map(u=>`${u.opta||u.name} (${u.type})`),
+   eta: etaRaw?new Date(etaRaw).toISOString():null,
+   createdAt:new Date().toISOString()
+ });
+ save();
+ toast("Zuweisung gespeichert – Fahrzeug(e) auf Status 7 gesetzt");
+ render("ivenaZuweisungen");
+}
+function deleteIvenaAssignment(id){
+ if(!confirm("Zuweisung aus der Liste entfernen? (Fahrzeugstatus bleibt unverändert)"))return;
+ db.ivenaAssignments=(db.ivenaAssignments||[]).filter(a=>String(a.id)!==String(id));
+ save();render("ivenaZuweisungen");
+}
+function ivenaZuweisungen(){
+ const list=db.ivenaAssignments||[];
+ document.getElementById("app").innerHTML=`<div class="card">
+  <div class="row between"><div><h2>📋 IVENA-Zuweisungen</h2><p class="muted">Simulierte Patiententransporte: Fahrzeug(e) → Zielklinik. Rein trainingsintern, keine Verbindung zum realen IVENA.</p></div><button class="primary" onclick="openIvenaAssignment()">➕ Neue Zuweisung</button></div>
+  <div style="overflow:auto"><table><thead><tr>
+   <th>OPTA / Fahrzeug</th><th>Zielklinik</th><th>Fachrichtung</th><th>S</th><th>NA</th><th>Geschlecht/Alter</th><th>Eintreffzeit</th><th></th>
+  </tr></thead><tbody>
+   ${list.length?list.map(a=>{
+     const hospital=db.ivena.find(h=>String(h.id)===String(a.hospitalId));
+     const closed=hospital?ivenaActiveClosures(hospital).some(cl=>cl.fach===a.fach):false;
+     const etaTxt=a.eta?new Date(a.eta).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"–";
+     return `<tr>
+      <td>${a.vehicleLabels.map(l=>`<div>${esc(l)}</div>`).join("")}</td>
+      <td>${esc(a.hospitalName)}</td>
+      <td><span class="status ${closed?"s6":"s2"}">${esc(a.fach)}${closed?" · abgemeldet!":" · frei"}</span></td>
+      <td>${a.schockraum?"S+":"S-"}</td>
+      <td>${a.na?"NA+":"NA-"}</td>
+      <td>${esc(a.geschlecht||"–")} / ${esc(a.alter||"–")}</td>
+      <td>${etaTxt}</td>
+      <td><button onclick="deleteIvenaAssignment(${a.id})">🗑️</button></td>
+     </tr>`;
+   }).join(""):`<tr><td colspan="8" class="muted">Noch keine Zuweisungen.</td></tr>`}
+  </tbody></table></div>
+ </div>`;
+}
 function ivena(){
  const areas=[...new Set(db.ivena.map(h=>h.area||"Sonstige"))];
  const rows=db.ivena.filter(h=>db.ivenaAreaFilter.includes(h.area||"Sonstige"));
@@ -1614,7 +1740,7 @@ function ivena(){
  </div>`;
 }
 
-setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation()},1000);
+setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation();autoPatientHandover()},1000);
 if(!initVehicleMode()){
  render("leitstelle");
  if(db.cloud?.enabled) startCloudPolling();

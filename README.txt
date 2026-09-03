@@ -214,3 +214,17 @@ Version 3.7:
   Einträge (über „+ Einheit“, ohne Organisation – erscheinen unter „Sonstige“) selbst wieder
   gelöscht werden können.
 - JavaScript-Syntax geprüft.
+
+Version 3.8:
+- Neuer Reiter „IVENA-Zuweisungen“: simulierte Patiententransporte von Rettungsmitteln zu
+  Kliniken, analog zur echten IVENA-Zuweisungsliste.
+- Zuweisbar sind RTW, NEF (als Begleitung eines RTW) und RTH (wahlweise als eigenes
+  Transportmittel oder als Notarzt-Begleitung), sofern das jeweilige Fahrzeug in Status 4
+  (Am Einsatzort) steht.
+- Beim Zuweisen wechseln die beteiligten Fahrzeuge sofort auf Status 7 (Patient aufgenommen)
+  und automatisch nach ca. 20 Minuten auf Status 8 (bedingt verfügbar).
+- Zuweisungsliste zeigt je Eintrag: OPTA/Fahrzeug(e), Zielklinik, Fachrichtung (farblich
+  hinterlegt grün/rot je nachdem, ob die Fachrichtung laut IVENA-Übungsansicht aktuell
+  abgemeldet ist), S+/S- (Schockraum), NA+/NA- (mit/ohne Notarzt), Geschlecht/Alter und
+  voraussichtliche Eintreffzeit.
+- JavaScript-Syntax geprüft.
