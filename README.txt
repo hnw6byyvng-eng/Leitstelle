@@ -384,3 +384,17 @@ Version 3.17:
 - Mit Playwright End-to-End getestet: Einzelpatient-Szenario fragt Name/Alter/Geschlecht ab und
   übernimmt sie korrekt in die Zuweisung; Mehrpatienten-/MANV-Szenario überspringt sie vollständig.
 - JavaScript-Syntax geprüft.
+
+Version 3.18:
+- Zwei weitere Kliniken in die IVENA-Übungsansicht aufgenommen, mit real recherchierten
+  Fachabteilungen (aktuelle Qualitätsberichte/Klinik-Websites):
+  - Ammerland-Klinik Westerstede: Chirurgie, Innere Medizin, Neurologie, Kardiologie,
+    Gynäkologie/Geburtshilfe, Urologie, HNO, Augenheilkunde, Intensivmedizin.
+  - Evangelisches Krankenhaus Oldenburg (EV Oldenburg): Chirurgie, Innere Medizin, Neurologie,
+    Gynäkologie/Geburtshilfe, Intensivmedizin, Schockraum (uneingeschränkte
+    Schwerverletzten-Zulassung).
+  - Neuer Leitstellenbereich „Ammerland“ für die Ammerland-Klinik ergänzt.
+  - Beide Kliniken sowie der neue Bereich „Ammerland“ werden bei bereits laufenden
+    Installationen automatisch nachgezogen (per Playwright-Test gegen simulierte
+    Altinstallation geprüft).
+- JavaScript-Syntax geprüft.

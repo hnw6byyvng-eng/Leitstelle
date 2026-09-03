@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.17</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.18</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -139,7 +139,9 @@ const defaults={
   {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","Psychiatrie","HNO","Augenheilkunde","Intensivmedizin","Schockraum"]},
   {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
   {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Intensivmedizin","Augenheilkunde","Gynäkologie/Geburtshilfe"]},
-  {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]}
+  {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]},
+  {id:6,name:"Ammerland-Klinik Westerstede",place:"Westerstede",area:"Ammerland",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","HNO","Augenheilkunde","Intensivmedizin"]},
+  {id:7,name:"Evangelisches Krankenhaus Oldenburg (EV Oldenburg)",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Gynäkologie/Geburtshilfe","Intensivmedizin","Schockraum"]}
  ]
 };
 let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
@@ -190,7 +192,13 @@ db.ivena.forEach(h=>{
    if(!existingHospitalNames.has(h.name))db.ivena.push({...h});
  });
 }
-if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund"];
+if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund","Ammerland"];
+{
+ // Neu hinzugekommene Leitstellenbereiche (z. B. durch neue Kliniken) bei bereits genutzten
+ // Installationen automatisch mit aktivieren, statt sie unsichtbar herausgefiltert zu lassen.
+ const allAreas=new Set(db.ivena.map(h=>h.area||"Sonstige"));
+ allAreas.forEach(a=>{if(!db.ivenaAreaFilter.includes(a))db.ivenaAreaFilter.push(a)});
+}
 if(!db.ivenaViewMode)db.ivenaViewMode="klinik";
 if(!db.ivenaMode)db.ivenaMode="manual";
 if(!Array.isArray(db.ivenaAssignments))db.ivenaAssignments=[];
