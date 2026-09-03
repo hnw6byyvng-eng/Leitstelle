@@ -44,7 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.16</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.17</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -803,6 +803,9 @@ const qs=[
  ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
  ["water","🌊 Befindet sich eine Person oder ein Tier im Wasser?","ynWater"],
  ["personDanger","⚠️ Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
+ ["patientName","👤 Name der betroffenen Person (falls bekannt)","text"],
+ ["patientAge","🎂 Alter der betroffenen Person","count"],
+ ["patientGender","⚧ Geschlecht der betroffenen Person","gender"],
  ["x_massive","X – Gibt es eine kritische / lebensbedrohliche Blutung?","xyn"],
  ["a_airway","A – Ist der Atemweg frei?","xairway"],
  ["b_breath","B – Wie ist die Atmung?","xbreathing"],
@@ -887,8 +890,12 @@ function questionHTML(q){
 
  if(["xyn","xairway","xbreathing","xcirc","xdisability"].includes(type) && !needsXABCDE(c))
    return skip("nicht zutreffend");
+ if(["patientName","patientAge","patientGender"].includes(id)){
+   if(Number(c?.answers?.count)>1)return skip("mehrere Patienten – entfällt");
+   if(!needsXABCDE(c))return skip("nicht erhoben");
+ }
  if(id==="e_exposure" && !needsXABCDE(c))
-   return skip("nicht zutreffend");
+   return skip("nicht erhoben");
 
  if(id==="location"){
    return `<label>${label}</label>
@@ -908,6 +915,11 @@ function questionHTML(q){
    const ph=id==="freeText"?"Freie Schilderung des Anrufers, zusätzliche Angaben, Besonderheiten …":"z. B. Verletzungen, Schmerzen, Haut, Temperatur, Unfallmechanismus, Vergiftung …";
    return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
  }
+ if(type==="gender") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','M')">M</button>
+   <button onclick="answer('${id}','W')">W</button>
+   <button onclick="answer('${id}','Divers')">Divers</button>
+   <button onclick="answer('${id}','Unbekannt')">Unbekannt</button></div>`;
  if(type==="event112") return `<label>${label}</label><div class="answer">
    <button onclick="answer('event','Medizinischer Notfall')">🚑 Medizinischer Notfall</button>
    <button onclick="answer('event','Reanimation')">❤️ Reanimation / bewusstlos</button>
@@ -1158,7 +1170,10 @@ function buildMeldertext(c, nafoReason=""){
   const mittel=(c.suggestion||"").replace(/<[^>]*>/g,"");
   let txt=`${c.keyword||"EINSATZ"}\nOrt: ${ort}\nMeldung: ${lage}`;
   if(needsXABCDE(c)){
-    txt+=`\nXABCDE: X ${c.answers.x_massive}; A ${c.answers.a_airway}; B ${c.answers.b_breath}; C ${c.answers.c_circ}; D ${c.answers.d_disability}; E ${c.answers.e_exposure}`;
+    const a=c.answers||{};
+    const patient=[a.patientName,a.patientAge?`${a.patientAge} Jahre`:null,a.patientGender].filter(Boolean).join(", ");
+    if(patient) txt+=`\nPatient: ${patient}`;
+    txt+=`\nXABCDE: X ${a.x_massive}; A ${a.a_airway}; B ${a.b_breath}; C ${a.c_circ}; D ${a.d_disability}; E ${a.e_exposure}`;
   }
   if(c.alarmFreeText)txt+=`\nAlarmierungs-Freitext: ${c.alarmFreeText}`;
   if(mittel) txt+=`\nWeitere Rettungsmittel: ${mittel}`;
@@ -1622,7 +1637,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
     <div class="answer" style="margin-top:12px">
       ${statusOptionsFor(local).filter(s=>s!=="0").map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
     </div>
-    ${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">🏥 IVENA-${["OrgL/LNA","NEF"].includes(vType)?"Anmeldung":"Zuweisung"}</button></div>`:""}
+    ${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${calls[0]?esc(String(calls[0].id)):""}')">🏥 IVENA-${["OrgL/LNA","NEF"].includes(vType)?"Anmeldung":"Zuweisung"}</button></div>`:""}
     ${inCallStatus4?`<div class="row" style="margin-top:12px"><button onclick="sendVehicleFeedback('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}','nafo')">📟 Nachfordern</button></div>`:""}
     ${canOrglFeedback?`<div class="row" style="margin-top:12px"><button class="primary" onclick="sendOrglSituationReport('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}')">📢 Lagemeldung (Status 4) senden</button></div>`:""}
     </div>
@@ -1697,7 +1712,7 @@ async function vehicleSetStatus(unitId,status,dburl,sid){
  await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`,"PATCH",{status:String(status),updatedAt:new Date().toISOString()});
  toast(`Status ${status} gesendet`);
 }
-function openVehicleIvenaAssignment(unitId,dburl,sid){
+async function openVehicleIvenaAssignment(unitId,dburl,sid,callId){
  const local=db.units.find(x=>String(x.id)===String(unitId));
  const hospitals=(vehicleIvenaCache&&vehicleIvenaCache.length)?vehicleIvenaCache:(db.ivena||[]);
  if(!hospitals.length){toast("Keine Kliniken hinterlegt");return}
@@ -1705,6 +1720,12 @@ function openVehicleIvenaAssignment(unitId,dburl,sid){
  const allowSelf=local?.type==="NEF";
  const transportOptions=isAnnounceType?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH"].includes(u.type)&&String(u.status)==="4"):[];
  clearInterval(vehiclePollTimer);
+ let pa={};
+ if(callId){
+   const call=await vehicleFetch(dburl,sid,`calls/${encodeURIComponent(callId)}`);
+   if(call && Number(call.count)===1) pa=call.answers||{};
+ }
+ const genderMap={"M":"M","W":"W"};
  const dt=new Date(Date.now()+20*60*1000);
  const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
  document.getElementById("app").innerHTML=`<div class="card">
@@ -1715,8 +1736,8 @@ function openVehicleIvenaAssignment(unitId,dburl,sid){
   <div class="formgrid">
    <div><label>Fachrichtung</label><select id="vAsgFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div>
    <div><label>Schockraum</label><select id="vAsgSchock"><option value="nein">S- (nein)</option><option value="ja">S+ (ja)</option></select></div>
-   <div><label>Geschlecht</label><select id="vAsgGender"><option value="M">M</option><option value="W">W</option></select></div>
-   <div><label>Alter</label><input id="vAsgAlter" type="number" min="0" max="120" placeholder="Jahre"></div>
+   <div><label>Geschlecht</label><select id="vAsgGender"><option value="M" ${genderMap[pa.patientGender]==="M"?"selected":""}>M</option><option value="W" ${genderMap[pa.patientGender]==="W"?"selected":""}>W</option></select></div>
+   <div><label>Alter</label><input id="vAsgAlter" type="number" min="0" max="120" placeholder="Jahre" value="${esc(pa.patientAge||"")}"></div>
    <div><label>Notarzt an Bord</label><select id="vAsgNA"><option value="nein">NA- (ohne)</option><option value="ja">NA+ (mit)</option></select></div>
    ${isAnnounceType?`<div><label>Transportmittel (Status 4, optional)</label><select id="vAsgTransport">
      <option value="">– noch nicht festgelegt –</option>
@@ -1938,6 +1959,8 @@ function openIvenaAssignment(){
  if(!transportUnits.length){toast("Kein RTW/RTH in Status 4 (Am Einsatzort) verfügbar");return}
  const dt=new Date(Date.now()+20*60*1000);
  const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+ const pa=db.currentCall?.answers||{};
+ const genderMap={"M":"M","W":"W"};
  document.getElementById("app").innerHTML=`<div class="card">
   <h2>🚑🏥 Neue IVENA-Zuweisung</h2>
   <p class="muted">Nur Fahrzeuge in Status 4 (Am Einsatzort) können zugewiesen werden. Sie wechseln danach direkt auf Status 7 und nach ca. 20 Minuten automatisch auf Status 8.</p>
@@ -1946,8 +1969,8 @@ function openIvenaAssignment(){
   <div class="formgrid">
    <div><label>Fachrichtung</label><select id="asgFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div>
    <div><label>Schockraum</label><select id="asgSchock"><option value="nein">S- (nein)</option><option value="ja">S+ (ja)</option></select></div>
-   <div><label>Geschlecht</label><select id="asgGender"><option value="M">M</option><option value="W">W</option></select></div>
-   <div><label>Alter</label><input id="asgAlter" type="number" min="0" max="120" placeholder="Jahre"></div>
+   <div><label>Geschlecht</label><select id="asgGender"><option value="M" ${genderMap[pa.patientGender]==="M"?"selected":""}>M</option><option value="W" ${genderMap[pa.patientGender]==="W"?"selected":""}>W</option></select></div>
+   <div><label>Alter</label><input id="asgAlter" type="number" min="0" max="120" placeholder="Jahre" value="${esc(pa.patientAge||"")}"></div>
    <div><label>Notarzt</label><select id="asgNA" onchange="toggleAsgNefField()"><option value="nein">NA- (ohne)</option><option value="ja">NA+ (mit)</option></select></div>
    <div><label>Transportmittel (Status 4)</label><select id="asgTransport">${transportUnits.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}${u.location?` (${esc(u.location)})`:""}</option>`).join("")}</select></div>
   </div>

@@ -358,3 +358,29 @@ Version 3.16 – kritischer Absturzfix:
 - Dabei bestätigt: Fachrichtungen, AAO-Einträge und Fahrzeuge werden bei bestehenden
   Installationen jetzt zuverlässig nachgezogen, ohne eigene Anpassungen zu überschreiben.
 - JavaScript-Syntax geprüft.
+
+Version 3.17:
+- Notrufabfrage um Name, Alter und Geschlecht der betroffenen Person ergänzt – direkt vor
+  XABCDE, mit derselben Bedingung wie XABCDE (wird nur gefragt, wenn XABCDE indiziert ist,
+  entfällt bei MANV wie XABCDE selbst).
+- Patientendaten erscheinen jetzt im Meldetext (z. B. „Patient: Max Mustermann, 34 Jahre, M“).
+- Das Formular für IVENA-Zuweisungen füllt Geschlecht und Alter jetzt automatisch aus den bereits
+  erhobenen Notruf-Angaben vor, falls vorhanden (weiterhin änderbar).
+- Änderung mit einem headless Browser end-to-end getestet: sowohl der Fall „XABCDE indiziert“
+  (Fragen erscheinen korrekt vor X-A-B-C-D-E) als auch „nicht indiziert“ (alle drei werden
+  korrekt automatisch übersprungen) laufen fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.17:
+- Notrufabfrage fragt jetzt vor XABCDE zusätzlich Name, Alter und Geschlecht der betroffenen
+  Person ab (sofern XABCDE indiziert ist).
+- Bei mehr als einem Patienten (Anzahl > 1) entfallen diese drei Fragen automatisch – die
+  Abfrage springt direkt weiter.
+- Bei genau einem Patienten werden Alter und Geschlecht automatisch in die IVENA-Anmeldung
+  übernommen (vorbelegt, aber änderbar) – sowohl bei der Zuweisung aus der Leitstelle als auch
+  am Fahrzeugterminal (RTW/RTH/NEF/OrgL-LNA).
+- Kleinere Korrektur: „Divers“ wurde in der Geschlecht-Vorbelegung bisher fälschlich auf „W“
+  abgebildet; wird jetzt nicht mehr automatisch zugeordnet.
+- Mit Playwright End-to-End getestet: Einzelpatient-Szenario fragt Name/Alter/Geschlecht ab und
+  übernimmt sie korrekt in die Zuweisung; Mehrpatienten-/MANV-Szenario überspringt sie vollständig.
+- JavaScript-Syntax geprüft.
