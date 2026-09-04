@@ -398,3 +398,25 @@ Version 3.18:
     Installationen automatisch nachgezogen (per Playwright-Test gegen simulierte
     Altinstallation geprüft).
 - JavaScript-Syntax geprüft.
+
+Version 3.19 – PWA (installierbare App):
+- App ist jetzt als Progressive Web App (PWA) installierbar: eigenes Icon, Start ohne
+  Browser-Adressleiste (Vollbild/"Standalone"), eigener Splash-Screen.
+- Neue Dateien: manifest.json, sw.js (Service Worker), icon-192.png, icon-512.png. Diese MÜSSEN
+  im selben Ordner wie index.html liegen (z. B. gemeinsam ins GitHub-Repo).
+- Service Worker cached nur die App-Hülle (HTML/Icons) für einen schnelleren Start. Karte,
+  Adresssuche und Live-Verbindung (Firebase) laufen weiterhin ausschließlich live übers Netz,
+  damit nie veraltete Einsatz-/Statusdaten angezeigt werden.
+
+INSTALLATION AUF DEM HANDY:
+- iPhone (Safari): Seite öffnen -> Teilen-Symbol -> "Zum Home-Bildschirm" -> Hinzufügen.
+- Android (Chrome): Seite öffnen -> Menü (⋮) -> "App installieren" bzw. "Zum Startbildschirm
+  hinzufügen".
+- Danach erscheint ein eigenes Icon auf dem Homescreen; Start erfolgt ohne Browserleiste.
+- Voraussetzung: Die Seite muss über HTTPS erreichbar sein (bei GitHub Pages automatisch
+  gegeben). Über file:// oder http:// funktioniert die Installation nicht zuverlässig.
+- Wichtiger Hinweis bleibt bestehen: Auch als installierte PWA gelten dieselben
+  Hintergrund-Einschränkungen wie zuvor beschrieben (v3.12) – Alarmton/Vibration/GPS
+  funktionieren nur zuverlässig, solange die App aktiv geöffnet und das Handy eingeschaltet ist.
+  Eine PWA kann diese Betriebssystem-Grenzen nicht aufheben, sieht aber deutlich mehr wie eine
+  "echte" App aus und lässt sich bequemer wiederfinden/starten.
