@@ -550,3 +550,48 @@ Version 3.24:
   Fahrzeug, während ein als "phoneControlled" markiertes Fahrzeug im selben Einsatz
   unverändert auf Status 3 stehen bleibt; Löschen einer Zuweisung bestätigt dauerhaft entfernt.
 - JavaScript-Syntax geprüft.
+
+Version 3.25:
+- Standort der DLRG-Wache Varel auf der Karte präzisiert: statt der groben Ortsmitte von Varel
+  wird jetzt die tatsächliche Adresse "Am Wasserturm 5, 26316 Varel" verwendet (Koordinate
+  anhand des dortigen Wahrzeichens Wasserturm Varel bestimmt, das die Straße "Am Wasserturm"
+  unmittelbar umgibt).
+- Neuer, wiederverwendbarer Mechanismus (STATION_OVERRIDE) für präzise Einzeladressen einzelner
+  Wachen, unabhängig von den bisherigen groben Orts-Koordinaten (AREA_CENTERS). Weitere Wachen
+  können bei Bedarf ebenso mit einer genauen Adresse hinterlegt werden.
+- Andere Organisationen am Standort Varel (z. B. Rettungsdienst) bleiben bewusst unverändert auf
+  der groben Ortsmitte, bis für sie ebenfalls eine genaue Adresse gewünscht wird.
+- JavaScript-Syntax geprüft.
+
+Version 3.26:
+- Weitere Standorte auf der Karte präzisiert (echte, in OpenStreetMap kartierte Gebäude
+  gefunden, keine Schätzung):
+  - Rettungswache Sande: 53.508352, 8.008457 – liegt direkt neben dem Sportplatz "TV
+    Sanderbusch" (Tennisplatz), ca. 170 m nördlich des Nordwest-Krankenhauses.
+  - Nordwest-Krankenhaus Sanderbusch (IVENA-Klinik-Marker): 53.50691, 8.00901.
+  - Christoph 26 (RTH): dieselbe Koordinate wie das Nordwest-Krankenhaus, da dort real
+    stationiert.
+- Neuer HOSPITAL_OVERRIDE-Mechanismus (parallel zu STATION_OVERRIDE) für präzise
+  Einzelkoordinaten bestimmter Kliniken, unabhängig von der groben Orts-Koordinate.
+- Bug beim Einbau behoben: eine fehlerhafte Code-Zusammenführung hätte die Funktionen
+  callDestinationPoint/findUnitCall/findUnitHospitalAssignment zerstört – vor dem Speichern
+  bemerkt und korrigiert, Syntax und alle Seiten erneut geprüft.
+- JavaScript-Syntax geprüft.
+
+Version 3.27:
+- Alle 10 Wachen auf der Karte jetzt mit echten, in der öffentlichen Wachen-Datenbank
+  bos-fahrzeuge.info verzeichneten Koordinaten hinterlegt (statt der bisherigen groben
+  Ortsmitte). Die dortigen Fahrzeuglisten stimmen exakt mit unseren OPTA-Bezeichnungen
+  überein (z. B. "Rettung Friesland 82/83-01", "Florian Friesland 11/48-01"), daher hohe
+  Verlässlichkeit der Zuordnung:
+  - Feuerwehr Varel – Pelzerstraße 5-7, 26316 Varel
+  - Rettungswache Varel – Menckestraße 6 (Gelände St. Johannes-Hospital), 26316 Varel
+  - Feuerwehr Bockhorn – Schulstraße 19, 26345 Bockhorn
+  - Rettungswache Bockhorn (Friesische Wehde) – Grabsteder Straße 27, 26345 Bockhorn
+  - Feuerwehr Jever – Milchstraße 3, 26441 Jever
+  - THW Jever – Am Bullhamm 11, 26441 Jever
+  - Rettungswache Jever – Wangerländische Straße 40a, 26441 Jever
+  - Feuerwehr Wangerland (Hohenkirchen) – Jeversche Straße 16, 26434 Hohenkirchen
+  - (bereits zuvor: DLRG Varel, Rettungswache Sande, Christoph 26 am Nordwest-Krankenhaus)
+- Damit sind jetzt alle Wachen-Standorte adressgenau statt nur auf Ortsebene.
+- JavaScript-Syntax geprüft.

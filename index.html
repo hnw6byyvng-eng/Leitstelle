@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.24</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.27</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -332,9 +332,10 @@ function renderStationMarkersOnMap(){
    (groups[key]=groups[key]||{org:u.org,location:u.location,units:[]}).units.push(u);
  });
  Object.values(groups).forEach(g=>{
-   const pt=AREA_CENTERS[g.location];
+   const override=STATION_OVERRIDE[`${g.org}__${g.location}`];
+   const pt=override||AREA_CENTERS[g.location];
    if(!pt)return;
-   const j=STATION_JITTER[g.org]||[0,0];
+   const j=override?[0,0]:(STATION_JITTER[g.org]||[0,0]);
    const icon=L.divIcon({
      html:`<div style="background:#fff;border-radius:8px;padding:2px 5px;font-size:15px;border:2px solid ${STATION_COLOR[g.org]};box-shadow:0 1px 4px rgba(0,0,0,.3)">${STATION_EMOJI[g.org]}</div>`,
      className:"", iconSize:[30,24], iconAnchor:[15,12]
@@ -346,22 +347,33 @@ function renderStationMarkersOnMap(){
 function renderHospitalMarkersOnMap(){
  if(!leafletMap||typeof L==="undefined")return;
  const byPlace={};
- (db.ivena||[]).forEach(h=>{(byPlace[h.place||"?"]=byPlace[h.place||"?"]||[]).push(h)});
+ (db.ivena||[]).forEach(h=>{if(!HOSPITAL_OVERRIDE[h.name])(byPlace[h.place||"?"]=byPlace[h.place||"?"]||[]).push(h)});
+ const addHospitalMarker=(h,lat,lng)=>{
+   const icon=L.divIcon({
+     html:`<div style="background:#fff;border-radius:50%;padding:3px 5px;font-size:15px;border:2px solid #0284c7;box-shadow:0 1px 4px rgba(0,0,0,.3)">🏥</div>`,
+     className:"", iconSize:[26,26], iconAnchor:[13,13]
+   });
+   L.marker([lat,lng],{icon}).addTo(leafletMap)
+     .bindPopup(`<b>${esc(h.name)}</b><br>${esc(h.place||"")}<br><span class="status ${ivenaStatusClass(h.status)}">${esc((h.status||"").toUpperCase())}</span>`);
+ };
+ (db.ivena||[]).forEach(h=>{
+   const override=HOSPITAL_OVERRIDE[h.name];
+   if(override)addHospitalMarker(h,override[0],override[1]);
+ });
  Object.entries(byPlace).forEach(([place,hospitals])=>{
    const pt=AREA_CENTERS[place];
    if(!pt)return;
    hospitals.forEach((h,i)=>{
      const n=hospitals.length;
      const r=n>1?0.008:0, angle=(i/n)*2*Math.PI;
-     const lat=pt[0]+r*Math.cos(angle), lng=pt[1]+r*Math.sin(angle);
-     const icon=L.divIcon({
-       html:`<div style="background:#fff;border-radius:50%;padding:3px 5px;font-size:15px;border:2px solid #0284c7;box-shadow:0 1px 4px rgba(0,0,0,.3)">🏥</div>`,
-       className:"", iconSize:[26,26], iconAnchor:[13,13]
-     });
-     L.marker([lat,lng],{icon}).addTo(leafletMap)
-       .bindPopup(`<b>${esc(h.name)}</b><br>${esc(place)}<br><span class="status ${ivenaStatusClass(h.status)}">${esc((h.status||"").toUpperCase())}</span>`);
+     addHospitalMarker(h,pt[0]+r*Math.cos(angle),pt[1]+r*Math.sin(angle));
    });
  });
+}
+function hospitalPoint(hospitalId){
+ const h=(db.ivena||[]).find(x=>String(x.id)===String(hospitalId));
+ if(!h)return null;
+ return HOSPITAL_OVERRIDE[h.name]||AREA_CENTERS[h.place]||null;
 }
 function callDestinationPoint(call){
  if(!call)return null;
@@ -382,10 +394,6 @@ function findUnitHospitalAssignment(u){
  const list=(db.ivenaAssignments||[]).filter(a=>(a.vehicleIds||[]).some(id=>String(id)===String(u.id)));
  if(!list.length)return null;
  return list.slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))[0];
-}
-function hospitalPoint(hospitalId){
- const h=(db.ivena||[]).find(x=>String(x.id)===String(hospitalId));
- return h?AREA_CENTERS[h.place]||null:null;
 }
 function interpolatePoint(from,to,frac){
  return [from[0]+(to[0]-from[0])*frac, from[1]+(to[1]-from[1])*frac];
@@ -724,6 +732,27 @@ const AREA_CENTERS={
  "Westerstede":[53.2554,7.9169],
  "Hohenkirchen":[53.6570,7.9200]
 };
+// Präzisere Einzeladressen für bestimmte Wachen, die genauer sind als die grobe Ortsmitte
+// aus AREA_CENTERS. Schlüssel: "Organisation__Standort" (wie in den Fahrzeugdaten hinterlegt).
+const STATION_OVERRIDE={
+ "DLRG__Varel":[53.3833,8.1326], // DLRG-Wache Varel, Am Wasserturm 5 (26316 Varel)
+ "Rettungsdienst__Sande":[53.508352,8.008457], // Rettungswache Sande, direkt neben TV Sanderbusch (Tennisplatz)
+ "Luftrettung__Sanderbusch (Sande)":[53.50691,8.00901], // Christoph 26, stationiert am Nordwest-Krankenhaus Sanderbusch
+ "Feuerwehr__Varel":[53.3984536,8.1353142], // FF Varel OF Varel, Pelzerstraße 5-7, 26316 Varel
+ "Rettungsdienst__Varel":[53.39148,8.13803], // Rettungswache Varel, Menckestraße 6 (Gelände St. Johannes-Hospital)
+ "Feuerwehr__Bockhorn":[53.3911,8.01891], // FF Bockhorn OF Bockhorn, Schulstraße 19, 26345 Bockhorn
+ "Rettungsdienst__Bockhorn":[53.38768,8.00959], // Rettungswache Friesische Wehde, Grabsteder Straße 27, 26345 Bockhorn
+ "Feuerwehr__Jever":[53.568879,7.8917544], // FF Jever OF Jever, Milchstraße 3, 26441 Jever
+ "THW__Jever":[53.58508200075142,7.907763263893131], // THW OV Jever, Am Bullhamm 11, 26441 Jever
+ "Rettungsdienst__Jever":[53.579591309062,7.90786988147579], // Rettungswache Jever, Wangerländische Straße 40a
+ "Feuerwehr__Hohenkirchen":[53.66165,7.91565], // FF Wangerland OF Hohenkirchen, Jeversche Straße 16, 26434 Hohenkirchen
+ "Feuerwehr__Wangerland":[53.66165,7.91565] // dieselbe Wache, falls location bereits auf "Wangerland" synchronisiert wurde
+};
+// Präzise Koordinaten für einzelne Kliniken (überschreibt die grobe Orts-Koordinate aus
+// AREA_CENTERS für genau diese Klinik).
+const HOSPITAL_OVERRIDE={
+ "Nordwest-Krankenhaus Sanderbusch":[53.50691,8.00901]
+};
 function haversine(lat1,lon1,lat2,lon2){
  const R=6371,toRad=x=>x*Math.PI/180;
  const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
@@ -749,6 +778,8 @@ function incidentArea(){
 }
 function unitPoint(u){
  if(Number.isFinite(Number(u.lat)) && Number.isFinite(Number(u.lng)))return [Number(u.lat),Number(u.lng)];
+ const override=STATION_OVERRIDE[`${u.org}__${u.location}`];
+ if(override)return override;
  const a=optaAreaName(u);
  if(AREA_CENTERS[a])return AREA_CENTERS[a];
  const loc=String(u.location||"").toLowerCase();
