@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.19</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.20</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -137,7 +137,8 @@ const defaults={
   {id:13,name:"Rettungsdienst – RD_C Schockzeichen",rules:{c_circ:"Auffällig / Schockzeichen"},units:[{type:"NEF",n:1}]},
   {id:14,name:"Rettungsdienst – RD_A Atemweg gefährdet",rules:{a_airway:"Gefährdet / verlegt"},units:[{type:"NEF",n:1}]},
   {id:15,name:"Rettungsdienst – RD_D Bewusstlos",rules:{d_disability:"Bewusstlos"},units:[{type:"NEF",n:1}]},
-  {id:16,name:"Rettungsdienst – RD_D Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1}]}
+  {id:16,name:"Rettungsdienst – RD_D Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1}]},
+  {id:17,name:"Rettungsdienst – Med. Hilfeleistung leicht (R0, unauffälliges XABCDE)",rules:{x_massive:"Nein",a_airway:"Frei",b_breath:"Normal",c_circ:"Unauffällig",d_disability:"Wach / orientiert",e_exposure:"unauffällig/leer"},units:[{type:"NKTW",n:1}]}
  ],
  calls:[],
  currentCall:null,
@@ -866,6 +867,11 @@ function notruf(){
 function isManv(c=db.currentCall){
  return Number(c?.answers?.count)>3;
 }
+function isBenignExposureText(t){
+ const s=String(t||"").trim().toLowerCase();
+ if(s==="")return true;
+ return ["keine","keine auffälligkeiten","keine befunde","kein befund","unauffällig","o.b.","ob","nichts","nichts auffällig","nichts weiter"].includes(s);
+}
 function needsXABCDE(c=db.currentCall){
  if(!c)return false;
  if(isManv(c))return false; // MANV: Sichtung statt Einzel-XABCDE
@@ -1150,6 +1156,24 @@ function evaluate(){
      xLabel="RD_D – Bewusstsein getrübt";
    }
    if(xLabel) keyword=`${keyword} · ${xLabel}`;
+
+   // Komplett unauffälliges XABCDE: nur die medizinischen Transportmittel auf einen
+   // leichten Krankentransport ohne Sonderrechte (R0) herabstufen. Feuerwehr-/Technik-
+   // Ressourcen (z. B. eingeklemmte Person trotz unauffälligem Patienten) bleiben unberührt.
+   if(!xLabel
+      && a.x_massive==="Nein" && a.a_airway==="Frei" && a.b_breath==="Normal"
+      && a.c_circ==="Unauffällig" && a.d_disability==="Wach / orientiert"
+      && isBenignExposureText(a.e_exposure)){
+     req=req.filter(r=>!["RTW","NEF"].includes(r.type));
+     const nktw=availableUnits("NKTW","Rettungsdienst")[0];
+     if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst"});
+     else add("RTW",1,"Rettungsdienst");
+     keyword="Med. Hilfeleistung leicht (R0)";
+     sr=false;
+     c.rZero=true;
+   }else{
+     c.rZero=false;
+   }
  }
 
  const cnt=Number(a.count)||0;

@@ -420,3 +420,21 @@ INSTALLATION AUF DEM HANDY:
   funktionieren nur zuverlässig, solange die App aktiv geöffnet und das Handy eingeschaltet ist.
   Eine PWA kann diese Betriebssystem-Grenzen nicht aufheben, sieht aber deutlich mehr wie eine
   "echte" App aus und lässt sich bequemer wiederfinden/starten.
+
+Version 3.20:
+- Neue AAO-Abstufung: Ist das komplette XABCDE unauffällig (X-Nein, A-Frei, B-Normal,
+  C-Unauffällig, D-Wach/orientiert, E-leer bzw. sinngemäß „keine Auffälligkeiten“), wird
+  automatisch auf einen leichten Krankentransport ohne Sonderrechte herabgestuft:
+  Einsatzstichwort „Med. Hilfeleistung leicht (R0)“, alarmiert wird standardmäßig ein NKTW
+  (ersatzweise ein RTW, falls kein NKTW verfügbar ist), Sonderrechte/Sondersignal (sr) wird
+  auf „nein“ gesetzt.
+- Die Abstufung betrifft ausschließlich die rettungsdienstlichen Transportmittel (RTW/NEF).
+  Bereits angeforderte Feuerwehr-/Technik-Ressourcen (z. B. HLF/RW bei eingeklemmter, aber
+  unauffälliger Person) bleiben unverändert bestehen.
+- Neuer AAO-Referenzeintrag „Rettungsdienst – Med. Hilfeleistung leicht (R0, unauffälliges
+  XABCDE)“ in der AAO-Übersicht ergänzt.
+- Mit Playwright end-to-end getestet: sauberes XABCDE löst die Abstufung korrekt aus; ein
+  einzelner auffälliger XABCDE-Befund verhindert sie zuverlässig; bei gleichzeitig
+  eingeklemmter Person bleiben HLF/RW erhalten, nur der Rettungsdienst-Teil wird auf NKTW
+  herabgestuft.
+- JavaScript-Syntax geprüft.
