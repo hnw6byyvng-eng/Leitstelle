@@ -438,3 +438,115 @@ Version 3.20:
   eingeklemmter Person bleiben HLF/RW erhalten, nur der Rettungsdienst-Teil wird auf NKTW
   herabgestuft.
 - JavaScript-Syntax geprüft.
+
+Version 3.21:
+- Neues Modul ganz am Anfang der Notrufabfrage: Erste Frage ist jetzt „Über welche Nummer ist
+  der Anruf eingegangen?“ mit den Optionen 112 / 116 117 (Ärztlicher Bereitschaftsdienst) /
+  110 (Polizeinotruf). Bei 112 läuft die Abfrage wie gewohnt weiter. Bei 116 117 oder 110 endet
+  die Abfrage sofort mit dem Hinweis „Weitergeleitet an 110“ bzw. „Weitergeleitet an 116 117“ –
+  keine weiteren Fragen, kein Alarmvorschlag.
+- Realistische Eintreffzeit-Berechnung ergänzt: Rettungshubschrauber (RTH/Luftrettung) werden
+  jetzt mit einer deutlich höheren Reisegeschwindigkeit (ca. 200 km/h statt 60 km/h bei
+  Bodenfahrzeugen) kalkuliert und können dadurch trotz größerer Distanz die kürzere
+  Eintreffzeit haben. Fließt sowohl in die automatische Fahrzeugauswahl als auch in die
+  Anzeige „ca. X min“ bei den nächsten verfügbaren Mitteln ein.
+- Polizeifahrzeug aus der eigenen Flotte entfernt (inkl. automatischer Alarmierung bei VU/Feuer
+  mit Personengefährdung). Stattdessen neue fiktive Schnittstelle „👮 Polizeileitstelle“:
+  erscheint auf der Startseite, sobald mindestens ein Einsatz alarmiert wurde. Einsatz auswählen,
+  Anzahl Streifenwagen und optionalen Hinweis eingeben – die Anfrage erscheint als Hinweis-Badge
+  am jeweiligen Einsatz.
+- Zwei weitere Schnittstellen nach demselben Prinzip: „📠 LST GOL“ und „📠 LST Wittmund“, um bei
+  den fiktiven Nachbarleitstellen eine bestimmte Anzahl Rettungsmittel für einen ausgewählten
+  Einsatz anzufragen.
+- Neues Modul „🚗 Fahrzeuge bearbeiten“ in der Alarmvorbereitung (vor der Erstalarmierung):
+  einzelne vorgeschlagene Fahrzeuge gezielt entfernen, und ein beliebiges verfügbares Fahrzeug
+  (nicht nur automatisch das nächste des Typs) manuell zum Vorschlag hinzufügen.
+- Alle vier Module mit Playwright end-to-end getestet: 112/116117/110-Weiche, Hubschrauber-ETA,
+  manuelles Hinzufügen/Entfernen vor Alarmierung, sowie die externe Anfrage-Schnittstelle
+  inklusive Anzeige auf der Startseite.
+- JavaScript-Syntax geprüft.
+
+Version 3.22:
+- Einsatzkarte zeigt jetzt zusätzlich:
+  - Wachen-Marker für Rettungsdienst, Feuerwehr, THW und DLRG (ein Symbol je Organisation und
+    Standort, Popup zeigt Anzahl und Namen der dort stationierten Fahrzeuge).
+  - Krankenhaus-Marker für alle IVENA-Kliniken (Name, Ort, Übungsstatus im Popup).
+  - Live-GPS-Position jedes Fahrzeugs, auch ohne externes Handy: Fahrzeuge ohne echte
+    GPS-Freigabe werden anhand ihrer Wache bzw. – wenn sie einem Einsatz zugeordnet und
+    tatsächlich unterwegs sind (Status 3 „Einsatz übernommen“) – mit einer über die Fahrzeit
+    interpolierten, simulierten Position dargestellt (gestrichelter Rand = simuliert, durch-
+    gezogen = echtes Live-GPS). Die Geschwindigkeit berücksichtigt dabei den Hubschrauber-
+    Speed-Vorteil aus v3.21. Am Einsatzort/mit aufgenommenem Patienten wird das Fahrzeug exakt
+    am Einsatzort angezeigt (der Rücktransport ins Krankenhaus wird dabei vereinfachend nicht
+    separat simuliert).
+  - Fahrzeuge, die ruhig auf der Wache stehen oder außer Dienst sind, werden nicht einzeln
+    eingezeichnet, um die Karte nicht zu überladen – die stehen bereits gesammelt im
+    jeweiligen Wachen-Marker.
+- Koordinaten für Wachen/Kliniken basieren auf den bekannten Orten (Jever, Varel, Zetel, Sande,
+  Schortens, Wangerland, Bockhorn, Wilhelmshaven, Oldenburg, Wittmund, Westerstede) auf
+  Stadt-/Ortsebene, nicht auf exakter Gebäudeadresse – für den Übungszweck ausreichend, aber
+  keine Navigationsgenauigkeit.
+- Bug behoben: Ein NKTW im Nachtdienst-Ersatzstatus (Status 6 „Nicht einsatzbereit“) wurde
+  fälschlich als „unterwegs“ simuliert; betrifft nur Status 3/4/7.
+- Bug behoben: Feuerwehr Hohenkirchen fehlte in der Koordinatentabelle, solange der
+  automatische OPTA-Ortsabgleich noch nicht gelaufen war.
+- Mit Playwright end-to-end getestet (inkl. eines gemockten Leaflet, da die Sandbox ohne
+  Internetzugang lief): Wachen-/Klinik-Marker-Anzahl korrekt, Fahrzeugposition bei Alarmierung,
+  bei halber Fahrzeit, nach Ablauf der Fahrzeit und bei „Am Einsatzort“ jeweils exakt geprüft.
+- JavaScript-Syntax geprüft.
+
+Version 3.23:
+- Simulierte Kartenposition auf den kompletten Fahrzyklus erweitert (vorher endete die
+  Simulation am Einsatzort):
+  Status 2 = an der Wache (im Wachen-Marker gebündelt, kein Einzelmarker) ·
+  Status 3 = auf dem Weg zum Einsatzort (Wache → Einsatzort, zeitbasiert interpoliert) ·
+  Status 4 = am Einsatzort ·
+  Status 7 = auf dem Weg zur Zielklinik der IVENA-Zuweisung (Einsatzort → Klinik, interpoliert) ·
+  Status 8 = an der Zielklinik ·
+  Status 1 = auf dem Rückweg zur Heimatwache (von Klinik ODER Einsatzort, je nachdem was
+  zuletzt zutraf – interpoliert über die für die Rückkehr vorgesehene Zeitspanne) ·
+  Status 2 (danach wieder): an der Wache.
+- Neue Klinik-Koordinatenzuordnung (hospitalPoint) und Zuweisungs-Zuordnung
+  (findUnitHospitalAssignment) ergänzt, damit Status 7/8/1 wissen, zu welcher Klinik das
+  Fahrzeug unterwegs ist bzw. von dort zurückkommt.
+- Fahrzeuge, die nie eine erkennbare IVENA-Zuweisung oder Einsatzzuordnung hatten (z. B. manuell
+  auf Status 1 gesetzt, „Realistisch“-Zufallsmodus), werden weiterhin nicht animiert – sie
+  gelten einfach als an der Wache, um keine unsinnige „Rückfahrt aus dem Nichts“ zu zeigen.
+- Vereinfachung bleibt bestehen: Hin- und Rückfahrt nutzen dieselbe Reisegeschwindigkeit wie die
+  ETA-Berechnung (inkl. Hubschrauber-Vorteil), es wird keine echte Route über Straßen simuliert,
+  nur eine Luftlinien-Interpolation zwischen den bekannten Punkten.
+- Mit Playwright end-to-end den kompletten Zyklus 3→4→7→8→1→2 durchgetestet: Position bei
+  Status 3 nahe Wache, bei Status 4 exakt am Einsatzort, bei Status 7 nach voller Fahrzeit exakt
+  an der Klinik, bei Status 8 exakt an der Klinik, bei Status 1 auf halbem Rückweg exakt
+  zwischen Klinik und Wache, nach Ablauf automatisch zurück auf Status 2 ohne Einzelmarker.
+- JavaScript-Syntax geprüft.
+
+Version 3.24:
+- Automatische Statuswechsel bei "Ankunft" eingebaut:
+  - Status 3 -> automatisch Status 4, sobald die geschätzte Fahrzeit zum Einsatzort verstrichen
+    ist (Hubschrauber entsprechend schneller).
+  - Status 4 -> nach 20 Minuten am Einsatzort automatisch Status 7, aber nur wenn inzwischen
+    eine IVENA-Zuweisung zu einer Klinik für dieses Fahrzeug vorliegt; ohne Zuweisung bleibt es
+    auf Status 4 stehen.
+  - Status 7 -> automatisch Status 8, sobald die geschätzte Fahrzeit vom Einsatzort zur
+    zugewiesenen Klinik verstrichen ist (ersetzt die bisherige feste 20-Minuten-Regel für diesen
+    Schritt durch eine realistische, entfernungsbasierte Zeit).
+  - Status 1 -> Status 2 (Rückkehr auf Wache) nutzt jetzt ebenfalls die geschätzte Fahrzeit von
+    der zuletzt bekannten Position (Klinik oder Einsatzort) zurück zur Heimatwache, statt einer
+    zufälligen Zeitspanne – sofern ermittelbar, sonst wie bisher eine plausible Zufallszeit.
+- WICHTIG: Fahrzeuge, die aktiv über ein externes Handy gesteuert werden (Fahrzeugterminal),
+  werden von all diesen Automatiken ausgenommen – die Besatzung muss dort jeden Statuswechsel
+  selbst auslösen. Einzige Ausnahme ist die Erstalarmierung auf Status 3, die weiterhin durch
+  die Leitstelle erfolgt. Erkannt wird "handygesteuert" daran, dass die Crew mindestens einmal
+  über ihr Handy einen Status gesetzt oder eine IVENA-Anmeldung/Zuweisung ausgelöst hat; das
+  bleibt für dieses Fahrzeug danach dauerhaft gesetzt.
+- NKTW und NEF sind jetzt genau wie RTW/RTH als vollwertiges Transportmittel für
+  IVENA-Zuweisungen wählbar (Leitstelle und Fahrzeugterminal). Der Rettungshubschrauber bleibt
+  sowohl als eigenständiges Transportmittel als auch als Notarzt-Begleitfahrzeug wählbar.
+- Bug behoben: IVENA-Zuweisungen ließen sich nicht dauerhaft löschen, weil das Löschen nur
+  lokal passierte und der Cloud-Abgleich sie alle paar Sekunden aus Firebase zurückholte.
+  Löschen entfernt den Eintrag jetzt auch aus der Cloud-Datenbank.
+- Mit Playwright end-to-end getestet: automatischer Durchlauf 3→4→7→8 für ein normales
+  Fahrzeug, während ein als "phoneControlled" markiertes Fahrzeug im selben Einsatz
+  unverändert auf Status 3 stehen bleibt; Löschen einer Zuweisung bestätigt dauerhaft entfernt.
+- JavaScript-Syntax geprüft.
