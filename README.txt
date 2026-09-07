@@ -595,3 +595,72 @@ Version 3.27:
   - (bereits zuvor: DLRG Varel, Rettungswache Sande, Christoph 26 am Nordwest-Krankenhaus)
 - Damit sind jetzt alle Wachen-Standorte adressgenau statt nur auf Ortsebene.
 - JavaScript-Syntax geprüft.
+
+Version 3.28:
+- Rettungswache Wangerland existierte bisher gar nicht im Fuhrpark – dabei gibt es sie
+  tatsächlich. Recherche in der öffentlichen Wachen-Datenbank bos-fahrzeuge.info bestätigt:
+  RTW "Rettung Friesland 86/83-01", Adresse Hohensminde 2, 26434 Wangerland.
+- Diese Einheit wieder ergänzt (id 116), diesmal mit "verified: BOS-Fahrzeuge" statt
+  Nutzerangabe, da jetzt über eine echte Quelle bestätigt.
+- Wichtiger Fund dabei: Genau diese OPTA-Nummer hatte ich in v3.2 fälschlich als "erfunden"
+  auf eine Rückzugsliste (RETIRED_UNIT_OPTAS) gesetzt und entfernt – sie war in Wahrheit real.
+  Diese Sperre wurde jetzt aufgehoben, sonst wäre die Einheit sofort wieder herausgefiltert
+  worden.
+- Die beiden Bockhorn-RTW (87/83-01, 87/83-02) ebenfalls auf "verified: BOS-Fahrzeuge"
+  hochgestuft, da die exakt gleiche Fahrzeugliste über dieselbe Quelle bestätigt wurde.
+- Präzise Koordinate für die Rettungswache Wangerland ergänzt: 53.666102, 7.981689.
+- Mit Playwright geprüft: Fahrzeug lädt korrekt bei Neuinstallation, wird bei bestehenden
+  Installationen automatisch nachgezogen (Migration), und die Karten-Koordinate löst korrekt auf.
+- JavaScript-Syntax geprüft.
+
+Version 3.29:
+- Zwei weitere Rettungshubschrauber ergänzt, beide als Typ RTH (können sowohl als eigenständiges
+  Transportmittel als auch als Notarzt-Begleitfahrzeug/NEF-Ersatz eingesetzt werden, genau wie
+  Christoph 26):
+  - Lifeliner 4: niederländischer Rettungshubschrauber (Trauma-/MMT-Helikopter), betrieben von
+    ANWB Medical Air Assistance (Kennung PH-DOC, Airbus H135), stationiert auf Groningen Airport
+    Eelde (53.118056, 6.575833). Versorgungsgebiet u. a. Groningen, Friesland, Drenthe und
+    angrenzendes Norddeutschland.
+  - Christoph 6: ADAC-Rettungshubschrauber (Airbus EC135), stationiert am Klinikum Links der
+    Weser in Bremen (53.035852, 8.817424, exakter Landeplatz). Seit 2023 neben Christoph 26
+    zweiter „Inselhubschrauber" für die ostfriesischen/niedersächsischen Inseln.
+- Auf ausdrücklichen Wunsch KEIN SAR-Hubschrauber aus Cuxhaven ergänzt, da sich nicht zweifelsfrei
+  klären ließ, welche reale Einheit gemeint war (die Bundeswehr-Marine-SAR-Bereitschaft läuft
+  faktisch über die Außenstellen Helgoland/SAR 10 und Warnemünde/SAR 24, nicht direkt über
+  Nordholz/Cuxhaven selbst).
+- Auf ausdrücklichen Wunsch KEIN "Christoph Europa 4" ergänzt, da recherchierbar kein solcher
+  Hubschrauber existiert (nur Christoph Europa 1, 2, 3 und 5 sind real) und stattdessen der
+  tatsächlich gemeinte Lifeliner 4 identifiziert wurde.
+- Mit Playwright geprüft: beide neuen Hubschrauber laden korrekt, lösen auf ihre exakte
+  Koordinate auf, und sind sowohl in der Transportmittel- als auch in der
+  NEF-Begleitfahrzeug-Auswahl für IVENA-Zuweisungen aufführbar.
+- JavaScript-Syntax geprüft.
+
+Version 3.30:
+- Neuer Reiter "🚑 Nachbar LKs": zeigt die Rettungsmittel der Nachbarlandkreise Wittmund, Leer,
+  Ammerland und Wesermarsch, gruppiert nach Landkreis, mit manuell steuerbarem Status (Übungsleitung).
+  Getrennt von den lokalen Friesland-Fahrzeugen gehalten – erscheinen nirgends in der lokalen
+  Alarmierung, AAO oder auf der Karte.
+- Fahrzeugbezeichnungen und Wachadressen recherchiert (öffentliche Wachen-Datenbank
+  bos-fahrzeuge.info):
+  - Wittmund: Rettung Wittmund 80/82-01 (NEF) + 80/83-01 (RTW), Schloßstraße 11, 26409 Wittmund
+  - Leer: Rotkreuz Leer 40/82-01 (NEF) + 40/83-01 (RTW), Heisfelder Straße 141, 26789 Leer
+  - Ammerland: Rettung Ammerland 15/82-01 (NEF) + 15/83-01 (RTW), An der Hössen 16, 26655 Westerstede
+  - Wesermarsch: Rettung Wesermarsch 84/83-01 + 84/83-02 (beide RTW), Albert-Schweitzer-Str. 43,
+    26954 Nordenham (ein NEF existiert dort real ebenfalls, aber die genaue OPTA-Nummer war nicht
+    zweifelsfrei zu ermitteln, daher bewusst weggelassen statt geraten)
+- Reale Zuständigkeit recherchiert und korrekt zugeordnet: Wittmund und Leer laufen über die
+  "Kooperative Regionalleitstelle Ostfriesland" (Sitz Wittmund, seit 2014, auch zuständig für
+  Aurich), Ammerland und Wesermarsch über die "Großleitstelle Oldenburger Land (GOL)" (zuständig
+  auch für Cloppenburg, Oldenburg und Delmenhorst).
+- Korrektur: die bisherige externe Schnittstelle "LST Wittmund" gab es real so nicht – Wittmund
+  hat keine eigene Leitstelle, sondern ist selbst Sitz der Leitstelle Ostfriesland. Umbenannt in
+  "LST Ostfriesland" (Dashboard-Button und im neuen Reiter identisch).
+- Aus jedem Landkreis lässt sich direkt für einen offenen, alarmierten Einsatz eine Anfrage an
+  die jeweils zuständige Leitstelle stellen (nutzt denselben Anfrage-Dialog wie die bestehenden
+  externen Schnittstellen: Einsatz auswählen, Anzahl, optionaler Hinweis).
+- Mit Playwright geprüft: Reiter rendert alle vier Landkreise, Statusänderung an einer
+  Nachbar-Einheit greift sofort, Anfrage an Ostfriesland wird korrekt im Einsatz vermerkt.
+- Beim Einbau versehentlich den Sekundentakt (Status-Automatik) überschrieben – beim
+  Pflicht-Syntaxcheck vor dem Speichern bemerkt und sofort wiederhergestellt.
+- JavaScript-Syntax geprüft.

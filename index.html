@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.27</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.30</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -73,8 +73,9 @@ const defaults={
   {id:108,name:"84-82-01",opta:"Rettung Friesland 84/82-01",type:"NEF",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge"},
   {id:110,name:"84-83-01",opta:"Rettung Friesland 84/83-01",type:"RTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:111,name:"84-93-01",opta:"Rettung Friesland 84/93-01",type:"NKTW",org:"Rettungsdienst",location:"Sande",status:"1",crew:"2",skills:"Notfalltransport, First Responder",schedule:"day_only",verified:"Nutzerangabe"},
-  {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"Nutzerangabe"},
-  {id:115,name:"87-83-01",opta:"Rettung Friesland 87/83-01",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",verified:"Nutzerangabe"},
+  {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"BOS-Fahrzeuge"},
+  {id:115,name:"87-83-01",opta:"Rettung Friesland 87/83-01",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
+  {id:116,name:"86-83-01",opta:"Rettung Friesland 86/83-01",type:"RTW",org:"Rettungsdienst",location:"Wangerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:113,name:"OrgL/LNA Varel",opta:"Rettungsdienst Friesland – OrgL/LNA Varel",type:"OrgL/LNA",org:"Rettungsdienst",location:"Varel",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
   {id:114,name:"OrgL/LNA Sande",opta:"Rettungsdienst Friesland – OrgL/LNA Sande",type:"OrgL/LNA",org:"Rettungsdienst",location:"Sande",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
 
@@ -117,7 +118,9 @@ const defaults={
   {id:305,name:"32/NEA",opta:"Heros Jever 32/NEA",type:"NEA 68 kVA",org:"THW",location:"Jever",status:"2",crew:"0",skills:"Stromversorgung",verified:"THW/BOS-Fahrzeuge"},
   {id:306,name:"86/25",opta:"Heros Jever 86/25",type:"MTW OV",org:"THW",location:"Jever",status:"2",crew:"9",skills:"Mannschaftstransport",verified:"THW/BOS-Fahrzeuge"},
 
-  {id:501,name:"Christoph 26",opta:"Christoph 26",type:"RTH",org:"Luftrettung",location:"Sanderbusch (Sande)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Windenrettung, Intensivtransport",verified:"ADAC Luftrettung",schedule:"24h"}
+  {id:501,name:"Christoph 26",opta:"Christoph 26",type:"RTH",org:"Luftrettung",location:"Sanderbusch (Sande)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Windenrettung, Intensivtransport",verified:"ADAC Luftrettung",schedule:"24h"},
+  {id:502,name:"Lifeliner 4",opta:"Lifeliner 4",type:"RTH",org:"Luftrettung",location:"Groningen (Eelde)",status:"1",crew:"3",skills:"Notarzt (MMT-Arzt), Luftrettung, Intensivtransport",verified:"ANWB Medical Air Assistance"},
+  {id:503,name:"Christoph 6",opta:"Christoph 6",type:"RTH",org:"Luftrettung",location:"Bremen (Klinikum Links der Weser)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Intensivtransport",verified:"ADAC Luftrettung"}
 
  ],
  aao:[
@@ -149,6 +152,19 @@ const defaults={
   {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]},
   {id:6,name:"Ammerland-Klinik Westerstede",place:"Westerstede",area:"Ammerland",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","HNO","Augenheilkunde","Intensivmedizin"]},
   {id:7,name:"Evangelisches Krankenhaus Oldenburg (EV Oldenburg)",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Gynäkologie/Geburtshilfe","Intensivmedizin","Schockraum"]}
+ ],
+ // Rettungsmittel der Nachbarlandkreise, rein zur Übersicht/Anfrage im Reiter "Nachbar LKs".
+ // Getrennt von db.units gehalten, damit sie nie für lokale Friesland-Alarmierungen/AAO/Karte
+ // in Frage kommen. Status ist manuell steuerbar (Übungsleitung), keine echte Live-Anbindung.
+ neighborUnits:[
+  {id:1,name:"80-82-01",opta:"Rettung Wittmund 80/82-01",type:"NEF",district:"Wittmund",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"Schloßstraße 11, 26409 Wittmund",lat:53.573624,lng:7.784572},
+  {id:2,name:"80-83-01",opta:"Rettung Wittmund 80/83-01",type:"RTW",district:"Wittmund",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Schloßstraße 11, 26409 Wittmund",lat:53.573624,lng:7.784572},
+  {id:3,name:"40-82-01",opta:"Rotkreuz Leer 40/82-01",type:"NEF",district:"Leer",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"Heisfelder Straße 141, 26789 Leer",lat:53.2388829,lng:7.4551846},
+  {id:4,name:"40-83-01",opta:"Rotkreuz Leer 40/83-01",type:"RTW",district:"Leer",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Heisfelder Straße 141, 26789 Leer",lat:53.2388829,lng:7.4551846},
+  {id:5,name:"15-82-01",opta:"Rettung Ammerland 15/82-01",type:"NEF",district:"Ammerland",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"An der Hössen 16, 26655 Westerstede",lat:53.2551773,lng:7.91576714},
+  {id:6,name:"15-83-01",opta:"Rettung Ammerland 15/83-01",type:"RTW",district:"Ammerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"An der Hössen 16, 26655 Westerstede",lat:53.2551773,lng:7.91576714},
+  {id:7,name:"84-83-01",opta:"Rettung Wesermarsch 84/83-01",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054},
+  {id:8,name:"84-83-02",opta:"Rettung Wesermarsch 84/83-02",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054}
  ]
 };
 let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
@@ -157,7 +173,6 @@ if(!Array.isArray(db.units))db.units=[];
 // und inzwischen bewusst zurückgezogen wurden – bei bereits laufenden Installationen
 // automatisch entfernen, damit sie nicht dauerhaft in der lokal gespeicherten Flotte hängen.
 const RETIRED_UNIT_OPTAS=[
- "Rettung Friesland 86/83-01",
  "Rettung Friesland 82/84-01",
  "Rettung Friesland 84/84-01",
  "Rettung Friesland 84/82-03"
@@ -209,6 +224,15 @@ if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Olden
 if(!db.ivenaViewMode)db.ivenaViewMode="klinik";
 if(!db.ivenaMode)db.ivenaMode="manual";
 if(!Array.isArray(db.ivenaAssignments))db.ivenaAssignments=[];
+if(!Array.isArray(db.neighborUnits))db.neighborUnits=defaults.neighborUnits.map(u=>({...u}));
+{
+ // Neu hinzugekommene Nachbar-Rettungsmittel bei bereits genutzten Installationen automatisch
+ // ergänzen, ohne manuell geänderte Status anzutasten.
+ const existingOptas=new Set(db.neighborUnits.map(u=>u.opta).filter(Boolean));
+ defaults.neighborUnits.forEach(u=>{
+   if(u.opta && !existingOptas.has(u.opta)) db.neighborUnits.push({...u});
+ });
+}
 const IVENA_FACHRICHTUNGEN=["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","Schockraum","Psychiatrie","HNO","Augenheilkunde","Urologie"];
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -229,7 +253,7 @@ function statusOptionsFor(u){
  return opts;
 }
 function nav(active){document.getElementById("nav").innerHTML=[
- ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"]
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"],["nachbarLks","🚑 Nachbar LKs"]
 ].map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}
 let currentPage="leitstelle";
 function render(page="leitstelle"){
@@ -242,6 +266,7 @@ function render(page="leitstelle"){
  if(page==="aao") aao();
  if(page==="ivena") ivena();
  if(page==="ivenaZuweisungen") ivenaZuweisungen();
+ if(page==="nachbarLks") nachbarLks();
 }
 
 let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
@@ -742,11 +767,14 @@ const STATION_OVERRIDE={
  "Rettungsdienst__Varel":[53.39148,8.13803], // Rettungswache Varel, Menckestraße 6 (Gelände St. Johannes-Hospital)
  "Feuerwehr__Bockhorn":[53.3911,8.01891], // FF Bockhorn OF Bockhorn, Schulstraße 19, 26345 Bockhorn
  "Rettungsdienst__Bockhorn":[53.38768,8.00959], // Rettungswache Friesische Wehde, Grabsteder Straße 27, 26345 Bockhorn
+ "Rettungsdienst__Wangerland":[53.666102,7.981689], // Rettungswache Wangerland, Hohensminde 2, 26434 Wangerland
  "Feuerwehr__Jever":[53.568879,7.8917544], // FF Jever OF Jever, Milchstraße 3, 26441 Jever
  "THW__Jever":[53.58508200075142,7.907763263893131], // THW OV Jever, Am Bullhamm 11, 26441 Jever
  "Rettungsdienst__Jever":[53.579591309062,7.90786988147579], // Rettungswache Jever, Wangerländische Straße 40a
  "Feuerwehr__Hohenkirchen":[53.66165,7.91565], // FF Wangerland OF Hohenkirchen, Jeversche Straße 16, 26434 Hohenkirchen
- "Feuerwehr__Wangerland":[53.66165,7.91565] // dieselbe Wache, falls location bereits auf "Wangerland" synchronisiert wurde
+ "Feuerwehr__Wangerland":[53.66165,7.91565], // dieselbe Wache, falls location bereits auf "Wangerland" synchronisiert wurde
+ "Luftrettung__Groningen (Eelde)":[53.118056,6.575833], // Lifeliner 4, Groningen Airport Eelde (ANWB Medical Air Assistance)
+ "Luftrettung__Bremen (Klinikum Links der Weser)":[53.035852,8.817424] // Christoph 6, Landeplatz am Klinikum Links der Weser
 };
 // Präzise Koordinaten für einzelne Kliniken (überschreibt die grobe Orts-Koordinate aus
 // AREA_CENTERS für genau diese Klinik).
@@ -1066,8 +1094,8 @@ function openExternalRequest(kind){
  if(!calls.length){toast("Noch kein alarmierter Einsatz vorhanden");return}
  const meta={
    polizei:{title:"👮 Fiktive Polizeileitstelle",unit:"Streifenwagen"},
-   gol:{title:"📠 Nachbarleitstelle LST GOL",unit:"Rettungsmittel"},
-   wittmund:{title:"📠 Nachbarleitstelle LST Wittmund",unit:"Rettungsmittel"}
+   gol:{title:"📠 Großleitstelle Oldenburger Land (GOL)",unit:"Rettungsmittel"},
+   ostfriesland:{title:"📠 Leitstelle Ostfriesland",unit:"Rettungsmittel"}
  }[kind];
  document.getElementById("app").innerHTML=`<div class="card">
   <div class="row between"><h2>${meta.title}</h2><button onclick="render('leitstelle')">Abbrechen</button></div>
@@ -1094,7 +1122,7 @@ function sendExternalRequest(kind){
  const meta={
    polizei:{label:"👮 Polizei",unit:"Streifenwagen"},
    gol:{label:"📠 LST GOL",unit:"Rettungsmittel"},
-   wittmund:{label:"📠 LST Wittmund",unit:"Rettungsmittel"}
+   ostfriesland:{label:"📠 LST Ostfriesland",unit:"Rettungsmittel"}
  }[kind];
  call.externalRequests=call.externalRequests||[];
  call.externalRequests.unshift({id:Date.now(),kind,label:meta.label,unit:meta.unit,count,note,time:new Date().toISOString()});
@@ -1102,8 +1130,12 @@ function sendExternalRequest(kind){
  call.history.push({q:`${meta.label} angefragt`,a:`${count}x ${meta.unit}${note?` – ${note}`:""}`});
  save();
  toast("Anfrage übermittelt (Übung)");
- render("leitstelle");
+ render(currentPage==="nachbarLks"?"nachbarLks":"leitstelle");
 }
+// Welche Leitstelle für welchen Nachbarlandkreis zuständig ist (reale Zuordnung):
+// Leitstelle Ostfriesland (Sitz Wittmund) für Wittmund + Leer (+ Aurich),
+// Großleitstelle Oldenburger Land (GOL) für Ammerland + Wesermarsch (+ Cloppenburg, Oldenburg, Delmenhorst).
+const NEIGHBOR_LEITSTELLE={Wittmund:"ostfriesland",Leer:"ostfriesland",Ammerland:"gol",Wesermarsch:"gol"};
 function renderExternalRequestBadges(c){
  if(!c.externalRequests||!c.externalRequests.length)return"";
  return c.externalRequests.slice(0,4).map(r=>`<div style="margin-top:6px;background:#e0f2fe;color:#075985;padding:6px 10px;border-radius:8px;font-size:12px"><b>${esc(r.label)}:</b> ${r.count}x ${esc(r.unit)}${r.note?` – ${esc(r.note)}`:""} <span style="opacity:.7">· ${new Date(r.time).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span></div>`).join("");
@@ -1128,7 +1160,7 @@ function dashboard(){
    ${hasAlarmed?`<div class="row" style="margin-top:10px;flex-wrap:wrap">
      <button onclick="openExternalRequest('polizei')">👮 Polizeileitstelle</button>
      <button onclick="openExternalRequest('gol')">📠 LST GOL</button>
-     <button onclick="openExternalRequest('wittmund')">📠 LST Wittmund</button>
+     <button onclick="openExternalRequest('ostfriesland')">📠 LST Ostfriesland</button>
    </div>`:""}
   </div>
   ${calls.length?calls.map(c=>incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))).join(""):`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
@@ -2533,6 +2565,46 @@ function ivena(){
   </tbody></table></div>`}
   <div class="card" style="margin-top:12px;background:#f8fafc"><b>Für Übungen gedacht:</b> Grün/Gelb/Rot, Fachrichtungs-Abmeldungen und Hinweise können von der Übungsleitung frei gesetzt werden, z. B. „CT belegt“, „Schockraum frei“ oder „keine pädiatrische Aufnahme“. Die real angebotenen Fachrichtungen je Klinik lassen sich über 🏷️ anpassen.</div>
  </div>`;
+}
+
+function setNeighborUnitStatus(id,status){
+ const u=db.neighborUnits.find(x=>String(x.id)===String(id));
+ if(!u)return;
+ u.status=String(status);
+ save();
+ render("nachbarLks");
+}
+function nachbarLks(){
+ const districts=["Wittmund","Leer","Ammerland","Wesermarsch"];
+ const openCalls=allOpenCalls().filter(c=>c.alarmTime);
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>🚑 Rettungsmittel der Nachbarlandkreise</h2>
+  <p class="muted">Übungsansicht der Nachbarlandkreise Wittmund, Leer, Ammerland und Wesermarsch. Status wird von der Übungsleitung manuell gepflegt – keine echte Live-Anbindung an die dortigen Leitstellen. Bei Bedarf können darüber Rettungsmittel bei der jeweils zuständigen Leitstelle angefragt werden.</p>
+ </div>
+ ${districts.map(d=>{
+   const units=db.neighborUnits.filter(u=>u.district===d);
+   const kind=NEIGHBOR_LEITSTELLE[d];
+   const leitstelleName=kind==="ostfriesland"?"Leitstelle Ostfriesland (Wittmund)":"Großleitstelle Oldenburger Land (GOL)";
+   return `<div class="card">
+    <div class="row between">
+     <div><h3>${esc(d)}</h3><p class="muted" style="margin:0">Zuständige Leitstelle: ${esc(leitstelleName)}</p></div>
+     <button class="primary" onclick="openExternalRequest('${kind}')" ${openCalls.length?"":"disabled"}>📨 Bei ${kind==="ostfriesland"?"Ostfriesland":"GOL"} anfragen</button>
+    </div>
+    <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Kennung</th><th>Typ</th><th>Adresse</th><th>Status</th></tr></thead><tbody>
+     ${units.map(u=>`<tr>
+       <td><b>${esc(u.opta||u.name)}</b></td>
+       <td>${esc(u.type)}</td>
+       <td class="muted">${esc(u.address||"—")}</td>
+       <td>
+        <select onchange="setNeighborUnitStatus(${u.id},this.value)" style="width:auto;display:inline-block">
+         ${["1","2","3","4","6"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${esc(statusName(s))}</option>`).join("")}
+        </select>
+       </td>
+      </tr>`).join("")}
+    </tbody></table></div>
+   </div>`;
+ }).join("")}
+ <div class="card" style="background:#f8fafc"><b>Hinweis:</b> Die Fahrzeugbezeichnungen und Wachadressen stammen aus öffentlich zugänglichen Quellen (bos-fahrzeuge.info) und stellen jeweils eine Auswahl dar, keine vollständigen Fuhrparks der Nachbarlandkreise.</div>`;
 }
 
 setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation();autoAdvanceEnRoute()},1000);
