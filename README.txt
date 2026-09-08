@@ -664,3 +664,27 @@ Version 3.30:
 - Beim Einbau versehentlich den Sekundentakt (Status-Automatik) überschrieben – beim
   Pflicht-Syntaxcheck vor dem Speichern bemerkt und sofort wiederhergestellt.
 - JavaScript-Syntax geprüft.
+
+Version 3.31:
+- Weitere echte Rettungsmittel der Nachbarlandkreise ergänzt (Quelle weiterhin
+  bos-fahrzeuge.info): Wittmund jetzt zusätzlich mit Rettungswache Esens (RTW 82/83-01,
+  Jeverstraße 28 A), Leer zusätzlich mit zweitem NEF (40/82-02), Ammerland zusätzlich mit
+  Rettungswache Rastede (RTW 14/83-01, Raiffeisenstraße 204). Damit stehen jetzt 11 statt 8
+  Nachbar-Rettungsmittel zur Verfügung.
+- NEU: automatische Empfehlung, wenn kein eigenes freies RTW/NEF innerhalb von 20 km zum
+  Einsatzort verfügbar ist. Es erscheint direkt auf der Einsatzkarte ein rot blinkender Button
+  „Kein eigenes RTW/NEF <20 km frei – bei LST Ostfriesland/GOL anfragen“, der automatisch den
+  Landkreis mit dem nächstgelegenen freien Nachbar-Rettungsmittel ermittelt und die passende
+  Leitstelle vorschlägt (Wittmund/Leer → Ostfriesland, Ammerland/Wesermarsch → GOL). Ein Klick
+  öffnet den Anfrage-Dialog mit bereits ausgewähltem Einsatz.
+  Sobald wieder ein eigenes RTW/NEF in Reichweite frei wird, verschwindet der Button automatisch.
+- Alle Fahrzeuge können jetzt auch am Fahrzeugterminal Status 0 (Priorisierter Sprechwunsch)
+  drücken – vorher war das dort herausgefiltert, obwohl es leitstellenseitig schon immer für
+  alle Fahrzeugtypen erlaubt war.
+- Die Sprechwunsch-Übersicht im Dashboard zeigt Status-0-Meldungen (rot blinkend) jetzt immer
+  über den normalen Sprechwünschen (Status 5), statt in Erfassungsreihenfolge gemischt.
+- Mit Playwright geprüft: Banner erscheint korrekt bei fehlender eigener Abdeckung, empfiehlt
+  den nächstgelegenen freien Nachbar-Landkreis, öffnet den Anfrage-Dialog mit vorausgewähltem
+  Einsatz, und verschwindet wieder sobald ein eigenes Fahrzeug in Reichweite frei wird. Status-0
+  am Fahrzeugterminal und Sprechwunsch-Sortierung ebenfalls bestätigt.
+- JavaScript-Syntax geprüft.

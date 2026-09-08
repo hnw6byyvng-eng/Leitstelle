@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.30</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.31</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -159,10 +159,13 @@ const defaults={
  neighborUnits:[
   {id:1,name:"80-82-01",opta:"Rettung Wittmund 80/82-01",type:"NEF",district:"Wittmund",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"Schloßstraße 11, 26409 Wittmund",lat:53.573624,lng:7.784572},
   {id:2,name:"80-83-01",opta:"Rettung Wittmund 80/83-01",type:"RTW",district:"Wittmund",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Schloßstraße 11, 26409 Wittmund",lat:53.573624,lng:7.784572},
+  {id:9,name:"82-83-01",opta:"Rettung Wittmund 82/83-01",type:"RTW",district:"Wittmund",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Jeverstraße 28 A, 26327 Esens",lat:53.635804,lng:7.6171504},
   {id:3,name:"40-82-01",opta:"Rotkreuz Leer 40/82-01",type:"NEF",district:"Leer",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"Heisfelder Straße 141, 26789 Leer",lat:53.2388829,lng:7.4551846},
   {id:4,name:"40-83-01",opta:"Rotkreuz Leer 40/83-01",type:"RTW",district:"Leer",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Heisfelder Straße 141, 26789 Leer",lat:53.2388829,lng:7.4551846},
+  {id:10,name:"40-82-02",opta:"Rotkreuz Leer 40/82-02",type:"NEF",district:"Leer",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"Heisfelder Straße 141, 26789 Leer",lat:53.2388829,lng:7.4551846},
   {id:5,name:"15-82-01",opta:"Rettung Ammerland 15/82-01",type:"NEF",district:"Ammerland",status:"1",crew:"2",skills:"Notarzt",verified:"BOS-Fahrzeuge",address:"An der Hössen 16, 26655 Westerstede",lat:53.2551773,lng:7.91576714},
   {id:6,name:"15-83-01",opta:"Rettung Ammerland 15/83-01",type:"RTW",district:"Ammerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"An der Hössen 16, 26655 Westerstede",lat:53.2551773,lng:7.91576714},
+  {id:11,name:"14-83-01",opta:"Rettung Ammerland 14/83-01",type:"RTW",district:"Ammerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Raiffeisenstraße 204, 26180 Rastede",lat:53.2412645,lng:8.1668705},
   {id:7,name:"84-83-01",opta:"Rettung Wesermarsch 84/83-01",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054},
   {id:8,name:"84-83-02",opta:"Rettung Wesermarsch 84/83-02",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054}
  ]
@@ -1063,9 +1066,42 @@ function renderVehicleFeedbackBadges(c){
    return `<div style="margin-top:8px;background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:8px;font-size:12px"><b>${icon} ${esc(fb.unitLabel||"Fahrzeug")}${tag}:</b> ${esc(fb.text)} <span style="opacity:.7">· ${new Date(fb.time).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span></div>`;
  }).join("");
 }
+const NEIGHBOR_LEITSTELLE={Wittmund:"ostfriesland",Leer:"ostfriesland",Ammerland:"gol",Wesermarsch:"gol"};
+function nearestOwnUnitKm(call){
+ // Kürzeste Entfernung eines FREIEN eigenen RTW/NEF (Status 1 oder 2) zum Einsatzort.
+ // null = kein Einsatzort bekannt oder kein einziges eigenes RTW/NEF vorhanden.
+ const dest=callDestinationPoint(call);
+ if(!dest)return null;
+ let min=null;
+ db.units.filter(u=>["RTW","NEF"].includes(u.type)&&["1","2"].includes(String(u.status))).forEach(u=>{
+   const p=unitPoint(u);
+   if(!p)return;
+   const d=haversine(dest[0],dest[1],p[0],p[1]);
+   if(min===null||d<min)min=d;
+ });
+ return min;
+}
+function nearestNeighborUnit(call){
+ // Nächstgelegenes FREIES Rettungsmittel eines Nachbarlandkreises zum Einsatzort.
+ const dest=callDestinationPoint(call);
+ if(!dest)return null;
+ let best=null;
+ db.neighborUnits.filter(u=>String(u.status)==="1"&&Number.isFinite(u.lat)&&Number.isFinite(u.lng)).forEach(u=>{
+   const d=haversine(dest[0],dest[1],u.lat,u.lng);
+   if(!best||d<best.distanceKm)best={distanceKm:d,district:u.district,unit:u};
+ });
+ return best;
+}
+function needsNeighborHelp(call){
+ // true, wenn kein eigenes freies RTW/NEF innerhalb von 20 km verfügbar ist.
+ if(!call.alarmTime)return false;
+ const ownKm=nearestOwnUnitKm(call);
+ return ownKm===null||ownKm>20;
+}
 function incidentCard(c,isSelected){
  const state=c.alarmTime?"Alarmiert":"Bearbeitung";
  const stateClass=c.alarmTime?"s3":"s2";
+ const neighborSuggestion=needsNeighborHelp(c)?nearestNeighborUnit(c):null;
  return `<div class="card call">
    <div class="row between">
     <div><h2>${c.alarmTime?"🚨":"📞"} Einsatz #${esc(c.id)}</h2><div class="muted">${esc(c.location||"Ort noch nicht bekannt")}</div></div>
@@ -1077,6 +1113,11 @@ function incidentCard(c,isSelected){
     <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div>
    </div>
    <div class="suggest"><b>🧠 Vorschlag / alarmierte Mittel</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>
+   ${neighborSuggestion?`<div style="margin-top:10px">
+     <button class="s0" style="width:100%;border:none;border-radius:9px;padding:12px;font-weight:800;cursor:pointer" onclick="openExternalRequest('${NEIGHBOR_LEITSTELLE[neighborSuggestion.district]}','${esc(String(c.id))}')">
+      🚨 Kein eigenes RTW/NEF &lt;20 km frei – bei ${NEIGHBOR_LEITSTELLE[neighborSuggestion.district]==="ostfriesland"?"LST Ostfriesland":"GOL"} anfragen (${esc(neighborSuggestion.district)}, ~${Math.round(neighborSuggestion.distanceKm)} km)
+     </button>
+    </div>`:""}
    ${renderVehicleFeedbackBadges(c)}
    ${renderExternalRequestBadges(c)}
    <div class="row" style="margin-top:10px">
@@ -1089,7 +1130,7 @@ function incidentCard(c,isSelected){
    </div>
  </div>`;
 }
-function openExternalRequest(kind){
+function openExternalRequest(kind,presetCallId){
  const calls=allOpenCalls().filter(c=>c.alarmTime);
  if(!calls.length){toast("Noch kein alarmierter Einsatz vorhanden");return}
  const meta={
@@ -1101,7 +1142,7 @@ function openExternalRequest(kind){
   <div class="row between"><h2>${meta.title}</h2><button onclick="render('leitstelle')">Abbrechen</button></div>
   <p class="muted">Fiktive externe Schnittstelle – rein zu Übungszwecken, keine echte Alarmierung, keine Simulation der angeforderten Fahrzeuge in dieser App.</p>
   <label>Einsatz auswählen</label>
-  <select id="extCallId">${calls.map(c=>`<option value="${esc(String(c.id))}">#${esc(c.id)} – ${esc(c.keyword||"Einsatz")} (${esc(c.location||"Ort unbekannt")})</option>`).join("")}</select>
+  <select id="extCallId">${calls.map(c=>`<option value="${esc(String(c.id))}" ${presetCallId&&String(presetCallId)===String(c.id)?"selected":""}>#${esc(c.id)} – ${esc(c.keyword||"Einsatz")} (${esc(c.location||"Ort unbekannt")})</option>`).join("")}</select>
   <label style="margin-top:10px">Anzahl ${meta.unit}</label>
   <input id="extCount" type="number" min="1" value="1">
   <label style="margin-top:10px">Hinweis (optional)</label>
@@ -1132,16 +1173,15 @@ function sendExternalRequest(kind){
  toast("Anfrage übermittelt (Übung)");
  render(currentPage==="nachbarLks"?"nachbarLks":"leitstelle");
 }
-// Welche Leitstelle für welchen Nachbarlandkreis zuständig ist (reale Zuordnung):
-// Leitstelle Ostfriesland (Sitz Wittmund) für Wittmund + Leer (+ Aurich),
-// Großleitstelle Oldenburger Land (GOL) für Ammerland + Wesermarsch (+ Cloppenburg, Oldenburg, Delmenhorst).
-const NEIGHBOR_LEITSTELLE={Wittmund:"ostfriesland",Leer:"ostfriesland",Ammerland:"gol",Wesermarsch:"gol"};
+// Welche Leitstelle für welchen Nachbarlandkreis zuständig ist (reale Zuordnung) steht weiter
+// oben bei den Distanz-Hilfsfunktionen (NEIGHBOR_LEITSTELLE).
 function renderExternalRequestBadges(c){
  if(!c.externalRequests||!c.externalRequests.length)return"";
  return c.externalRequests.slice(0,4).map(r=>`<div style="margin-top:6px;background:#e0f2fe;color:#075985;padding:6px 10px;border-radius:8px;font-size:12px"><b>${esc(r.label)}:</b> ${r.count}x ${esc(r.unit)}${r.note?` – ${esc(r.note)}`:""} <span style="opacity:.7">· ${new Date(r.time).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span></div>`).join("");
 }
 function sprechwunschUnits(){
- return db.units.filter(u=>["0","5"].includes(String(u.status)));
+ return db.units.filter(u=>["0","5"].includes(String(u.status)))
+   .sort((a,b)=>(String(a.status)==="0"?0:1)-(String(b.status)==="0"?0:1));
 }
 function dashboard(){
  const calls=allOpenCalls();
@@ -2066,7 +2106,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    const canOrglFeedback=vType==="OrgL/LNA" && inCallStatus4;
    body.innerHTML=`${vehicleGeoWatchId?`<div class="pill" style="margin-bottom:8px">📍 Standort wird live übertragen</div>`:""}<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
     <div class="answer" style="margin-top:12px">
-      ${statusOptionsFor(local).filter(s=>s!=="0").map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
+      ${statusOptionsFor(local).map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
     </div>
     ${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${calls[0]?esc(String(calls[0].id)):""}')">🏥 IVENA-${["OrgL/LNA","NEF"].includes(vType)?"Anmeldung":"Zuweisung"}</button></div>`:""}
     ${inCallStatus4?`<div class="row" style="margin-top:12px"><button onclick="sendVehicleFeedback('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}','nafo')">📟 Nachfordern</button></div>`:""}
