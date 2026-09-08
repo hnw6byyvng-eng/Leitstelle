@@ -54,7 +54,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.40</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.41</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -2764,6 +2764,9 @@ function setNeighborUnitStatus(id,status){
 // Optik und dem Sprechwunsch-Popup je Gruppe – die Kanalnummer selbst filtert nichts.
 const FUNK_GROUP_ORGS={F:["Feuerwehr"],K:["DLRG","THW"],R:["Rettungsdienst"]};
 const FUNK_GROUP_OPTIONS={F:["F Fri 1","F Fri 2","F Fri 3"],K:["K Fri 1","K Fri 2"],R:["R Fri 1","R Fri 2"]};
+// Rein dekorative Kanalnummern, wie sie auf einem echten BOS-Digitalfunkgerät neben der
+// Rufgruppe angezeigt werden. Ohne echte Funktion, nur fürs Erscheinungsbild.
+const FUNK_GROUP_NUMBERS={"F Fri 1":"3011","F Fri 2":"3012","F Fri 3":"3013","K Fri 1":"3021","K Fri 2":"3022","R Fri 1":"3031","R Fri 2":"3032"};
 function setFunkChannel(letter,value){
  db.funkChannels[letter]=value;
  save();
@@ -2773,11 +2776,16 @@ function funkGroupPanel(letter){
  const orgs=FUNK_GROUP_ORGS[letter];
  const sprech=db.units.filter(u=>orgs.includes(u.org)&&["0","5"].includes(String(u.status)))
    .sort((a,b)=>(String(a.status)==="0"?0:1)-(String(b.status)==="0"?0:1));
- return `<div style="flex:1;min-width:130px;border:1px solid #24425c;border-radius:10px;padding:9px;background:#0b1520">
-  <select onchange="setFunkChannel('${letter}',this.value)" style="width:100%;background:#132538;color:#d7e6f5;border:1px solid #24425c;border-radius:6px;padding:4px;font-weight:700">
-   ${FUNK_GROUP_OPTIONS[letter].map(o=>`<option value="${esc(o)}" ${db.funkChannels[letter]===o?"selected":""}>${esc(o)}</option>`).join("")}
-  </select>
-  ${sprech.length?`<div style="margin-top:7px">${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="cursor:pointer;margin-bottom:4px;width:100%;text-align:center" onclick="render('mittel')" title="Zur Rettungsmittelübersicht">${esc(u.opta||u.name)}</div>`).join("")}</div>`:`<div class="muted" style="margin-top:7px;font-size:11px;color:#5f7c96">frei</div>`}
+ const current=db.funkChannels[letter];
+ return `<div style="flex:1;min-width:130px">
+  <div style="background:#181812;border:3px solid #2b2b22;border-radius:6px;padding:8px 6px;font-family:'Courier New',monospace;color:#d7dfb0;text-align:center;box-shadow:inset 0 0 6px #000">
+   <select onchange="setFunkChannel('${letter}',this.value)" style="width:100%;background:transparent;color:#d7dfb0;border:none;font-family:'Courier New',monospace;font-weight:700;font-size:15px;text-align:center;letter-spacing:1px;appearance:none;-webkit-appearance:none;padding:0;margin:0">
+    ${FUNK_GROUP_OPTIONS[letter].map(o=>`<option value="${esc(o)}" style="background:#181812;color:#d7dfb0" ${current===o?"selected":""}>${esc(o)}</option>`).join("")}
+   </select>
+   <div style="font-size:12px;opacity:.75;margin-top:2px">${esc(FUNK_GROUP_NUMBERS[current]||"")}</div>
+   <div style="font-size:12px;letter-spacing:2px;margin-top:2px;opacity:.9">TMO</div>
+  </div>
+  ${sprech.length?`<div style="margin-top:7px">${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="cursor:pointer;margin-bottom:4px;width:100%;text-align:center" onclick="render('mittel')" title="Zur Rettungsmittelübersicht">${esc(u.opta||u.name)}</div>`).join("")}</div>`:`<div class="muted" style="margin-top:7px;font-size:11px;text-align:center">frei</div>`}
  </div>`;
 }
 function funkGruppenPanel(){

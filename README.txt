@@ -865,3 +865,13 @@ Version 3.40:
   Icon ist eine eigenständige, stilkonforme Nachbildung nach diesem bestätigten Schema, keine
   pixelgenaue Kopie der Originaldatei.
 - Icon bei kleiner Darstellungsgröße (192px, App-Icon-Größe) auf Lesbarkeit geprüft.
+
+Version 3.41:
+- Funkrufgruppen-Felder im Design an echte BOS-Digitalfunkgeräte-Displays angelehnt (nach
+  Vorlage/Foto): dunkles LCD-Display, Monospace-Schrift, hellgrün-gelblicher Text.
+  Aufbau je Feld: obere Zeile die Rufgruppe (F Fri 1/2/3, K Fri 1/2, R Fri 1/2), darunter eine
+  rein dekorative Kanalnummer, darunter "TMO" (Trunked-Mode-Kennzeichnung wie im echten
+  Digitalfunk). Keine Batterieanzeige, keine große Kanalziffer in der Mitte.
+  Umschalten der Rufgruppe funktioniert weiterhin wie zuvor.
+- Mit Playwright per Screenshot geprüft, dass die Darstellung wie gewünscht aussieht.
+- JavaScript-Syntax geprüft.
