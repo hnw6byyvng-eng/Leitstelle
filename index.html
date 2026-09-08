@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.36</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.37</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -61,7 +61,7 @@ const defaults={
   
   {id:1,name:"72-58-01",opta:"Pelikan Friesland 72-58-01",type:"GW Wasserrettung",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Strömungsretter",verified:"Nutzerangabe"},
   {id:2,name:"72-17-01",opta:"Pelikan Friesland 72-17-01",type:"MTW",org:"DLRG",location:"Varel",status:"1",crew:"6",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Mannschaftstransport",verified:"Nutzerangabe"},
-  {id:3,name:"72-19-01",opta:"Pelikan Friesland 72-19-01",type:"GW Drohne",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Drohne, Lageerkundung",vehicle:"Ford Ranger",verified:"Nutzerangabe"},
+  {id:3,name:"72-19-01",opta:"Pelikan Friesland 72-19-01",type:"GW Drohne",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Drohne, Lageerkundung, geländegängig",vehicle:"Ford Ranger",verified:"Nutzerangabe"},
   {id:606,name:"72-78-01",opta:"Pelikan Friesland 72/78-01",type:"MZB",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Motorrettungsboot",vehicle:"Tinn-Silver 600",boatName:"Seelöwe",verified:"BOS-Fahrzeuge"},
   {id:607,name:"72-78-03",opta:"Pelikan Friesland 72/78-03",type:"RTB",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Motorrettungsboot",vehicle:"DSB IRB 350",verified:"BOS-Fahrzeuge"},
   // Die 3 weiteren DLRG-Ortsgruppen des Landkreises Friesland, jede mit ihrer festen
@@ -143,8 +143,9 @@ const defaults={
  ],
  aao:[
   {id:1,name:"DLRG Wasser 1 – Person im Wasser, mit Lebenszeichen",rules:{water:"ja",waterState:"Lebenszeichen"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1}]},
-  {id:2,name:"DLRG Wasser 2 – Person im Wasser, vermisst",rules:{water:"ja",waterState:"Vermisst"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1},{type:"GW Taucher",n:1},{type:"RTH",n:1}]},
+  {id:2,name:"DLRG Wasser 2 – Person im Wasser, vermisst",rules:{water:"ja",waterState:"Vermisst"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1},{type:"GW Taucher",n:1},{type:"GW Drohne",n:1},{type:"RTH",n:1}]},
   {id:3,name:"DLRG Wasser 3 – Person im Wasser, Bergung",rules:{water:"ja",waterState:"Bergung"},units:[{type:"RTB",n:1},{type:"GW Taucher",n:1}]},
+  {id:18,name:"DLRG Drohne 1 – Vermisste Person (Personensuche an Land)",rules:{event:"Vermisste Person"},units:[{type:"GW Drohne",n:1},{type:"MTW",n:1},{type:"HLF",n:1}]},
   {id:4,name:"Rettungsdienst 1 – Medizinischer Notfall",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1}]},
   {id:5,name:"Rettungsdienst 2 – Reanimation",rules:{event:"Reanimation"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
   {id:6,name:"Feuerwehr 1 – Feuer/Rauch",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1},{type:"LF",n:1}]},
@@ -922,13 +923,18 @@ function chooseAvailableByType(type){
  const fallback=nearestFirst(db.units.filter(u=>u.type===type && String(u.status)==="8"));
  return fallback[0]||null;
 }
-// Wasserrettungszug Friesland: Sobald mehr als 3 DLRG-Fahrzeuge bei einem Einsatz beteiligt
-// sind, wird automatisch das Führungsfahrzeug (Pelikan Friesland 71/11-01, ELW1) hinzugezogen –
-// unabhängig davon, ob die Erstalarmierung oder eine spätere Nachforderung dazu geführt hat.
+// Wasserrettungszug Friesland: Das Führungsfahrzeug (Pelikan Friesland 71/11-01, ELW1) wird
+// automatisch hinzugezogen, sobald entweder mehr als 3 DLRG-Fahrzeuge insgesamt beteiligt sind,
+// ODER Fahrzeuge aus mehr als einer Ortsgruppe zusammenkommen (auch wenn es dann nur 2
+// Fahrzeuge sind) – dann braucht es eine übergeordnete Einsatzleitung zwischen den Ortsgruppen.
+// Ortsgruppe wird über das Standort-Feld (location) der DLRG-Fahrzeuge bestimmt.
 function maybeAddDlrgElw1(list){
- const dlrgCount=(list||[]).filter(x=>x.org==="DLRG").length;
- const already=(list||[]).some(x=>String(x.id)==="605");
- if(dlrgCount>3 && !already){
+ const dlrgUnits=(list||[]).filter(x=>x.org==="DLRG");
+ const already=dlrgUnits.some(x=>String(x.id)==="605");
+ if(already)return null;
+ const distinctOrtsgruppen=new Set(dlrgUnits.map(x=>x.location).filter(Boolean));
+ const needsLeadership=dlrgUnits.length>3 || distinctOrtsgruppen.size>1;
+ if(needsLeadership){
    const elw=db.units.find(x=>String(x.id)==="605");
    if(elw && ["1","2"].includes(String(elw.status)))return elw;
  }
@@ -1412,6 +1418,7 @@ function questionHTML(q){
    <button onclick="answer('event','Verkehrsunfall')">🚗 Verkehrsunfall</button>
    <button onclick="answer('event','Technische Hilfeleistung')">🛠️ Technische Hilfeleistung</button>
    <button onclick="answer('event','Person im Wasser')">🌊 Person im Wasser</button>
+   <button onclick="answer('event','Vermisste Person')">🛸 Vermisste Person (Suche)</button>
    <button onclick="answer('event','Tier im Wasser')">🐕 Tier im Wasser</button>
    <button onclick="answer('event','Boot in Notlage')">🚤 Boot in Notlage</button>
    <button onclick="answer('event','Sonstiger Notfall')">❓ Sonstiger Notfall</button>
@@ -1565,6 +1572,12 @@ function evaluate(){
    add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
    const nktw=availableUnits("NKTW","Rettungsdienst")[0];
    if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
+ } else if(e==="Vermisste Person"){
+   // Allgemeine Personensuche an Land: Drohne zur Luftbild-/Wärmebildsuche, Mannschaftstransport
+   // für den Suchtrupp, Feuerwehr zur Unterstützung bei größerer Fläche.
+   keyword="H_Vermisste Person – Suche";
+   add("GW Drohne",1,"DLRG"); add("MTW",1,"DLRG");
+   add("HLF",1,"Feuerwehr");
  } else if(e==="Person im Wasser"){
    const ws=a.waterState;
    if(ws==="Bergung"){
@@ -1574,10 +1587,10 @@ function evaluate(){
      add("RTB",1,"DLRG"); add("GW Taucher",1,"DLRG");
      sr=false;
    } else if(ws==="Vermisst"){
-     // Vermisst: volle Suchkapazität – Boot, Hubschrauber (Luftbild/Wärmebild), Strömungsretter
-     // (GW Wasserrettung) und Taucher.
+     // Vermisst: volle Suchkapazität – Boot, Hubschrauber (Luftbild/Wärmebild), Drohne,
+     // Strömungsretter (GW Wasserrettung) und Taucher.
      keyword="H_Person im Wasser – Vermisst R1";
-     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG"); add("GW Taucher",1,"DLRG");
+     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG"); add("GW Taucher",1,"DLRG"); add("GW Drohne",1,"DLRG");
      add("RTH",1,"Luftrettung");
      add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
    } else {

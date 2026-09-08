@@ -790,3 +790,19 @@ Version 3.36:
   die drei Wasser-Alarmierungsszenarien (v3.35) wählen weiterhin korrekt das jeweils
   nächstgelegene freie Boot aus dem größeren Fuhrpark.
 - JavaScript-Syntax geprüft.
+
+Version 3.37:
+- Geländegängigkeit der 72-19-01 (GW Drohne) war bereits in den Skills hinterlegt.
+- AAO für Drohneneinsätze (Personensuche an Land) war bereits größtenteils angelegt (Button
+  "🛸 Vermisste Person (Suche)", eigene Alarmierungslogik: Drohne + MTW + HLF zur Unterstützung),
+  allerdings mit einer doppelt vergebenen ID in der AAO-Referenztabelle – behoben (jetzt
+  eindeutige ID 18).
+- NEU: Das Führungsfahrzeug 71-11-01 (ELW1) wird jetzt zusätzlich automatisch hinzugezogen,
+  sobald DLRG-Fahrzeuge aus MEHR ALS EINER Ortsgruppe an einem Einsatz beteiligt sind – auch
+  wenn es insgesamt nur 2 Fahrzeuge sind. Die bisherige Regel (mehr als 3 DLRG-Fahrzeuge
+  insgesamt, unabhängig von der Ortsgruppe) bleibt zusätzlich bestehen. Ortsgruppen-Zugehörigkeit
+  wird über den Standort (Varel/Wangerland/Schortens/Bockhorn) der Fahrzeuge bestimmt.
+- Mit Playwright geprüft: 2 Fahrzeuge derselben Ortsgruppe lösen die Automatik nicht aus, 2
+  Fahrzeuge aus unterschiedlichen Ortsgruppen schon; Drohnen-AAO liefert korrekt Drohne, MTW und
+  Feuerwehr-Unterstützung.
+- JavaScript-Syntax geprüft.
