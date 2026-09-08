@@ -888,3 +888,23 @@ Version 3.43:
   schwarzer Rand (1,5px), schwarze Schrift statt dunklem LCD-Look. Layout (Rufgruppe oben
   links, Kanalnummer, TMO) und Seitenverhältnis unverändert.
 - JavaScript-Syntax geprüft.
+
+Version 3.44:
+- Großer Umbau der Startseite auf Wunsch:
+  - Dunkler Kopfbalken ("DLRG JET RETTUNGSLEITSTELLE", ÜBUNG-Pille, Uhr) komplett entfernt.
+    Stattdessen ganz oben links nur noch schlicht die Versionsnummer, ohne Rand, ohne
+    Hintergrund, ohne Überschrift.
+  - Die bisherige feste dunkle Navigationsleiste mit den 8 Reitern (Leitstelle, Notruf, Karte,
+    Rettungsmittel, AAO, IVENA, IVENA-Zuweisungen, Nachbar LKs) ist nicht mehr oben fest
+    angeheftet. Die 8 Reiter stehen jetzt stattdessen direkt auf der Startseite in einem
+    "Bereiche"-Kasten dort, wo bisher die Mittelübersicht war.
+  - Die Mittelübersicht (Liste aller Fahrzeuge mit Status) wurde von der Startseite entfernt,
+    wie gewünscht.
+  - Da es dadurch von den anderen Seiten aus keinen direkten Weg mehr zurück zur Startseite
+    gab, wurde oben links neben der Versionsnummer ein dezenter Textlink "🖥️ Leitstelle"
+    ergänzt, der nur außerhalb der Startseite erscheint – damit bleibt die App bedienbar, ohne
+    dass wieder ein durchgehender Navigationsbalken nötig ist.
+- Mit Playwright geprüft: Startseite zeigt nur die Version ohne weitere Kopfzeile, die 8
+  Reiter erscheinen korrekt im "Bereiche"-Kasten, der Zurück-Link ist auf der Startseite
+  ausgeblendet und auf allen anderen Seiten sichtbar und funktionsfähig.
+- JavaScript-Syntax geprüft.
