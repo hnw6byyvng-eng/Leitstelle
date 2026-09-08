@@ -875,3 +875,16 @@ Version 3.41:
   Umschalten der Rufgruppe funktioniert weiterhin wie zuvor.
 - Mit Playwright per Screenshot geprüft, dass die Darstellung wie gewünscht aussieht.
 - JavaScript-Syntax geprüft.
+
+Version 3.42:
+- Funkrufgruppen-Felder noch näher an der Bildvorlage ausgerichtet: Text (Rufgruppe, Nummer,
+  TMO) jetzt oben links gestapelt statt zentriert, im selben Seitenverhältnis wie ein echtes
+  Digitalfunk-Display (breiter als hoch), mit bewusst leerem dunklem Raum dort, wo auf dem
+  echten Gerät die große Kanalziffer stünde. Weiterhin keine Batterieanzeige.
+- JavaScript-Syntax geprüft.
+
+Version 3.43:
+- Funkrufgruppen-Felder auf helles Design umgestellt: hellgrauer Hintergrund, dünner
+  schwarzer Rand (1,5px), schwarze Schrift statt dunklem LCD-Look. Layout (Rufgruppe oben
+  links, Kanalnummer, TMO) und Seitenverhältnis unverändert.
+- JavaScript-Syntax geprüft.
