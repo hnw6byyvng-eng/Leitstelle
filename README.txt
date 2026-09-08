@@ -849,3 +849,19 @@ Version 3.39:
   korrekt auf der Karte und wird bei Einsatzende sauber zurückgegeben, Funkrufgruppen-Felder
   zeigen Standardkanäle, lassen sich umschalten und zeigen Sprechwünsche korrekt an.
 - JavaScript-Syntax geprüft.
+
+Version 3.40:
+- App-Icon (icon-192.png, icon-512.png) ersetzt durch das Taktische Zeichen einer
+  Feuerwehrleitstelle: rote Feuerwehr-Farbgebung, schwarze Kontur, Headset/Funk-Piktogramm und
+  "LEITSTELLE"-Schriftzug, im Stil der bekannten gemeinfreien Zeichen-Bibliothek
+  jonas-koeritz/Taktische-Zeichen (CC0), in der "Leitstelle" als allgemeines
+  Einrichtungs-Symbol geführt wird.
+- Transparenter Hinweis: Der exakte Quellcode dieser einen Datei aus der Bibliothek ließ sich
+  trotz ausführlicher Recherche nicht direkt abrufen (GitHub blockiert automatisiertes
+  Durchsuchen von Ordnerstrukturen). Bestätigt werden konnte die Kategorie (allgemeines
+  "Einrichtung"-Symbol, gleiche Kategorie wie Wache/Meldekopf/Hubschrauberlandeplatz) und das
+  exakte Gestaltungsschema der Bibliothek anhand einer anderen, tatsächlich abgerufenen Datei
+  (Fahrzeugsymbol ELW 1: farbige Fläche, dunkle Kontur, fette Schrift-Beschriftung). Das neue
+  Icon ist eine eigenständige, stilkonforme Nachbildung nach diesem bestätigten Schema, keine
+  pixelgenaue Kopie der Originaldatei.
+- Icon bei kleiner Darstellungsgröße (192px, App-Icon-Größe) auf Lesbarkeit geprüft.
