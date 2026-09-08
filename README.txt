@@ -688,3 +688,105 @@ Version 3.31:
   Einsatz, und verschwindet wieder sobald ein eigenes Fahrzeug in Reichweite frei wird. Status-0
   am Fahrzeugterminal und Sprechwunsch-Sortierung ebenfalls bestätigt.
 - JavaScript-Syntax geprüft.
+
+Version 3.32:
+- Nachbarlandkreis-Anfrage funktioniert jetzt auch OHNE vorherige eigene Alarmierung: bisher
+  war das Anfrage-Banner und der Anfrage-Dialog an einen bereits mit eigenem Fahrzeug
+  alarmierten Einsatz gekoppelt. Ist von vornherein kein eigenes RTW/NEF <20 km verfügbar,
+  erscheint das rot blinkende Banner jetzt bereits während der Notrufaufnahme (sobald der
+  Einsatzort bekannt ist) – ganz ohne dass zuerst ein eigenes Fahrzeug ausgewählt/alarmiert
+  werden muss. Einsatz kann anschließend ganz normal über "Einsatz abschließen" beendet
+  werden.
+- Neue echte Rettungswache in der Wesermarsch ergänzt: Rettungswache Schweierfeld
+  (offizieller Name, nicht "Schwei" – informell teils so abgekürzt), Betreiber Johanniter
+  Ortsverband Stedingen, eröffnet Sommer 2025, löste die alte Wache Ovelgönne-Strückhausen ab.
+  Fahrzeug: Akkon Wesermarsch 50/83-01 (RTW), Niedernstraße 9, 26936 Stadland. Damit hat die
+  Wesermarsch jetzt 3 statt 2 Rettungsmittel im Reiter "Nachbar LKs".
+- Mit Playwright geprüft: Banner erscheint korrekt bereits vor jeder eigenen Alarmierung,
+  Anfrage beim Nachbarn wird im Einsatz vermerkt, Einsatz lässt sich danach normal abschließen
+  und landet im Log.
+- JavaScript-Syntax geprüft.
+
+Version 3.33:
+- Die 3 fehlenden DLRG-Ortsgruppen des Landkreises Friesland ergänzt (Quelle: DLRG Bezirk
+  Oldenburg-Nord, Stand der Aufgabenverteilung 11.01.2017). Der Landkreis hat insgesamt 5
+  Ortsgruppen; 4 davon (inkl. Varel) bilden gemeinsam den "Wasserrettungszug Friesland" mit
+  fest zugeteilten Fachaufgaben – die 5. Ortsgruppe Wangerooge (Insel) gehört nicht zum
+  Wasserrettungszug und wurde daher nicht mit aufgenommen:
+  - Wangerland → Wasserrettungsgruppe: Adler Wangerland 76/78-01 (RTB, IRB Savior) +
+    Pelikan Friesland 76/19-01 (geländegängiges Mehrzweckfahrzeug)
+  - Schortens-Jever → Einsatztauchergruppe: Pelikan Friesland 75/57-01 (GW-Taucher)
+  - Bockhorn-Zetel → Fachtrupp Technik/Logistik + Führungstrupp/Zugtrupp: Pelikan Friesland
+    77/57-01 (GW-Wasserrettung, Mercedes Sprinter 516 CDI 4x4) + Pelikan Friesland 71/11-01
+    (ELW1, Einsatzleitung für den gesamten Wasserrettungszug)
+- Bestehende Varel-Einträge (OPTA-Schreibweise mit Bindestrich) bewusst unverändert gelassen,
+  um die Migrationserkennung bei bereits laufenden Installationen nicht zu brechen – nur die
+  Skills-Beschreibung ergänzt, damit auch Varels Rolle ("Wasserrettungsgruppe-S,
+  Strömungsretter") im Wasserrettungszug sichtbar wird.
+- Bug beim Einbau gefunden und behoben: Die für Feuerwehr/Rettungsdienst gedachte
+  OPTA-Bereichsableitung (unitPoint) hätte das Führungsfahrzeug 71/11-01 der Ortsgruppe
+  Bockhorn-Zetel fälschlich nach Jever verortet, weil DLRG eine eigene, unabhängige
+  OPTA-Bereichsnummerierung nutzt. Gezielt per STATION_OVERRIDE korrigiert.
+- Präzise Hausadressen für die drei neuen Ortsgruppen-Standorte wurden nicht gefunden (nur die
+  Fahrzeug-/Fachgruppenzuordnung), sie nutzen daher vorerst die grobe Orts-Koordinate wie zu
+  Beginn bei Varel – gerne auf Zuruf mit genauer Adresse nachschärfen.
+- Mit Playwright geprüft: alle 8 DLRG-Fahrzeuge laden korrekt, lösen auf die richtige
+  Ortsgruppen-Koordinate auf, bestehende Installationen bekommen die 5 neuen Einheiten sauber
+  nachgezogen ohne Duplikate.
+- JavaScript-Syntax geprüft.
+
+Version 3.34:
+- Nachfrage zu "72-79-1" recherchiert: diese Nummer existiert nicht, aber dabei zwei echte,
+  bisher fehlende Boote der DLRG Varel gefunden (Quelle: echter Einsatzbericht dlrg.de Juli 2025
+  sowie bos-fahrzeuge.info) und ergänzt – passend zu den laut DLRG Bezirk Oldenburg-Nord "2
+  Motorrettungsbooten" der Wasserrettungsgruppe-S Varel:
+  - Pelikan Friesland 72/78-01 – Mehrzweckboot "Seelöwe" (Tinn-Silver 600, Baujahr 2021)
+  - Pelikan Friesland 72/78-03 – Rettungsboot (DSB IRB 350, Baujahr 2025)
+- Damit hat Varel jetzt 5 statt 3 Fahrzeuge/Boote, DLRG Friesland insgesamt 10 Einheiten.
+- Mit Playwright geprüft: beide Boote laden korrekt, lösen auf die Varel-Koordinate auf,
+  bestehende Installationen bekommen sie sauber nachgezogen ohne Duplikate.
+- JavaScript-Syntax geprüft.
+
+Version 3.35:
+- AAO "Person im Wasser" in drei reale Einsatzarten differenziert. Neue Notruf-Frage
+  "Wie ist der Zustand der Person im Wasser?" (nur bei diesem Ereignis, direkt nach der
+  Wasser-Frage):
+  - Mit Lebenszeichen (Standard) → Boot + Strömungsretter (GW Wasserrettung), Sonderrechte.
+    Stichwort: "H_Person im Wasser R1"
+  - Vermisst → Boot + Strömungsretter (GW Wasserrettung) + Taucher (GW Taucher) + Hubschrauber
+    (RTH), Sonderrechte. Stichwort: "H_Person im Wasser – Vermisst R1"
+  - Bergung → Boot + Taucher (GW Taucher), KEINE Sonderrechte (Person verstorben, kein
+    Rettungsversuch mehr). Stichwort: "H_Person im Wasser – Bergung". XABCDE wird für diesen
+    Fall konsequenterweise nicht mehr abgefragt.
+  Feuerwehr (HLF) und Rettungsdienst (RTW) bleiben bei "Mit Lebenszeichen" und "Vermisst" als
+  Unterstützung dabei, entfallen bei einer reinen Bergung.
+- NEU: Sobald bei einem Einsatz mehr als 3 DLRG-Fahrzeuge beteiligt sind (egal ob durch die
+  Erstalarmierung oder eine spätere Nachforderung/weiteres Rettungsmittel), wird automatisch
+  das Führungsfahrzeug Pelikan Friesland 71/11-01 (ELW1 des Wasserrettungszugs Friesland)
+  hinzugezogen, sofern es verfügbar ist und nicht schon dabei ist.
+- Die AAO-Referenztabelle im Reiter "🧠 AAO" (DLRG Wasser 1–3) entsprechend auf die drei neuen
+  Szenarien aktualisiert.
+- Mit Playwright alle drei Wasser-Szenarien einzeln durchgetestet (korrektes Stichwort,
+  korrekte Fahrzeugtypen, korrekte Sonderrechte) sowie die 71-11-01-Automatik: bei 3
+  DLRG-Fahrzeugen bleibt sie draußen, sobald ein 4. hinzukommt, wird sie automatisch ergänzt.
+- JavaScript-Syntax geprüft.
+
+Version 3.36:
+- Nachfrage beantwortet: Nein, die Boote der anderen 3 Ortsgruppen waren noch nicht vollständig
+  drin. In echten DLRG-Einsatzberichten (dlrg.de) und Ortsgruppen-Webseiten nachrecherchiert und
+  ergänzt – alle drei Gruppen hatten laut Bezirks-Angabe eigentlich weitere Boote/Fahrzeuge, die
+  bisher fehlten:
+  - Wangerland: 2 weitere benannte Boote gefunden – Pelikan Friesland 76/78-02 "Willi Rosenboom"
+    (Tinn-Silver 600 open) und 76/78-03 "Wangerland 1". Zusammen mit dem bereits vorhandenen
+    76/78-01 "Adler" (IRB Savior) hat Wangerland jetzt 3 Boote plus das Mehrzweckfahrzeug.
+  - Schortens-Jever: Boot Pelikan Friesland 75/78-01 "Wellenreiter" (IRB) sowie das bisher
+    fehlende eigene MTW 75/17-01 ergänzt.
+  - Bockhorn-Zetel: zwei Boote ergänzt – Pelikan Friesland 77/77-01 "Freesen Deern" (MZB) und
+    Adler Friesland 77/78-01 "Friesische Wehde" (RTB).
+- DLRG Friesland hat damit jetzt 16 statt 10 Einheiten – deutlich vollständiger, alle mit
+  Quellenbeleg (offizielle Ortsgruppen-Webseiten bzw. echte Einsatzberichte auf dlrg.de).
+- Mit Playwright geprüft: alle 16 Einheiten laden korrekt, lösen auf die richtige
+  Ortsgruppen-Koordinate auf, bestehende Installationen bekommen sie sauber nachgezogen, und
+  die drei Wasser-Alarmierungsszenarien (v3.35) wählen weiterhin korrekt das jeweils
+  nächstgelegene freie Boot aus dem größeren Fuhrpark.
+- JavaScript-Syntax geprüft.

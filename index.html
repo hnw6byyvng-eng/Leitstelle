@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.31</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.36</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -59,9 +59,27 @@ const KEY="dlrg-jet-v3-2";
 const defaults={
  units:[
   
-  {id:1,name:"72-58-01",opta:"Pelikan Friesland 72-58-01",type:"GW Wasserrettung",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettung, Materialtransport",verified:"Nutzerangabe"},
-  {id:2,name:"72-17-01",opta:"Pelikan Friesland 72-17-01",type:"MTW",org:"DLRG",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport",verified:"Nutzerangabe"},
+  {id:1,name:"72-58-01",opta:"Pelikan Friesland 72-58-01",type:"GW Wasserrettung",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Strömungsretter",verified:"Nutzerangabe"},
+  {id:2,name:"72-17-01",opta:"Pelikan Friesland 72-17-01",type:"MTW",org:"DLRG",location:"Varel",status:"1",crew:"6",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Mannschaftstransport",verified:"Nutzerangabe"},
   {id:3,name:"72-19-01",opta:"Pelikan Friesland 72-19-01",type:"GW Drohne",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Drohne, Lageerkundung",vehicle:"Ford Ranger",verified:"Nutzerangabe"},
+  {id:606,name:"72-78-01",opta:"Pelikan Friesland 72/78-01",type:"MZB",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Motorrettungsboot",vehicle:"Tinn-Silver 600",boatName:"Seelöwe",verified:"BOS-Fahrzeuge"},
+  {id:607,name:"72-78-03",opta:"Pelikan Friesland 72/78-03",type:"RTB",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Motorrettungsboot",vehicle:"DSB IRB 350",verified:"BOS-Fahrzeuge"},
+  // Die 3 weiteren DLRG-Ortsgruppen des Landkreises Friesland, jede mit ihrer festen
+  // Fachaufgabe im gemeinsamen "Wasserrettungszug Friesland" (Quelle: DLRG Bezirk
+  // Oldenburg-Nord, Stand der Aufgabenverteilung 11.01.2017 – Ortsgruppe Wangerooge ist die
+  // 5. Ortsgruppe im Landkreis, gehört aber nicht zum Wasserrettungszug, daher hier nicht
+  // aufgeführt):
+  {id:601,name:"76-78-01",opta:"Adler Wangerland 76/78-01",type:"RTB",org:"DLRG",location:"Wangerland",status:"1",crew:"2",skills:"Wasserrettungsgruppe (Wasserrettungszug Friesland) – Bootsführer",vehicle:"IRB Savior",verified:"BOS-Fahrzeuge"},
+  {id:602,name:"76-19-01",opta:"Pelikan Friesland 76/19-01",type:"MZF geländegängig",org:"DLRG",location:"Wangerland",status:"1",crew:"2",skills:"Wasserrettungsgruppe (Wasserrettungszug Friesland) – Materialtransport",verified:"BOS-Fahrzeuge"},
+  {id:608,name:"76-78-02",opta:"Pelikan Friesland 76/78-02",type:"MZB",org:"DLRG",location:"Wangerland",status:"1",crew:"2",skills:"Wasserrettungsgruppe (Wasserrettungszug Friesland) – Motorrettungsboot",vehicle:"Tinn-Silver 600 open",boatName:"Willi Rosenboom",verified:"Ortsgruppen-Website"},
+  {id:609,name:"76-78-03",opta:"Pelikan Friesland 76/78-03",type:"MZB",org:"DLRG",location:"Wangerland",status:"1",crew:"2",skills:"Wasserrettungsgruppe (Wasserrettungszug Friesland) – Motorrettungsboot",boatName:"Wangerland 1",verified:"Ortsgruppen-Website"},
+  {id:603,name:"75-57-01",opta:"Pelikan Friesland 75/57-01",type:"GW Taucher",org:"DLRG",location:"Schortens",status:"1",crew:"2",skills:"Einsatztauchergruppe (Wasserrettungszug Friesland) – Einsatztaucher",verified:"BOS-Fahrzeuge"},
+  {id:610,name:"75-78-01",opta:"Pelikan Friesland 75/78-01",type:"RTB",org:"DLRG",location:"Schortens",status:"1",crew:"2",skills:"Einsatztauchergruppe (Wasserrettungszug Friesland) – Motorrettungsboot",boatName:"Wellenreiter",vehicle:"IRB",verified:"Einsatzbericht dlrg.de"},
+  {id:611,name:"75-17-01",opta:"Pelikan Friesland 75/17-01",type:"MTW",org:"DLRG",location:"Schortens",status:"1",crew:"6",skills:"Einsatztauchergruppe (Wasserrettungszug Friesland) – Mannschaftstransport",verified:"Einsatzbericht dlrg.de"},
+  {id:604,name:"77-57-01",opta:"Pelikan Friesland 77/57-01",type:"GW Wasserrettung",org:"DLRG",location:"Bockhorn",status:"1",crew:"2",skills:"Fachtrupp Technik/Logistik (Wasserrettungszug Friesland) – Gerätetrupp",vehicle:"Mercedes Sprinter 516 CDI 4x4",verified:"BOS-Fahrzeuge"},
+  {id:612,name:"77-77-01",opta:"Pelikan Friesland 77/77-01",type:"MZB",org:"DLRG",location:"Bockhorn",status:"1",crew:"2",skills:"Fachtrupp Technik/Logistik (Wasserrettungszug Friesland) – Motorrettungsboot",boatName:"Freesen Deern",verified:"Einsatzbericht dlrg.de"},
+  {id:613,name:"77-78-01",opta:"Adler Friesland 77/78-01",type:"RTB",org:"DLRG",location:"Bockhorn",status:"1",crew:"2",skills:"Fachtrupp Technik/Logistik (Wasserrettungszug Friesland) – Motorrettungsboot",boatName:"Friesische Wehde",verified:"Einsatzbericht dlrg.de"},
+  {id:605,name:"71-11-01",opta:"Pelikan Friesland 71/11-01",type:"ELW1",org:"DLRG",location:"Bockhorn",status:"1",crew:"3",skills:"Führungstrupp/Zugtrupp (Wasserrettungszug Friesland) – Einsatzleitung",verified:"BOS-Fahrzeuge"},
 
   {id:101,name:"81-83-01",opta:"Rettung Friesland 81/83-01",type:"RTW",org:"Rettungsdienst",location:"Jever",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:102,name:"81-83-02",opta:"Rettung Friesland 81/83-02",type:"RTW",org:"Rettungsdienst",location:"Jever",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_as_rtw",verified:"Nutzerangabe"},
@@ -124,9 +142,9 @@ const defaults={
 
  ],
  aao:[
-  {id:1,name:"DLRG Wasser 1 – Person im Wasser",rules:{water:"ja"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1}]},
-  {id:2,name:"DLRG Wasser 2 – bewusstlose Person im Wasser",rules:{water:"ja",d_disability:"Bewusstlos"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
-  {id:3,name:"DLRG Wasser 3 – keine normale Atmung",rules:{water:"ja",b_breath:"Keine normale Atmung"},units:[{type:"RTB",n:1},{type:"WR-Trupp",n:1},{type:"RTW",n:1}]},
+  {id:1,name:"DLRG Wasser 1 – Person im Wasser, mit Lebenszeichen",rules:{water:"ja",waterState:"Lebenszeichen"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1}]},
+  {id:2,name:"DLRG Wasser 2 – Person im Wasser, vermisst",rules:{water:"ja",waterState:"Vermisst"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1},{type:"GW Taucher",n:1},{type:"RTH",n:1}]},
+  {id:3,name:"DLRG Wasser 3 – Person im Wasser, Bergung",rules:{water:"ja",waterState:"Bergung"},units:[{type:"RTB",n:1},{type:"GW Taucher",n:1}]},
   {id:4,name:"Rettungsdienst 1 – Medizinischer Notfall",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1}]},
   {id:5,name:"Rettungsdienst 2 – Reanimation",rules:{event:"Reanimation"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
   {id:6,name:"Feuerwehr 1 – Feuer/Rauch",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1},{type:"LF",n:1}]},
@@ -167,7 +185,8 @@ const defaults={
   {id:6,name:"15-83-01",opta:"Rettung Ammerland 15/83-01",type:"RTW",district:"Ammerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"An der Hössen 16, 26655 Westerstede",lat:53.2551773,lng:7.91576714},
   {id:11,name:"14-83-01",opta:"Rettung Ammerland 14/83-01",type:"RTW",district:"Ammerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Raiffeisenstraße 204, 26180 Rastede",lat:53.2412645,lng:8.1668705},
   {id:7,name:"84-83-01",opta:"Rettung Wesermarsch 84/83-01",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054},
-  {id:8,name:"84-83-02",opta:"Rettung Wesermarsch 84/83-02",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054}
+  {id:8,name:"84-83-02",opta:"Rettung Wesermarsch 84/83-02",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Albert-Schweitzer-Str. 43, 26954 Nordenham",lat:53.48318095482148,lng:8.465393119049054},
+  {id:12,name:"50-83-01",opta:"Akkon Wesermarsch 50/83-01",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Niedernstraße 9, 26936 Stadland (Rettungswache Schweierfeld)",lat:53.3992716629704,lng:8.386263932540885}
  ]
 };
 let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
@@ -776,6 +795,7 @@ const STATION_OVERRIDE={
  "Rettungsdienst__Jever":[53.579591309062,7.90786988147579], // Rettungswache Jever, Wangerländische Straße 40a
  "Feuerwehr__Hohenkirchen":[53.66165,7.91565], // FF Wangerland OF Hohenkirchen, Jeversche Straße 16, 26434 Hohenkirchen
  "Feuerwehr__Wangerland":[53.66165,7.91565], // dieselbe Wache, falls location bereits auf "Wangerland" synchronisiert wurde
+ "DLRG__Bockhorn":[53.397,8.02], // Fachtrupp Technik/Logistik + Führungstrupp (Wasserrettungszug Friesland); OPTA-Bereich "71" würde sonst fälschlich als "Jever" interpretiert
  "Luftrettung__Groningen (Eelde)":[53.118056,6.575833], // Lifeliner 4, Groningen Airport Eelde (ANWB Medical Air Assistance)
  "Luftrettung__Bremen (Klinikum Links der Weser)":[53.035852,8.817424] // Christoph 6, Landeplatz am Klinikum Links der Weser
 };
@@ -902,6 +922,18 @@ function chooseAvailableByType(type){
  const fallback=nearestFirst(db.units.filter(u=>u.type===type && String(u.status)==="8"));
  return fallback[0]||null;
 }
+// Wasserrettungszug Friesland: Sobald mehr als 3 DLRG-Fahrzeuge bei einem Einsatz beteiligt
+// sind, wird automatisch das Führungsfahrzeug (Pelikan Friesland 71/11-01, ELW1) hinzugezogen –
+// unabhängig davon, ob die Erstalarmierung oder eine spätere Nachforderung dazu geführt hat.
+function maybeAddDlrgElw1(list){
+ const dlrgCount=(list||[]).filter(x=>x.org==="DLRG").length;
+ const already=(list||[]).some(x=>String(x.id)==="605");
+ if(dlrgCount>3 && !already){
+   const elw=db.units.find(x=>String(x.id)==="605");
+   if(elw && ["1","2"].includes(String(elw.status)))return elw;
+ }
+ return null;
+}
 function appendUnitToCall(c,u,label){
  c.proposedUnitIds=c.proposedUnitIds||[];
  c.proposal=c.proposal||[];
@@ -910,6 +942,10 @@ function appendUnitToCall(c,u,label){
  const token=`${u.opta||u.name} – ${u.type}${label?` (${label})`:""}`;
  if(!(c.suggestion||"").includes(u.opta||u.name))
    c.suggestion=(c.suggestion?c.suggestion+" · ":"")+token;
+ if(u.org==="DLRG"){
+   const elw=maybeAddDlrgElw1(c.proposal);
+   if(elw)appendUnitToCall(c,elw,"Führung hinzugezogen – mehr als 3 DLRG-Fahrzeuge im Einsatz");
+ }
 }
 function rebuildSuggestionFromProposal(c){
  c.suggestion=(c.proposal||[]).map(u=>`${u.opta||u.name} – ${u.type}`).join(" · ");
@@ -1093,8 +1129,11 @@ function nearestNeighborUnit(call){
  return best;
 }
 function needsNeighborHelp(call){
- // true, wenn kein eigenes freies RTW/NEF innerhalb von 20 km verfügbar ist.
- if(!call.alarmTime)return false;
+ // Kein eigenes RTW/NEF <20km frei? Das ist unabhängig davon, ob der Einsatz bereits mit einem
+ // eigenen Fahrzeug alarmiert wurde – gerade wenn gar kein eigenes Mittel in Frage kommt, soll
+ // die Anfrage beim Nachbarlandkreis auch OHNE vorherige eigene Alarmierung möglich sein.
+ // Einzige Voraussetzung: der Einsatzort muss bereits bekannt sein.
+ if(!callDestinationPoint(call))return false;
  const ownKm=nearestOwnUnitKm(call);
  return ownKm===null||ownKm>20;
 }
@@ -1131,8 +1170,8 @@ function incidentCard(c,isSelected){
  </div>`;
 }
 function openExternalRequest(kind,presetCallId){
- const calls=allOpenCalls().filter(c=>c.alarmTime);
- if(!calls.length){toast("Noch kein alarmierter Einsatz vorhanden");return}
+ const calls=allOpenCalls().filter(c=>c.alarmTime||callDestinationPoint(c));
+ if(!calls.length){toast("Noch kein Einsatz mit bekanntem Einsatzort vorhanden");return}
  const meta={
    polizei:{title:"👮 Fiktive Polizeileitstelle",unit:"Streifenwagen"},
    gol:{title:"📠 Großleitstelle Oldenburger Land (GOL)",unit:"Rettungsmittel"},
@@ -1225,6 +1264,7 @@ const qs=[
  ["trapped","🚗 Ist jemand eingeklemmt oder eingeschlossen?","ynTech"],
  ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
  ["water","🌊 Befindet sich eine Person oder ein Tier im Wasser?","ynWater"],
+ ["waterState","🌊 Wie ist der Zustand der Person im Wasser?","waterState"],
  ["personDanger","⚠️ Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
  ["patientName","👤 Name der betroffenen Person (falls bekannt)","text"],
  ["patientAge","🎂 Alter der betroffenen Person","count"],
@@ -1283,7 +1323,8 @@ function needsXABCDE(c=db.currentCall){
  if(!c)return false;
  if(isManv(c))return false; // MANV: Sichtung statt Einzel-XABCDE
  const a=c.answers||{}, e=a.event||"";
- if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return true;
+ if(["Reanimation","Medizinischer Notfall","Verkehrsunfall"].includes(e))return true;
+ if(e==="Person im Wasser" && a.waterState!=="Bergung")return true;
  if(e==="Feuer / Rauchentwicklung" && a.firePeople==="ja")return true;
  if(e==="Boot in Notlage" && a.personDanger==="ja")return true;
  if(["Technische Hilfeleistung","Sonstiger Notfall"].includes(e) && a.personDanger==="ja")return true;
@@ -1321,6 +1362,7 @@ function questionHTML(q){
  if(type==="ynFire"&&!fire)return skip("nicht zutreffend");
  if(type==="ynTech"&&!tech)return skip("nicht zutreffend");
  if(type==="ynWater"&&!water)return skip("nein");
+ if(type==="waterState"&&e!=="Person im Wasser")return skip("nicht zutreffend");
 
  if(type==="ynPersonDanger"){
    if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return skip("ja");
@@ -1354,6 +1396,10 @@ function questionHTML(q){
    const ph=id==="freeText"?"Freie Schilderung des Anrufers, zusätzliche Angaben, Besonderheiten …":"z. B. Verletzungen, Schmerzen, Haut, Temperatur, Unfallmechanismus, Vergiftung …";
    return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
  }
+ if(type==="waterState") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Lebenszeichen')">🟢 Mit Lebenszeichen (sichtbar/ansprechbar)</button>
+   <button onclick="answer('${id}','Vermisst')">🔍 Vermisst (wird gesucht)</button>
+   <button onclick="answer('${id}','Bergung')">⚫ Bergung (verstorben)</button></div>`;
  if(type==="gender") return `<label>${label}</label><div class="answer">
    <button onclick="answer('${id}','M')">M</button>
    <button onclick="answer('${id}','W')">W</button>
@@ -1520,9 +1566,27 @@ function evaluate(){
    const nktw=availableUnits("NKTW","Rettungsdienst")[0];
    if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
  } else if(e==="Person im Wasser"){
-   keyword="H_Person im Wasser R1";
-   add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
-   add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+   const ws=a.waterState;
+   if(ws==="Bergung"){
+     // Bergung: Person ist verstorben, kein Rettungsversuch mehr nötig – Boot + Taucher,
+     // keine Sonderrechte.
+     keyword="H_Person im Wasser – Bergung";
+     add("RTB",1,"DLRG"); add("GW Taucher",1,"DLRG");
+     sr=false;
+   } else if(ws==="Vermisst"){
+     // Vermisst: volle Suchkapazität – Boot, Hubschrauber (Luftbild/Wärmebild), Strömungsretter
+     // (GW Wasserrettung) und Taucher.
+     keyword="H_Person im Wasser – Vermisst R1";
+     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG"); add("GW Taucher",1,"DLRG");
+     add("RTH",1,"Luftrettung");
+     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+   } else {
+     // Mit Lebenszeichen (Standard-/Vorgabewert, auch falls waterState noch offen ist):
+     // Boot und/oder Strömungsretter (GW Wasserrettung).
+     keyword="H_Person im Wasser R1";
+     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG");
+     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+   }
  } else if(e==="Tier im Wasser"){
    keyword="H_Tier im Wasser R1";
    add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
@@ -1622,6 +1686,10 @@ function evaluate(){
    }
    if(u){selected.push({...u,firstResponder:!!r.firstResponder});used.add(u.id)}
    else selected.push({missing:true,type:r.type,org:r.org});
+ }
+ {
+   const elw=maybeAddDlrgElw1(selected.filter(x=>!x.missing));
+   if(elw && !used.has(elw.id)){selected.push({...elw});used.add(elw.id)}
  }
  c.keyword=keyword;
  c.proposedUnitIds=selected.filter(x=>!x.missing).map(x=>x.id);
