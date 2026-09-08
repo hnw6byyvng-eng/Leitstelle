@@ -806,3 +806,46 @@ Version 3.37:
   Fahrzeuge aus unterschiedlichen Ortsgruppen schon; Drohnen-AAO liefert korrekt Drohne, MTW und
   Feuerwehr-Unterstützung.
 - JavaScript-Syntax geprüft.
+
+Version 3.38:
+- Nachforderungsliste ("Weitere Rettungsmittel" / "Nachforderung") um drei DLRG-Schnellwahl-
+  Buttons ergänzt:
+  - "Boot" – findet das nächstgelegene freie Boot, egal ob Typ RTB oder MZB
+  - "Strömungsrettung" – wählt ein GW Wasserrettung (bisher nur unter der technischen
+    Bezeichnung "GW Wasserrettung" verfügbar, jetzt mit klarem Label)
+  - "Taucher" – wählt ein GW Taucher
+- Dafür QUICK_RESOURCE_TYPES technisch umgebaut: unterstützt jetzt neben einem einzelnen
+  Fahrzeugtyp auch eine Liste mehrerer Typen (für "Boot" = RTB oder MZB) sowie ein eigenes,
+  von der technischen Typbezeichnung getrenntes Anzeige-Label.
+- Mit Playwright geprüft: alle drei neuen Buttons wählen korrekt das jeweils passende,
+  nächstgelegene freie Fahrzeug aus; die "Mehr als eine Ortsgruppe"-Automatik aus v3.37 zieht
+  dabei auch bei Nachforderung über diese Buttons korrekt das Führungsfahrzeug 71-11-01 hinzu,
+  sobald Fahrzeuge unterschiedlicher Ortsgruppen zusammenkommen.
+- JavaScript-Syntax geprüft.
+
+Version 3.39:
+- Darstellung eines offenen Einsatzes deutlich kompakter: kleinere Schrift für Überschrift,
+  Ort und Stichwort-Felder, weniger Innenabstand. Die Liste der alarmierten Mittel
+  ("Vorschlag / alarmierte Mittel") ist jetzt deutlich kleiner geschrieben und nicht mehr
+  gelb hinterlegt, sondern schlicht grau umrandet.
+- Der rot blinkende "Kein eigenes RTW/NEF <20km frei"-Button hört jetzt auf zu blinken, sobald
+  der Einsatz von einem Nachbar-Fahrzeug übernommen wurde – er wird durch eine ruhige,
+  grün umrandete Info ersetzt ("🤝 Nachbar-Fahrzeug übernimmt: ...").
+- NEU: Nachbar-Fahrzeuge können jetzt direkt alarmiert werden (Button "🚨 Alarmieren" – sowohl
+  direkt im Anfrage-Dialog nach dem Absenden einer GOL-/Ostfriesland-Anfrage, als auch direkt in
+  der Nachbar-LKs-Übersicht). Das alarmierte Fahrzeug wechselt dabei "auf unseren Kanal": es
+  erscheint ab sofort wie ein eigenes Fahrzeug auf Status 3, sein Standort ist auf der Karte
+  sichtbar und es bewegt sich wie gewohnt zum Einsatzort. Bei Einsatzabschluss wird es
+  automatisch sauber an den Nachbarlandkreis zurückgegeben (dortiger Status wieder "frei").
+  Nachbar-Fahrzeuge werden dabei nie versehentlich für eigene, andere Einsätze herangezogen.
+- NEU: Auf der Hauptseite ersetzt ein Funkrufgruppen-Feld (wie auf echten Leitstellen-PCs) die
+  bisherige reine Textüberschrift "Leitstellenübersicht". Drei Felder für Feuerwehr (F Fri 1/2/3),
+  Katastrophenschutz/DLRG+THW (K Fri 1/2) und Rettungsdienst (R Fri 1/2), standardmäßig auf
+  F Fri 1 / K Fri 1 / R Fri 1, umschaltbar auf die jeweils anderen Kanäle. Rein dekorativ – die
+  Kanalwahl filtert nichts. Sobald ein Fahrzeug der jeweiligen Organisation auf Status 0 oder 5
+  geht, poppt sein Rufname im passenden Feld auf (Status 0 weiterhin rot blinkend wie gehabt).
+- Mit Playwright geprüft: kompakte Darstellung fehlerfrei, Banner verschwindet zugunsten der
+  ruhigen Info sobald ein Nachbar-Fahrzeug übernimmt, alarmiertes Nachbar-Fahrzeug erscheint
+  korrekt auf der Karte und wird bei Einsatzende sauber zurückgegeben, Funkrufgruppen-Felder
+  zeigen Standardkanäle, lassen sich umschalten und zeigen Sprechwünsche korrekt an.
+- JavaScript-Syntax geprüft.

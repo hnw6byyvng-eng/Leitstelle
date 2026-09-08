@@ -37,6 +37,9 @@ label{font-size:13px;font-weight:700;color:#4b5563;display:block;margin:8px 0 5p
 .s0{background:#d71920;color:#fff;animation:status0blink 1s steps(1,end) infinite;border:2px solid #d71920}.s1{background:#b9f6ca;color:#0b5d2a}.s2{background:#1f7a3f;color:#fff}.s3{background:#ffe082;color:#6b5200}.s4{background:#ffb74d;color:#6b3600}.s5{background:#fff;color:#333;border:1px solid #cbd5df}.s6{background:#e53935;color:#fff}.s7{background:#b3e5fc;color:#075985}.s8{background:#1565c0;color:#fff}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}th{font-size:12px;color:#66717d;text-transform:uppercase}
 .call{border-left:5px solid #e30613}.big{font-size:28px;font-weight:900}.suggest{background:#fff8e1;border:1px solid #f1d37a;border-radius:10px;padding:12px}
+.call{padding:11px 13px}.call h2{font-size:14px;margin:0}.call .muted{font-size:11px}.call .big{font-size:15px}.call hr{margin:8px 0}
+.suggest-compact{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:11px;color:#5b6472}
+.suggest-compact b{font-size:11px;display:block;margin-bottom:2px;color:#8a92a0;font-weight:600}
 .answer{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.answer button{text-align:left;background:#f8fafc}@media(max-width:600px){.answer{grid-template-columns:1fr}}
 .hidden{display:none!important}.pill{padding:4px 8px;border-radius:999px;background:#eef2f6;font-size:12px;font-weight:800}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 15px;border-radius:10px;display:none;z-index:30}
@@ -51,7 +54,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.37</span></div><div id="clock" class="clock"></div></header>
+<header><div class="brand">🚨 DLRG JET RETTUNGSLEITSTELLE <span class="pill">ÜBUNG</span> <span class="pill">v3.39</span></div><div id="clock" class="clock"></div></header>
 <nav id="nav"></nav>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -256,6 +259,9 @@ if(!Array.isArray(db.neighborUnits))db.neighborUnits=defaults.neighborUnits.map(
    if(u.opta && !existingOptas.has(u.opta)) db.neighborUnits.push({...u});
  });
 }
+// Rein dekorative Funkrufgruppen-Anzeige auf dem Dashboard, wie auf echten Leitstellen-PCs.
+// Keine Funktion, nur Optik – Standard: F Fri 1, K Fri 1, R Fri 1.
+if(!db.funkChannels)db.funkChannels={F:"F Fri 1",K:"K Fri 1",R:"R Fri 1"};
 const IVENA_FACHRICHTUNGEN=["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","Schockraum","Psychiatrie","HNO","Augenheilkunde","Urologie"];
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -869,9 +875,9 @@ function nearestFirst(arr){
 }
 
 function availableUnits(type,org=null){
- const prim=nearestFirst(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)));
+ const prim=nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)));
  if(prim.length)return prim;
- return nearestFirst(db.units.filter(u=>(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"));
+ return nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"));
 }
 function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
 
@@ -900,8 +906,9 @@ function realisticMode(){
 
 
 const QUICK_RESOURCE_TYPES=[
- "RTW","NEF","NKTW","RTH","OrgL/LNA","HLF","LF","RW","DLK","ELW",
- "GW Wasserrettung","MTW","GW Drohne"
+ {type:"RTW"},{type:"NEF"},{type:"NKTW"},{type:"RTH"},{type:"OrgL/LNA"},{type:"HLF"},{type:"LF"},{type:"RW"},{type:"DLK"},{type:"ELW"},
+ {type:["RTB","MZB"],label:"Boot"},{type:"GW Wasserrettung",label:"Strömungsrettung"},{type:"GW Taucher",label:"Taucher"},
+ {type:"MTW"},{type:"GW Drohne"}
 ];
 
 function activateCallById(id){
@@ -918,9 +925,10 @@ function unitLabel(u){
  return `${u.opta||u.name} – ${u.type}${u.location?` (${u.location})`:""}`;
 }
 function chooseAvailableByType(type){
- const primary=nearestFirst(db.units.filter(u=>u.type===type && ["1","2"].includes(String(u.status))));
+ const types=Array.isArray(type)?type:[type];
+ const primary=nearestFirst(db.units.filter(u=>!u.neighborLoan&&types.includes(u.type) && ["1","2"].includes(String(u.status))));
  if(primary.length)return primary[0];
- const fallback=nearestFirst(db.units.filter(u=>u.type===type && String(u.status)==="8"));
+ const fallback=nearestFirst(db.units.filter(u=>!u.neighborLoan&&types.includes(u.type) && String(u.status)==="8"));
  return fallback[0]||null;
 }
 // Wasserrettungszug Friesland: Das Führungsfahrzeug (Pelikan Friesland 71/11-01, ELW1) wird
@@ -939,6 +947,45 @@ function maybeAddDlrgElw1(list){
    if(elw && ["1","2"].includes(String(elw.status)))return elw;
  }
  return null;
+}
+function alarmNeighborUnit(neighborUnitId,callId){
+ const call=allOpenCalls().find(c=>String(c.id)===String(callId));
+ if(!call){toast("Einsatz nicht gefunden");return}
+ const nu=db.neighborUnits.find(u=>String(u.id)===String(neighborUnitId));
+ if(!nu){toast("Nachbar-Fahrzeug nicht gefunden");return}
+ if(String(nu.status)!=="1"){toast("Fahrzeug ist nicht frei");return}
+ const loaned={
+   id:Date.now(),name:nu.name,opta:nu.opta,type:nu.type,org:"Rettungsdienst",
+   location:nu.district,lat:nu.lat,lng:nu.lng,crew:nu.crew,skills:nu.skills,
+   neighborLoan:true,homeDistrict:nu.district,neighborUnitId:nu.id,
+   verified:nu.verified,status:"1"
+ };
+ db.units.push(loaned);
+ setUnitStatus(loaned,"3");
+ appendUnitToCall(call,loaned,`Nachbar-LK ${nu.district}`);
+ call.alarmedUnits=call.alarmedUnits||[];
+ if(!call.alarmedUnits.some(id=>String(id)===String(loaned.id)))call.alarmedUnits.push(loaned.id);
+ call.neighborUnitId=loaned.id;
+ nu.status="3";
+ call.history=call.history||[];
+ call.history.push({q:`🤝 Nachbar-Fahrzeug alarmiert (${nu.district})`,a:`${nu.opta} – jetzt auf unserem Kanal sichtbar`});
+ save();
+ toast(`${nu.opta} alarmiert – auf der Karte sichtbar`);
+ render(currentPage==="nachbarLks"?"nachbarLks":"leitstelle");
+}
+function openNeighborUnitPickerForCall(kind,callId){
+ const call=allOpenCalls().find(c=>String(c.id)===String(callId));
+ if(!call){toast("Einsatz nicht gefunden");return}
+ const districts=Object.entries(NEIGHBOR_LEITSTELLE).filter(([,k])=>k===kind).map(([d])=>d);
+ const candidates=db.neighborUnits.filter(u=>districts.includes(u.district) && String(u.status)==="1");
+ document.getElementById("app").innerHTML=`<div class="card">
+  <div class="row between"><h2>🚨 Fahrzeug für Einsatz #${esc(call.id)} alarmieren</h2><button onclick="render('leitstelle')">Zurück</button></div>
+  <p class="muted">Alarmiertes Fahrzeug erscheint danach auf unserer Karte wie ein eigenes Fahrzeug (Status 3, Standort sichtbar).</p>
+  ${candidates.length?candidates.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
+     <div><b>${esc(u.opta)}</b><div class="muted">${esc(u.district)} · ${esc(u.type)} · ${esc(u.address||"")}</div></div>
+     <button class="primary" onclick="alarmNeighborUnit(${u.id},'${esc(String(call.id))}')">🚨 Alarmieren</button>
+    </div>`).join(""):`<p class="muted">Kein freies Fahrzeug in den zuständigen Nachbarlandkreisen.</p>`}
+ </div>`;
 }
 function appendUnitToCall(c,u,label){
  c.proposedUnitIds=c.proposedUnitIds||[];
@@ -1018,10 +1065,12 @@ function showResourcePicker(mode="additional"){
     <textarea id="nafoReason" rows="4" placeholder="z. B. weiterer Patient, Zustand verschlechtert, zusätzliche technische Rettung erforderlich …">${esc(c.pendingNafoReason||"")}</textarea>`:""}
   <label style="margin-top:12px">${isNafo?"Rettungsmittel nachfordern":"Rettungsmittel zum Einsatz hinzufügen"}</label>
   <div class="answer">
-   ${QUICK_RESOURCE_TYPES.map(t=>{
+   ${QUICK_RESOURCE_TYPES.map(({type:t,label})=>{
      const u=chooseAvailableByType(t);
      const distance=u&&geographicRank(u)<999?`${geographicRank(u).toFixed(1)} km`:"verfügbar";
-     return `<button ${u?"":"disabled"} onclick="addResourceType('${t.replace(/'/g,"\\'")}','${mode}')">${esc(t)}<small style="display:block">${u?`${esc(u.opta||u.name)} · ${distance}`:"nicht verfügbar"}</small></button>`;
+     const typeArg=JSON.stringify(t).replace(/"/g,"'");
+     const displayLabel=label||(Array.isArray(t)?t.join("/"):t);
+     return `<button ${u?"":"disabled"} onclick="addResourceType(${typeArg},'${mode}')">${esc(displayLabel)}<small style="display:block">${u?`${esc(u.opta||u.name)} · ${distance}`:"nicht verfügbar"}</small></button>`;
    }).join("")}
   </div>
   <hr>
@@ -1034,7 +1083,8 @@ function addResourceType(type,mode="additional"){
  const c=db.currentCall;
  if(!c)return;
  const u=chooseAvailableByType(type);
- if(!u){toast(`${type} nicht verfügbar`);showResourcePicker(mode);return}
+ const typeLabel=Array.isArray(type)?type.join("/"):type;
+ if(!u){toast(`${typeLabel} nicht verfügbar`);showResourcePicker(mode);return}
 
  const isNafo=mode==="nafo";
  let reason="";
@@ -1138,7 +1188,9 @@ function needsNeighborHelp(call){
  // Kein eigenes RTW/NEF <20km frei? Das ist unabhängig davon, ob der Einsatz bereits mit einem
  // eigenen Fahrzeug alarmiert wurde – gerade wenn gar kein eigenes Mittel in Frage kommt, soll
  // die Anfrage beim Nachbarlandkreis auch OHNE vorherige eigene Alarmierung möglich sein.
- // Einzige Voraussetzung: der Einsatzort muss bereits bekannt sein.
+ // Einzige Voraussetzung: der Einsatzort muss bereits bekannt sein. Sobald ein Nachbar-Fahrzeug
+ // für diesen Einsatz alarmiert wurde (call.neighborUnitId gesetzt), gilt der Bedarf als gedeckt.
+ if(call.neighborUnitId)return false;
  if(!callDestinationPoint(call))return false;
  const ownKm=nearestOwnUnitKm(call);
  return ownKm===null||ownKm>20;
@@ -1147,6 +1199,7 @@ function incidentCard(c,isSelected){
  const state=c.alarmTime?"Alarmiert":"Bearbeitung";
  const stateClass=c.alarmTime?"s3":"s2";
  const neighborSuggestion=needsNeighborHelp(c)?nearestNeighborUnit(c):null;
+ const neighborUnit=c.neighborUnitId?db.units.find(u=>String(u.id)===String(c.neighborUnitId)):null;
  return `<div class="card call">
    <div class="row between">
     <div><h2>${c.alarmTime?"🚨":"📞"} Einsatz #${esc(c.id)}</h2><div class="muted">${esc(c.location||"Ort noch nicht bekannt")}</div></div>
@@ -1157,12 +1210,12 @@ function incidentCard(c,isSelected){
     <div><label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"Noch keine Bewertung")}</div></div>
     <div><label>Betroffene</label><div class="big">${esc(c.count||"–")}</div></div>
    </div>
-   <div class="suggest"><b>🧠 Vorschlag / alarmierte Mittel</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>
+   <div class="suggest-compact"><b>🧠 Vorschlag / alarmierte Mittel</b><div>${c.suggestion||"Noch nicht genügend Angaben."}</div></div>
    ${neighborSuggestion?`<div style="margin-top:10px">
      <button class="s0" style="width:100%;border:none;border-radius:9px;padding:12px;font-weight:800;cursor:pointer" onclick="openExternalRequest('${NEIGHBOR_LEITSTELLE[neighborSuggestion.district]}','${esc(String(c.id))}')">
       🚨 Kein eigenes RTW/NEF &lt;20 km frei – bei ${NEIGHBOR_LEITSTELLE[neighborSuggestion.district]==="ostfriesland"?"LST Ostfriesland":"GOL"} anfragen (${esc(neighborSuggestion.district)}, ~${Math.round(neighborSuggestion.distanceKm)} km)
      </button>
-    </div>`:""}
+    </div>`:neighborUnit?`<div class="suggest-compact" style="margin-top:10px;border-color:#86c98b"><b>🤝 Nachbar-Fahrzeug übernimmt</b><div>${esc(neighborUnit.opta)} (${esc(neighborUnit.homeDistrict)}) – ${esc(statusName(neighborUnit.status))}</div></div>`:""}
    ${renderVehicleFeedbackBadges(c)}
    ${renderExternalRequestBadges(c)}
    <div class="row" style="margin-top:10px">
@@ -1216,7 +1269,11 @@ function sendExternalRequest(kind){
  call.history.push({q:`${meta.label} angefragt`,a:`${count}x ${meta.unit}${note?` – ${note}`:""}`});
  save();
  toast("Anfrage übermittelt (Übung)");
- render(currentPage==="nachbarLks"?"nachbarLks":"leitstelle");
+ if(kind==="gol"||kind==="ostfriesland"){
+   openNeighborUnitPickerForCall(kind,callId);
+ }else{
+   render(currentPage==="nachbarLks"?"nachbarLks":"leitstelle");
+ }
 }
 // Welche Leitstelle für welchen Nachbarlandkreis zuständig ist (reale Zuordnung) steht weiter
 // oben bei den Distanz-Hilfsfunktionen (NEIGHBOR_LEITSTELLE).
@@ -1241,7 +1298,8 @@ function dashboard(){
   </div>`:""}
  <div class="grid">
  <section>
-  <div class="card"><div class="row between"><div><h2>Leitstellenübersicht</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">＋ Neuer Notruf</button></div>
+  <div class="card"><div class="row between"><div><h2>🖥️ Leitstelle</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">＋ Neuer Notruf</button></div>
+   ${funkGruppenPanel()}
    ${hasAlarmed?`<div class="row" style="margin-top:10px;flex-wrap:wrap">
      <button onclick="openExternalRequest('polizei')">👮 Polizeileitstelle</button>
      <button onclick="openExternalRequest('gol')">📠 LST GOL</button>
@@ -1823,7 +1881,14 @@ function finishCall(id=null){
  const ids=new Set([...(c.alarmedUnits||[]),...(c.proposedUnitIds||[])]);
  ids.forEach(uid=>{
    const u=db.units.find(x=>String(x.id)===String(uid));
-   if(u)setUnitStatus(u,"1");
+   if(!u)return;
+   if(u.neighborLoan){
+     const orig=db.neighborUnits.find(n=>String(n.id)===String(u.neighborUnitId));
+     if(orig)orig.status="1";
+     db.units=db.units.filter(x=>String(x.id)!==String(u.id));
+   }else{
+     setUnitStatus(u,"1");
+   }
  });
  c.endTime=new Date().toISOString();
  if(db.cloud?.enabled)setTimeout(()=>closeCallCloud(c),0);
@@ -2695,6 +2760,29 @@ function setNeighborUnitStatus(id,status){
  save();
  render("nachbarLks");
 }
+// Rein dekorative Funkrufgruppen-Felder wie auf echten Leitstellen-PCs. Keine Funktion außer
+// Optik und dem Sprechwunsch-Popup je Gruppe – die Kanalnummer selbst filtert nichts.
+const FUNK_GROUP_ORGS={F:["Feuerwehr"],K:["DLRG","THW"],R:["Rettungsdienst"]};
+const FUNK_GROUP_OPTIONS={F:["F Fri 1","F Fri 2","F Fri 3"],K:["K Fri 1","K Fri 2"],R:["R Fri 1","R Fri 2"]};
+function setFunkChannel(letter,value){
+ db.funkChannels[letter]=value;
+ save();
+ render("leitstelle");
+}
+function funkGroupPanel(letter){
+ const orgs=FUNK_GROUP_ORGS[letter];
+ const sprech=db.units.filter(u=>orgs.includes(u.org)&&["0","5"].includes(String(u.status)))
+   .sort((a,b)=>(String(a.status)==="0"?0:1)-(String(b.status)==="0"?0:1));
+ return `<div style="flex:1;min-width:130px;border:1px solid #24425c;border-radius:10px;padding:9px;background:#0b1520">
+  <select onchange="setFunkChannel('${letter}',this.value)" style="width:100%;background:#132538;color:#d7e6f5;border:1px solid #24425c;border-radius:6px;padding:4px;font-weight:700">
+   ${FUNK_GROUP_OPTIONS[letter].map(o=>`<option value="${esc(o)}" ${db.funkChannels[letter]===o?"selected":""}>${esc(o)}</option>`).join("")}
+  </select>
+  ${sprech.length?`<div style="margin-top:7px">${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="cursor:pointer;margin-bottom:4px;width:100%;text-align:center" onclick="render('mittel')" title="Zur Rettungsmittelübersicht">${esc(u.opta||u.name)}</div>`).join("")}</div>`:`<div class="muted" style="margin-top:7px;font-size:11px;color:#5f7c96">frei</div>`}
+ </div>`;
+}
+function funkGruppenPanel(){
+ return `<div class="row" style="gap:8px;margin-top:10px">${["F","K","R"].map(funkGroupPanel).join("")}</div>`;
+}
 function nachbarLks(){
  const districts=["Wittmund","Leer","Ammerland","Wesermarsch"];
  const openCalls=allOpenCalls().filter(c=>c.alarmTime);
@@ -2711,7 +2799,7 @@ function nachbarLks(){
      <div><h3>${esc(d)}</h3><p class="muted" style="margin:0">Zuständige Leitstelle: ${esc(leitstelleName)}</p></div>
      <button class="primary" onclick="openExternalRequest('${kind}')" ${openCalls.length?"":"disabled"}>📨 Bei ${kind==="ostfriesland"?"Ostfriesland":"GOL"} anfragen</button>
     </div>
-    <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Kennung</th><th>Typ</th><th>Adresse</th><th>Status</th></tr></thead><tbody>
+    <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Kennung</th><th>Typ</th><th>Adresse</th><th>Status</th><th></th></tr></thead><tbody>
      ${units.map(u=>`<tr>
        <td><b>${esc(u.opta||u.name)}</b></td>
        <td>${esc(u.type)}</td>
@@ -2721,6 +2809,7 @@ function nachbarLks(){
          ${["1","2","3","4","6"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${esc(statusName(s))}</option>`).join("")}
         </select>
        </td>
+       <td>${String(u.status)==="1"&&openCalls.length?`<button onclick="openNeighborUnitPickerForCall('${kind}','${esc(String(openCalls[0].id))}')">🚨 Alarmieren</button>`:""}</td>
       </tr>`).join("")}
     </tbody></table></div>
    </div>`;
