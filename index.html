@@ -25,7 +25,7 @@ nav button.active{background:#e30613;color:white}
 @media(min-width:851px){
  .bereiche-card{display:flex;flex-direction:column;height:calc(100vh - 49px);overflow:hidden}
  .bereiche-card nav{flex:1;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
- .bereiche-card nav button{height:calc((100vh - 195px) / 8);aspect-ratio:1/1;margin:0 auto;flex:none}
+ .bereiche-card nav button{width:100%;aspect-ratio:1/1;flex:none;padding:6px}
 }
 main{max-width:1250px;margin:0 auto;padding:16px}
 .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
@@ -60,7 +60,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.49</span>
+ <span id="versionTag">v3.50</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
@@ -310,7 +310,7 @@ function render(page="leitstelle"){
  const app=document.getElementById("app");
  if(app){
    const inner=app.innerHTML;
-   app.innerHTML=`<div class="grid"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card"><h2>Bereiche</h2>${navHTML(page)}</div></aside></div>`;
+   app.innerHTML=`<div class="grid" style="grid-template-columns:1fr 150px"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card">${navHTML(page)}</div></aside></div>`;
  }
 }
 

@@ -967,3 +967,15 @@ Version 3.49:
 - Mit Playwright bei mehreren Bildschirmhöhen (700/900/1200px) geprüft: Kachel-Kasten ragt nie
   über den unteren Rand hinaus, bleibt beim Scrollen der Hauptseite exakt an Position stehen.
 - JavaScript-Syntax geprüft.
+
+Version 3.50:
+- Bereiche-Spalte deutlich schmaler (150px statt vorher ca. 25% der Seitenbreite), eigene
+  Spaltenaufteilung nur für diesen Bereich, damit andere Seiten mit eigener Grid-Aufteilung
+  (z. B. Karte) unangetastet bleiben.
+- Überschrift "Bereiche" entfernt, wie gewünscht.
+- Kachelgröße wird jetzt wieder aus der (jetzt schmalen) Spaltenbreite abgeleitet statt aus der
+  Bildschirmhöhe, damit die Kacheln zuverlässig echte Quadrate bleiben (Breite = Höhe, per
+  aspect-ratio). Passen weiterhin ohne internes Scrollen in die Spalte.
+- Mit Playwright geprüft: Kacheln exakt quadratisch (116×116px bei Testbreite), keine
+  Überschrift mehr vorhanden, Spalte 150px breit, kein internes Scrollen nötig.
+- JavaScript-Syntax geprüft.
