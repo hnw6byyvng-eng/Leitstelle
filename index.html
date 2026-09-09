@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.52</span>
+ <span id="versionTag">v3.53</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
@@ -294,7 +294,7 @@ function navHTML(active){
  return `<nav style="position:static;padding:0;background:transparent;display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-between;align-items:center">${NAV_PAGES.map(x=>{
    const icon=x[1].split(" ")[0];
    const content=x[0]==="aao"?`<span style="font-weight:800;font-size:15px">AAO</span>`:`<span style="font-size:36px;line-height:1">${icon}</span>`;
-   return `<button class="${active===x[0]?"active":""}" style="width:85px;height:85px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0" title="${esc(x[1])}" onclick="render('${x[0]}')">${content}</button>`;
+   return `<button class="${active===x[0]?"active":""}" style="width:70px;height:70px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0" title="${esc(x[1])}" onclick="render('${x[0]}')">${content}</button>`;
  }).join("")}</nav>`;
 }
 let currentPage="leitstelle";

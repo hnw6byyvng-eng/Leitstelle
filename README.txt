@@ -995,3 +995,11 @@ Version 3.52:
 - Mit Playwright bestätigt: Kachelgröße exakt 85×85px, nur Symbole außer bei AAO (dort nur
   Schrift "AAO" ohne Symbol).
 - JavaScript-Syntax geprüft.
+
+Version 3.53:
+- Bereiche-Kacheln jetzt exakt 70x70px (vorher 85x85px).
+- Nur Symbole statt Text/Symbol-Kombination – außer bei AAO, dort bewusst nur Schrift ("AAO")
+  ohne Symbol, wie gewünscht.
+- Mit Playwright geprüft: Kachelgröße exakt 70x70px, AAO-Kachel enthält nachweislich kein Emoji,
+  nur den Text.
+- JavaScript-Syntax geprüft.
