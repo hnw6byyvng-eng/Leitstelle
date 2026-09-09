@@ -1096,3 +1096,12 @@ Version 3.58:
   Wachen-Datenbank bos-fahrzeuge.info war bisher nur die 42/83-01 gelistet, daher als
   "Nutzerangabe" statt "BOS-Fahrzeuge" gekennzeichnet, gleiche Adresse/Standort wie 42/83-01).
 - JavaScript-Syntax geprüft.
+
+Version 3.59:
+- Die "Status ändern"-Spalte in der Rettungsmittelübersicht zeigt jetzt für jedes Fahrzeug
+  kleine Funkgerät-Tasten mit den Statusziffern (0–8, je nach erlaubtem Bereich) statt eines
+  Dropdown-Menüs – passend zum Sepura-Look des Fahrzeugterminals. Aktueller Status wird rot
+  hervorgehoben, alle anderen dunkel wie echte Funkgerätetasten.
+- Mit Playwright geprüft: Tasten erscheinen korrekt mit den passenden Statuswerten, aktueller
+  Status ist visuell hervorgehoben.
+- JavaScript-Syntax geprüft.

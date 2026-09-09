@@ -72,6 +72,9 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
  .radio-key.disabled{opacity:.3;cursor:default}
  .radio-key.ptt{grid-column:span 3;background:linear-gradient(180deg,#3d7a3f,#1f4a21);border-color:#123315}
  .radio-key.ptt .digit{font-size:13px}
+ .radio-key-mini{background:linear-gradient(180deg,#4a4e55,#33363b);border:1px solid #202226;border-radius:5px;color:#f1f2f4;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 1px 0 #16171a,inset 0 1px 0 rgba(255,255,255,.15);cursor:pointer;margin:1px}
+ .radio-key-mini:active{transform:translateY(1px);box-shadow:0 0 0 #16171a}
+ .radio-key-mini.current{background:linear-gradient(180deg,#e30613,#a80410);border-color:#6b0208}
  .radio-kbd{margin-top:10px;background:#111;border-radius:8px;padding:8px}
  .radio-kbd-row{display:flex;gap:4px;margin-bottom:4px;justify-content:center}
  .radio-kbd button{background:#33363b;color:#eee;border:1px solid #202226;border-radius:5px;min-width:26px;padding:7px 0;font-size:12px;font-weight:700}
@@ -81,7 +84,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.58</span>
+ <span id="versionTag">v3.59</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
@@ -2608,9 +2611,7 @@ function mittel(){
          <td>${vehicleLabelBlock(u)}${u.gpsUpdatedAt&&(Date.now()-new Date(u.gpsUpdatedAt).getTime())<120000?` <span title="Live-GPS aktiv" style="font-size:11px">📍</span>`:""}</td>
          <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
          <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button><button onclick="deleteUnit('${String(u.id)}')" title="Fahrzeug löschen">🗑️</button></div></td>
-         <td><select onchange="setStatusFromSelect('${String(u.id)}',this.value)">
-           ${statusOptionsFor(u).map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${s} – ${statusName(s)}</option>`).join("")}
-         </select></td>
+         <td>${statusOptionsFor(u).map(s=>`<button class="radio-key-mini${String(u.status)===s?" current":""}" onclick="setStatusFromSelect('${String(u.id)}','${s}')" title="${esc(statusName(s))}">${esc(s)}</button>`).join("")}</td>
         </tr>`).join("")}
        </tbody>
       </table></div>`;
