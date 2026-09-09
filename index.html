@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.44</span>
+ <span id="versionTag">v3.47</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
@@ -287,7 +287,7 @@ const NAV_PAGES=[
  ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"],["nachbarLks","🚑 Nachbar LKs"]
 ];
 function navHTML(active){
- return `<nav style="position:static;padding:0;background:transparent;display:flex;flex-wrap:wrap">${NAV_PAGES.map(x=>`<button class="${active===x[0]?"active":""}" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}</nav>`;
+ return `<nav style="position:static;padding:0;background:transparent;display:flex;flex-direction:column;gap:8px">${NAV_PAGES.map(x=>`<button class="${active===x[0]?"active":""}" style="width:100%;text-align:left" onclick="render('${x[0]}')">${x[1]}</button>`).join("")}</nav>`;
 }
 let currentPage="leitstelle";
 function render(page="leitstelle"){
@@ -302,6 +302,11 @@ function render(page="leitstelle"){
  if(page==="ivena") ivena();
  if(page==="ivenaZuweisungen") ivenaZuweisungen();
  if(page==="nachbarLks") nachbarLks();
+ const app=document.getElementById("app");
+ if(app){
+   const inner=app.innerHTML;
+   app.innerHTML=`<div class="grid"><section>${inner}</section><aside><div class="card"><h2>Bereiche</h2>${navHTML(page)}</div></aside></div>`;
+ }
 }
 
 let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
@@ -1299,13 +1304,15 @@ function dashboard(){
  ${sprech.length?`<div class="card" style="border:2px solid #f59e0b;background:#fffbeb;margin-bottom:14px">
    <h2 style="color:#92400e;margin-bottom:6px">📻 Sprechwunsch (${sprech.length})</h2>
    <div class="row" style="flex-wrap:wrap;gap:10px">
-    ${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="cursor:pointer" onclick="render('mittel')" title="Zur Rettungsmittelübersicht">${esc(u.opta||u.name)} · ${esc(statusName(u.status))}</div>`).join("")}
+    ${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="display:flex;align-items:center;gap:8px" title="${esc(statusName(u.status))}">
+      <span style="cursor:pointer" onclick="render('mittel')">${esc(u.opta||u.name)} · ${esc(statusName(u.status))}</span>
+      <button onclick="confirmSprechwunsch(${u.id})" title="Sprechwunsch bestätigen" style="background:rgba(255,255,255,.35);border:none;border-radius:5px;padding:2px 7px;cursor:pointer;font-weight:800;color:inherit">✓</button>
+     </div>`).join("")}
    </div>
   </div>`:""}
  <div class="grid">
  <section>
   <div class="card"><div class="row between"><div><h2>🖥️ Leitstelle</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">＋ Neuer Notruf</button></div>
-   ${funkGruppenPanel()}
    ${hasAlarmed?`<div class="row" style="margin-top:10px;flex-wrap:wrap">
      <button onclick="openExternalRequest('polizei')">👮 Polizeileitstelle</button>
      <button onclick="openExternalRequest('gol')">📠 LST GOL</button>
@@ -1315,9 +1322,9 @@ function dashboard(){
   ${calls.length?calls.map(c=>incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))).join(""):`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
  </section>
  <aside>
-  <div class="card"><h2>Bereiche</h2>${navHTML(currentPage)}</div>
   <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
- </aside></div>`;
+ </aside></div>
+ <div class="card">${funkGruppenPanel()}</div>`;
 }
 function newCall(pref={}){
  if(db.currentCall)parkCurrentCall();
@@ -2778,20 +2785,31 @@ function setFunkChannel(letter,value){
  save();
  render("leitstelle");
 }
+const FUNK_GROUP_COLORS={F:"#e30613",K:"#0d6efd",R:"#f4c20d"};
+function confirmSprechwunsch(unitId){
+ const u=db.units.find(x=>String(x.id)===String(unitId));
+ if(!u)return;
+ setUnitStatus(u,"1");
+ toast(`Sprechwunsch von ${u.opta||u.name} bestätigt`);
+ render(currentPage);
+}
 function funkGroupPanel(letter){
  const orgs=FUNK_GROUP_ORGS[letter];
  const sprech=db.units.filter(u=>orgs.includes(u.org)&&["0","5"].includes(String(u.status)))
    .sort((a,b)=>(String(a.status)==="0"?0:1)-(String(b.status)==="0"?0:1));
  const current=db.funkChannels[letter];
+ const bg=FUNK_GROUP_COLORS[letter];
+ const textColor=letter==="R"?"#111":"#fff";
  return `<div style="flex:1;min-width:130px">
-  <div style="background:#f5f5f0;border:1.5px solid #111;border-radius:6px;padding:6px 8px;font-family:'Courier New',monospace;color:#111;text-align:left;aspect-ratio:2/1;display:flex;flex-direction:column;justify-content:flex-start">
-   <select onchange="setFunkChannel('${letter}',this.value)" style="background:transparent;color:#111;border:none;font-family:'Courier New',monospace;font-weight:700;font-size:14px;text-align:left;letter-spacing:1px;appearance:none;-webkit-appearance:none;padding:0;margin:0;width:auto">
-    ${FUNK_GROUP_OPTIONS[letter].map(o=>`<option value="${esc(o)}" style="background:#f5f5f0;color:#111" ${current===o?"selected":""}>${esc(o)}</option>`).join("")}
+  <div style="background:${bg};border:1.5px solid #111;border-radius:6px;padding:8px 6px;font-family:'Courier New',monospace;color:${textColor};text-align:center;aspect-ratio:2/1;display:flex;align-items:flex-start;justify-content:center">
+   <select onchange="setFunkChannel('${letter}',this.value)" style="background:transparent;color:${textColor};border:none;font-family:'Courier New',monospace;font-weight:700;font-size:15px;text-align:center;letter-spacing:1px;appearance:none;-webkit-appearance:none;padding:0;margin:0;width:auto">
+    ${FUNK_GROUP_OPTIONS[letter].map(o=>`<option value="${esc(o)}" style="background:${bg};color:${textColor}" ${current===o?"selected":""}>${esc(o)}</option>`).join("")}
    </select>
-   <div style="font-size:12px;opacity:.75;line-height:1.5">${esc(FUNK_GROUP_NUMBERS[current]||"")}</div>
-   <div style="font-size:12px;letter-spacing:2px;opacity:.85">TMO</div>
   </div>
-  ${sprech.length?`<div style="margin-top:7px">${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="cursor:pointer;margin-bottom:4px;width:100%;text-align:center" onclick="render('mittel')" title="Zur Rettungsmittelübersicht">${esc(u.opta||u.name)}</div>`).join("")}</div>`:`<div class="muted" style="margin-top:7px;font-size:11px;text-align:center">frei</div>`}
+  ${sprech.length?`<div style="margin-top:7px">${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;width:100%" title="${esc(statusName(u.status))}">
+    <span style="cursor:pointer;flex:1;text-align:left" onclick="render('mittel')">${esc(u.opta||u.name)}</span>
+    <button onclick="confirmSprechwunsch(${u.id})" title="Sprechwunsch bestätigen" style="background:rgba(255,255,255,.35);border:none;border-radius:5px;padding:2px 7px;cursor:pointer;font-weight:800;color:inherit">✓</button>
+   </div>`).join("")}</div>`:`<div class="muted" style="margin-top:7px;font-size:11px;text-align:center">frei</div>`}
  </div>`;
 }
 function funkGruppenPanel(){

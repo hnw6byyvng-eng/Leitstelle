@@ -908,3 +908,42 @@ Version 3.44:
   Reiter erscheinen korrekt im "Bereiche"-Kasten, der Zurück-Link ist auf der Startseite
   ausgeblendet und auf allen anderen Seiten sichtbar und funktionsfähig.
 - JavaScript-Syntax geprüft.
+
+Version 3.45:
+- Die "Bereiche"-Kacheln (die 8 Reiter) erscheinen jetzt einheitlich auf ALLEN Seiten, nicht
+  mehr nur auf der Startseite – automatisch als rechte Spalte umgesetzt, ohne jede Seite
+  einzeln anfassen zu müssen (render() umschließt das jeweilige Seiten-Ergebnis konsistent).
+- Kacheln als rechteckige Kacheln in einer einzelnen Spalte direkt untereinander (statt
+  nebeneinander umbrechend), am rechten Rand der Seite. Der aktuell aktive Bereich ist rot
+  hervorgehoben.
+- Auf schmalen Bildschirmen (Handy) rutschen die Kacheln wie gewohnt unter den Seiteninhalt.
+- Der bisherige kleine "🖥️ Leitstelle"-Textlink bleibt zusätzlich bestehen, da die Kacheln bei
+  langen Seiten (z. B. AAO-Tabelle) erst weiter unten erscheinen.
+- Mit Playwright auf allen 7 Seiten sowie in schmaler und breiter Ansicht geprüft.
+- JavaScript-Syntax geprüft.
+
+Version 3.46:
+- Funkrufgruppen-Felder erneut überarbeitet: nur noch der Rufgruppen-Name (F Fri 1/K Fri 1/
+  R Fri 1 etc.) mittig oben im Kästchen, keine Kanalnummer und kein "TMO" mehr darunter.
+  Kästchen jetzt farbig statt hell/dunkel: F (Feuerwehr) rot, K (Katastrophenschutz/DLRG+THW)
+  blau, R (Rettungsdienst) gelb.
+- JavaScript-Syntax geprüft.
+
+Version 3.46:
+- Funkrufgruppen-Panel ans untere Ende der Startseite verschoben (vorher direkt unter "Neuer
+  Notruf"), wie gewünscht.
+- Design/Farben (rot/blau/gelb, Text mittig oben, ohne Kanalnummer/TMO) waren bereits passend
+  umgesetzt.
+- JavaScript-Syntax geprüft.
+
+Version 3.47:
+- Bestätigt: jedes Fahrzeug, das Status 5 oder 0 drückt, erscheint sowohl im Sprechwunsch-
+  Banner oben im Dashboard als auch in den passenden Funkrufgruppen-Feldern (nach Organisation
+  zugeordnet), und Status 0 wird dabei immer vor Status 5 einsortiert.
+- NEU: Sprechwünsche lassen sich jetzt direkt bestätigen – neuer "✓"-Button an jedem
+  Sprechwunsch-Eintrag (sowohl im oberen Banner als auch in den Funkrufgruppen-Feldern). Bestätigen
+  setzt das Fahrzeug zurück auf Status 1 (Frei über Funk) und entfernt es damit aus der
+  Sprechwunsch-Liste.
+- Mit Playwright geprüft: Priorisierung (0 vor 5), korrekte Zuordnung zu den Funkrufgruppen,
+  und dass ein bestätigter Sprechwunsch sofort aus der Anzeige verschwindet.
+- JavaScript-Syntax geprüft.
