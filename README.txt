@@ -1090,3 +1090,9 @@ Version 3.57:
   ausschließlich Rettungsdienst vor; ein Feuer mit 3 Feuerwehr-Fahrzeugen ohne Verletzte zieht
   automatisch den DRK-Küchenwagen hinzu.
 - JavaScript-Syntax geprüft.
+
+Version 3.58:
+- Zweiter RTW für DRK Varel ergänzt: Rotkreuz Friesland 42/83-02 (Nutzerangabe – auf der
+  Wachen-Datenbank bos-fahrzeuge.info war bisher nur die 42/83-01 gelistet, daher als
+  "Nutzerangabe" statt "BOS-Fahrzeuge" gekennzeichnet, gleiche Adresse/Standort wie 42/83-01).
+- JavaScript-Syntax geprüft.
