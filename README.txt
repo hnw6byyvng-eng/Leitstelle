@@ -947,3 +947,10 @@ Version 3.47:
 - Mit Playwright geprüft: Priorisierung (0 vor 5), korrekte Zuordnung zu den Funkrufgruppen,
   und dass ein bestätigter Sprechwunsch sofort aus der Anzeige verschwindet.
 - JavaScript-Syntax geprüft.
+
+Version 3.48:
+- Bereiche-Kacheln jetzt quadratisch und deutlich größer (großer Text, mehr Innenabstand).
+- Auf breiten Bildschirmen spannt sich der "Bereiche"-Kasten über die volle Höhe der Seite;
+  die quadratischen Kacheln verteilen sich mit wachsenden Abständen gleichmäßig bis ganz nach
+  unten, statt oben zusammengedrängt zu bleiben.
+- JavaScript-Syntax geprüft.
