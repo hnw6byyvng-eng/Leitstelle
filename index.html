@@ -54,12 +54,34 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 .mapResult:hover{background:#f4f7fa}
 .coords{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
 
+ .radio-body{background:linear-gradient(180deg,#3a3d42,#1f2124);border-radius:22px;padding:16px 14px 20px;max-width:360px;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);color:#e7e9ec}
+ .radio-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px}
+ .radio-led{width:9px;height:9px;border-radius:50%;background:#2ecc71;box-shadow:0 0 5px #2ecc71}
+ .radio-emergency{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff6b5e,#c81e0f);border:2px solid #7a0f05;box-shadow:0 2px 3px rgba(0,0,0,.5)}
+ .radio-screen{background:#151a13;border:3px solid #0a0d09;border-radius:8px;padding:10px 12px;font-family:'Courier New',monospace;color:#c9e6b0;box-shadow:inset 0 0 10px #000;min-height:150px}
+ .radio-softkeys{display:flex;gap:6px;margin:10px 0}
+ .radio-softkeys button{flex:1;background:#2b2e33;color:#cfd3d8;border:1px solid #46494f;border-radius:6px;padding:8px 4px;font-size:11px;font-weight:700}
+ .radio-softkeys button:active{background:#46494f}
+ .radio-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+ .radio-key{background:linear-gradient(180deg,#4a4e55,#33363b);border:1px solid #202226;border-radius:9px;color:#f1f2f4;padding:8px 2px 6px;text-align:center;box-shadow:0 2px 0 #16171a,inset 0 1px 0 rgba(255,255,255,.15);cursor:pointer}
+ .radio-key:active{transform:translateY(1px);box-shadow:0 1px 0 #16171a}
+ .radio-key .digit{font-size:17px;font-weight:800;display:block}
+ .radio-key .label{font-size:8.5px;display:block;color:#b9bcc2;line-height:1.15;margin-top:1px;font-weight:600}
+ .radio-key.current{background:linear-gradient(180deg,#e30613,#a80410);border-color:#6b0208}
+ .radio-key.current .label{color:#ffd9d9}
+ .radio-key.disabled{opacity:.3;cursor:default}
+ .radio-key.ptt{grid-column:span 3;background:linear-gradient(180deg,#3d7a3f,#1f4a21);border-color:#123315}
+ .radio-key.ptt .digit{font-size:13px}
+ .radio-kbd{margin-top:10px;background:#111;border-radius:8px;padding:8px}
+ .radio-kbd-row{display:flex;gap:4px;margin-bottom:4px;justify-content:center}
+ .radio-kbd button{background:#33363b;color:#eee;border:1px solid #202226;border-radius:5px;min-width:26px;padding:7px 0;font-size:12px;font-weight:700}
+ .radio-kbd input{width:100%;background:#151a13;color:#c9e6b0;border:2px solid #0a0d09;border-radius:6px;font-family:'Courier New',monospace;font-size:15px;padding:8px;margin-bottom:8px;box-sizing:border-box}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.53</span>
+ <span id="versionTag">v3.57</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
@@ -88,6 +110,27 @@ const defaults={
   {id:604,name:"77-57-01",opta:"Pelikan Friesland 77/57-01",type:"GW Wasserrettung",org:"DLRG",location:"Bockhorn",status:"1",crew:"2",skills:"Fachtrupp Technik/Logistik (Wasserrettungszug Friesland) – Gerätetrupp",vehicle:"Mercedes Sprinter 516 CDI 4x4",verified:"BOS-Fahrzeuge"},
   {id:612,name:"77-77-01",opta:"Pelikan Friesland 77/77-01",type:"MZB",org:"DLRG",location:"Bockhorn",status:"1",crew:"2",skills:"Fachtrupp Technik/Logistik (Wasserrettungszug Friesland) – Motorrettungsboot",boatName:"Freesen Deern",verified:"Einsatzbericht dlrg.de"},
   {id:613,name:"77-78-01",opta:"Adler Friesland 77/78-01",type:"RTB",org:"DLRG",location:"Bockhorn",status:"1",crew:"2",skills:"Fachtrupp Technik/Logistik (Wasserrettungszug Friesland) – Motorrettungsboot",boatName:"Friesische Wehde",verified:"Einsatzbericht dlrg.de"},
+  // DRK Kreisverband Varel - Friesische Wehde e.V.: Schnelleinsatzgruppe (SEG) und
+  // Katastrophenschutz, hervorgegangen aus dem früheren Sanitätszug 50. Aufgabenbereiche laut
+  // Kreisverband: Hintergrund-Rettungsdienst, Sanitätsdienst, Unterstützung bei
+  // Großschadenslagen, Katastrophenschutz/SEG, Medical Task Force 6.
+  {id:701,name:"42-11-01",opta:"Rotkreuz Friesland 42/11-01",type:"ELW1",org:"DRK",location:"Varel",status:"1",crew:"3",skills:"Führung Schnelleinsatzgruppe (SEG)",verified:"BOS-Fahrzeuge"},
+  {id:702,name:"42-17-01",opta:"Rotkreuz Friesland 42/17-01",type:"MTW",org:"DRK",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport SEG",verified:"BOS-Fahrzeuge"},
+  {id:703,name:"42-17-02",opta:"Rotkreuz Friesland 42/17-02",type:"MTW",org:"DRK",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport SEG",verified:"BOS-Fahrzeuge"},
+  {id:704,name:"42-59-01",opta:"Rotkreuz Friesland 42/59-01",type:"GW-SEG",org:"DRK",location:"Varel",status:"1",crew:"3",skills:"Schnelleinsatzgruppe – Sanitäts- und Betreuungsdienst, Großschadenslagen",verified:"BOS-Fahrzeuge"},
+  {id:705,name:"42-83-01",opta:"Rotkreuz Friesland 42/83-01",type:"RTW",org:"DRK",location:"Varel",status:"1",crew:"2",skills:"Hintergrund-Rettungsdienst",verified:"BOS-Fahrzeuge"},
+  {id:706,name:"48-96-01",opta:"Rotkreuz Friesland 48/96-01",type:"GW-San",org:"DRK",location:"Varel",status:"1",crew:"3",skills:"Sanitätsdienst, Großschadenslagen",verified:"BOS-Fahrzeuge"},
+  // DRK Kreisverband Jeverland e.V., Bereitschaft Jever: Der Kreisverband deckt Jever, Schortens
+  // und Sande ab, u. a. Katastrophenschutz und Unterstützung des Rettungsdienstes Friesland.
+  // Wichtig: Jeverland hat keine eigenen RTW – der Notfallkrankentransportwagen (N-KTW) ist
+  // aber, wie ein vollwertiger Rettungswagen ausgestattet und besetzt, daher hier bewusst als
+  // Typ "RTW" geführt statt als NKTW.
+  {id:713,name:"41-16-01",opta:"Rotkreuz Friesland 41/16-01",type:"MTW",org:"DRK",location:"Jever",status:"1",crew:"6",skills:"Mannschaftstransport",verified:"BOS-Fahrzeuge"},
+  {id:714,name:"41-17-01",opta:"Rotkreuz Friesland 41/17-01",type:"MTW",org:"DRK",location:"Jever",status:"1",crew:"6",skills:"Mannschaftstransport",verified:"BOS-Fahrzeuge"},
+  {id:715,name:"41-19-01",opta:"Rotkreuz Friesland 41/19-01",type:"ELW1",org:"DRK",location:"Jever",status:"1",crew:"3",skills:"Führung (MTW/ELW)",verified:"BOS-Fahrzeuge"},
+  {id:716,name:"41-69-01",opta:"Rotkreuz Friesland 41/69-01",type:"Küchenwagen",org:"DRK",location:"Jever",status:"1",crew:"3",skills:"Verpflegung, Betreuungsdienst",verified:"BOS-Fahrzeuge"},
+  {id:717,name:"41-74-01",opta:"Rotkreuz Friesland 41/74-01",type:"GW-Betreuung",org:"DRK",location:"Jever",status:"1",crew:"3",skills:"Betreuungsdienst",verified:"BOS-Fahrzeuge"},
+  {id:718,name:"41-93-01",opta:"Rotkreuz Friesland 41/93-01",type:"RTW",org:"DRK",location:"Jever",status:"1",crew:"2",skills:"Notfallrettung (Notfallkrankentransportwagen – wie ein RTW besetzt und ausgestattet)",vehicle:"N-KTW",verified:"BOS-Fahrzeuge"},
   {id:605,name:"71-11-01",opta:"Pelikan Friesland 71/11-01",type:"ELW1",org:"DLRG",location:"Bockhorn",status:"1",crew:"3",skills:"Führungstrupp/Zugtrupp (Wasserrettungszug Friesland) – Einsatzleitung",verified:"BOS-Fahrzeuge"},
 
   {id:101,name:"81-83-01",opta:"Rettung Friesland 81/83-01",type:"RTW",org:"Rettungsdienst",location:"Jever",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
@@ -279,8 +322,10 @@ function vehicleLabelBlock(u){
 }
 function statusOptionsFor(u){
  // Rettungsdienst-spezifische Status (7 = Patient aufgenommen, 8 = bedingt verfügbar)
- // ergeben für Feuerwehr, THW und DLRG fachlich keinen Sinn.
- const restricted=["Feuerwehr","THW","DLRG"].includes(u?.org);
+ // ergeben für Feuerwehr, THW und DLRG fachlich keinen Sinn. Beim DRK gilt das für alle
+ // Fahrzeuge außer dem als RTW geführten Fahrzeug (der Jeverland-NKTW ist wie ein RTW besetzt
+ // und ausgestattet und übernimmt dieselbe Rolle).
+ const restricted=["Feuerwehr","THW","DLRG"].includes(u?.org) || (u?.org==="DRK" && u?.type!=="RTW");
  let opts=restricted?["0","1","2","3","4","5","6"]:["0","1","2","3","4","5","6","7","8"];
  // OrgL/LNA soll immer einsatzbereit bleiben: kein "Nicht einsatzbereit" (6),
  // "Patient aufgenommen" (7) oder "bedingt verfügbar" (8).
@@ -385,14 +430,15 @@ function initMap(){
 function vehicleMapEmoji(u){
  if(u.org==="Feuerwehr")return"🚒";
  if(u.org==="DLRG")return"🌊";
+ if(u.org==="DRK")return"✚";
  if(u.org==="Luftrettung")return"🚁";
  if(u.type==="OrgL/LNA")return"🚗";
  if(u.org==="THW")return"🛠️";
  return"🚑";
 }
-const STATION_ORGS=["Rettungsdienst","Feuerwehr","THW","DLRG"];
-const STATION_EMOJI={DLRG:"🌊",Rettungsdienst:"🚑",Feuerwehr:"🚒",THW:"🛠️"};
-const STATION_COLOR={DLRG:"#0284c7",Rettungsdienst:"#e30613",Feuerwehr:"#dc2626",THW:"#2563eb"};
+const STATION_ORGS=["Rettungsdienst","Feuerwehr","THW","DLRG","DRK"];
+const STATION_EMOJI={DLRG:"🌊",Rettungsdienst:"🚑",Feuerwehr:"🚒",THW:"🛠️",DRK:"✚"};
+const STATION_COLOR={DLRG:"#0284c7",Rettungsdienst:"#e30613",Feuerwehr:"#dc2626",THW:"#2563eb",DRK:"#c8102e"};
 // Kleiner, fester Versatz je Organisation, damit z. B. Rettungsdienst- und DLRG-Wache am
 // selben Ort nicht exakt übereinanderliegen. Reine Kartendarstellung, keine echte Präzision.
 const STATION_JITTER={DLRG:[0.0035,-0.0035],Rettungsdienst:[-0.0035,0.0035],Feuerwehr:[0.0035,0.0035],THW:[-0.0035,-0.0035]};
@@ -822,6 +868,8 @@ const STATION_OVERRIDE={
  "Feuerwehr__Hohenkirchen":[53.66165,7.91565], // FF Wangerland OF Hohenkirchen, Jeversche Straße 16, 26434 Hohenkirchen
  "Feuerwehr__Wangerland":[53.66165,7.91565], // dieselbe Wache, falls location bereits auf "Wangerland" synchronisiert wurde
  "DLRG__Bockhorn":[53.397,8.02], // Fachtrupp Technik/Logistik + Führungstrupp (Wasserrettungszug Friesland); OPTA-Bereich "71" würde sonst fälschlich als "Jever" interpretiert
+ "DRK__Varel":[53.4009276,8.0969361], // DRK Bereitschaft Varel, Emil-Heeder-Straße 18, 26316 Varel
+ "DRK__Jever":[53.5666342,7.8861984], // DRK Bereitschaft Jever, Schützenhofstraße 42a, 26441 Jever
  "Luftrettung__Groningen (Eelde)":[53.118056,6.575833], // Lifeliner 4, Groningen Airport Eelde (ANWB Medical Air Assistance)
  "Luftrettung__Bremen (Klinikum Links der Weser)":[53.035852,8.817424] // Christoph 6, Landeplatz am Klinikum Links der Weser
 };
@@ -876,9 +924,14 @@ function estimatedEtaMinutes(u){
  if(km>=999)return null;
  // Rettungshubschrauber sind deutlich schneller unterwegs als Bodenfahrzeuge (Reisegeschwindigkeit
  // typischer Rettungshubschrauber ca. 200 km/h), dafür etwas längere Rüst-/Startzeit.
+ // Das DRK ist ehrenamtlich organisiert (Kreisverbände Jeverland und Varel-Friesische Wehde) –
+ // die Helfer müssen erst von zuhause/der Arbeit zur Wache, was deutlich länger dauert als bei
+ // hauptamtlich besetzten Wachen. Das wirkt sich sowohl auf die Zeit bis zum Ausrücken (Status 3)
+ // als auch auf die Ankunftszeit (Status 4) aus, da beide auf dieser geschätzten Gesamtzeit beruhen.
  const isAir=u.type==="RTH"||u.org==="Luftrettung";
+ const isVolunteer=u.org==="DRK";
  const speedKmh=isAir?200:60;
- const turnoutMin=isAir?5:2;
+ const turnoutMin=isAir?5:(isVolunteer?12:2);
  return Math.max(1,Math.round(turnoutMin+(km/speedKmh)*60));
 }
 function nearestFirst(arr){
@@ -967,12 +1020,26 @@ function maybeAddDlrgElw1(list){
  }
  return null;
 }
+// DRK-Unterstützung (Verpflegung/Betreuung) bei größeren Brandeinsätzen: sobald mehr als 2
+// Feuerwehr-Fahrzeuge bei einem Feuer im Einsatz sind UND keine Personen gefährdet/verletzt
+// sind (sonst hat die Rettung von Menschen Vorrang, keine Verpflegungslage), wird automatisch
+// ein DRK-Fahrzeug (Küchenwagen oder GW-Betreuung) hinzugezogen.
+function maybeAddDrkSupport(list,call){
+ if(call?.answers?.event!=="Feuer / Rauchentwicklung")return null;
+ if(call?.answers?.firePeople==="ja")return null;
+ const fwCount=(list||[]).filter(x=>x.org==="Feuerwehr").length;
+ const already=(list||[]).some(x=>x.org==="DRK");
+ if(fwCount>2 && !already){
+   return chooseAvailableByType(["Küchenwagen","GW-Betreuung"]);
+ }
+ return null;
+}
 function alarmNeighborUnit(neighborUnitId,callId){
  const call=allOpenCalls().find(c=>String(c.id)===String(callId));
  if(!call){toast("Einsatz nicht gefunden");return}
  const nu=db.neighborUnits.find(u=>String(u.id)===String(neighborUnitId));
  if(!nu){toast("Nachbar-Fahrzeug nicht gefunden");return}
- if(String(nu.status)!=="1"){toast("Fahrzeug ist nicht frei");return}
+ if(!["1","2"].includes(String(nu.status))){toast("Fahrzeug ist nicht frei");return}
  const loaned={
    id:Date.now(),name:nu.name,opta:nu.opta,type:nu.type,org:"Rettungsdienst",
    location:nu.district,lat:nu.lat,lng:nu.lng,crew:nu.crew,skills:nu.skills,
@@ -996,7 +1063,7 @@ function openNeighborUnitPickerForCall(kind,callId){
  const call=allOpenCalls().find(c=>String(c.id)===String(callId));
  if(!call){toast("Einsatz nicht gefunden");return}
  const districts=Object.entries(NEIGHBOR_LEITSTELLE).filter(([,k])=>k===kind).map(([d])=>d);
- const candidates=db.neighborUnits.filter(u=>districts.includes(u.district) && String(u.status)==="1");
+ const candidates=db.neighborUnits.filter(u=>districts.includes(u.district) && ["1","2"].includes(String(u.status)));
  document.getElementById("app").innerHTML=`<div class="card">
   <div class="row between"><h2>🚨 Fahrzeug für Einsatz #${esc(call.id)} alarmieren</h2><button onclick="render('leitstelle')">Zurück</button></div>
   <p class="muted">Alarmiertes Fahrzeug erscheint danach auf unserer Karte wie ein eigenes Fahrzeug (Status 3, Standort sichtbar).</p>
@@ -1017,6 +1084,10 @@ function appendUnitToCall(c,u,label){
  if(u.org==="DLRG"){
    const elw=maybeAddDlrgElw1(c.proposal);
    if(elw)appendUnitToCall(c,elw,"Führung hinzugezogen – mehr als 3 DLRG-Fahrzeuge im Einsatz");
+ }
+ if(u.org==="Feuerwehr"){
+   const drk=maybeAddDrkSupport(c.proposal,c);
+   if(drk)appendUnitToCall(c,drk,"Verpflegung/Betreuung hinzugezogen – mehr als 2 Feuerwehr-Fahrzeuge ohne Verletzte");
  }
 }
 function rebuildSuggestionFromProposal(c){
@@ -1194,10 +1265,12 @@ function nearestOwnUnitKm(call){
 }
 function nearestNeighborUnit(call){
  // Nächstgelegenes FREIES Rettungsmittel eines Nachbarlandkreises zum Einsatzort.
+ // "Frei" = Status 1 (Frei über Funk) ODER 2 (Frei auf Wache) – genau wie bei den eigenen
+ // Fahrzeugen in nearestOwnUnitKm.
  const dest=callDestinationPoint(call);
  if(!dest)return null;
  let best=null;
- db.neighborUnits.filter(u=>String(u.status)==="1"&&Number.isFinite(u.lat)&&Number.isFinite(u.lng)).forEach(u=>{
+ db.neighborUnits.filter(u=>["1","2"].includes(String(u.status))&&Number.isFinite(u.lat)&&Number.isFinite(u.lng)).forEach(u=>{
    const d=haversine(dest[0],dest[1],u.lat,u.lng);
    if(!best||d<best.distanceKm)best={distanceKm:d,district:u.district,unit:u};
  });
@@ -1783,6 +1856,10 @@ function evaluate(){
    const elw=maybeAddDlrgElw1(selected.filter(x=>!x.missing));
    if(elw && !used.has(elw.id)){selected.push({...elw});used.add(elw.id)}
  }
+ {
+   const drk=maybeAddDrkSupport(selected.filter(x=>!x.missing),c);
+   if(drk && !used.has(drk.id)){selected.push({...drk});used.add(drk.id)}
+ }
  c.keyword=keyword;
  c.proposedUnitIds=selected.filter(x=>!x.missing).map(x=>x.id);
  c.proposal=selected;
@@ -2228,21 +2305,93 @@ function toggleVehicleGeo(unitId,dburl,sid){
  toast("Standortfreigabe aktiviert");
  renderVehicleTerminal(unitId,dburl,sid);
 }
+let vehicleKeyboardOpen=false, vehicleKeyboardCtx=null, vehicleKeyboardText="";
+function radioKeypadHTML(local,currentStatus,unitId,dburl,sid){
+ const allowed=statusOptionsFor(local);
+ const digits=["1","2","3","4","5","6","7","8","9","*","0","#"];
+ const keys=digits.map(d=>{
+   if(!/^[0-9]$/.test(d)||!allowed.includes(d)) return `<div class="radio-key disabled"><span class="digit">${esc(d)}</span></div>`;
+   const isCurrent=String(currentStatus)===d;
+   return `<button class="radio-key${isCurrent?" current":""}" onclick="vehicleSetStatus('${unitId}','${d}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')"><span class="digit">${esc(d)}</span><span class="label">${esc(statusName(d))}</span></button>`;
+ }).join("");
+ return `<div class="radio-keypad">${keys}<button class="radio-key ptt" onclick="toast('🎙️ PTT (nur Deko)')"><span class="digit">PTT – SPRECHEN</span></button></div>`;
+}
+function openVehicleNachforderung(unitId,dburl,sid,callId){
+ vehicleKeyboardCtx={unitId,dburl,sid,callId};
+ vehicleKeyboardText="";
+ vehicleKeyboardOpen=true;
+ renderVehicleKeyboard();
+ const kp=document.getElementById("vehicleKeypad");
+ if(kp)kp.innerHTML="";
+}
+function vehicleKeyboardPress(ch){
+ vehicleKeyboardText+=ch;
+ const inp=document.getElementById("vehicleKbdInput");
+ if(inp)inp.value=vehicleKeyboardText;
+}
+function vehicleKeyboardBackspace(){
+ vehicleKeyboardText=vehicleKeyboardText.slice(0,-1);
+ const inp=document.getElementById("vehicleKbdInput");
+ if(inp)inp.value=vehicleKeyboardText;
+}
+function closeVehicleKeyboard(){
+ const ctx=vehicleKeyboardCtx;
+ vehicleKeyboardOpen=false;
+ vehicleKeyboardCtx=null;
+ if(ctx)renderVehicleTerminal(ctx.unitId,ctx.dburl,ctx.sid);
+}
+async function submitVehicleKeyboard(){
+ const ctx=vehicleKeyboardCtx;
+ if(!ctx)return;
+ const text=vehicleKeyboardText.trim();
+ if(!text){toast("Bitte Text eingeben");return}
+ const local=db.units.find(x=>String(x.id)===String(ctx.unitId));
+ await pushFeedbackEntry(ctx.dburl,ctx.sid,{callId:ctx.callId,unitId:ctx.unitId,unitLabel:local?.opta||local?.name||ctx.unitId,text,kind:"nafo"});
+ toast("Nachforderung gesendet");
+ closeVehicleKeyboard();
+}
+function renderVehicleKeyboard(){
+ const body=document.getElementById("vehicleBody");
+ if(!body)return;
+ const rows=["1234567890","QWERTZUIOP","ASDFGHJKL","YXCVBNM"];
+ body.innerHTML=`<div style="font-size:11px;opacity:.8;margin-bottom:6px;letter-spacing:1px">📟 NACHFORDERUNG</div>
+  <input id="vehicleKbdInput" readonly value="${esc(vehicleKeyboardText)}" style="width:100%;background:#0d1109;color:#c9e6b0;border:1px solid #2a3325;border-radius:5px;font-family:'Courier New',monospace;font-size:14px;padding:6px;box-sizing:border-box;margin-bottom:8px">
+  <div class="radio-kbd">
+   ${rows.map(r=>`<div class="radio-kbd-row">${r.split("").map(c=>`<button onclick="vehicleKeyboardPress('${c}')">${c}</button>`).join("")}</div>`).join("")}
+   <div class="radio-kbd-row">
+    <button onclick="vehicleKeyboardPress(' ')" style="min-width:90px">␣</button>
+    <button onclick="vehicleKeyboardBackspace()">⌫</button>
+   </div>
+  </div>
+  <div class="row" style="margin-top:8px;gap:6px">
+   <button onclick="closeVehicleKeyboard()" style="flex:1">Abbrechen</button>
+   <button class="primary" onclick="submitVehicleKeyboard()" style="flex:1">📨 Senden</button>
+  </div>`;
+}
 async function renderVehicleTerminal(unitId,dburl,sid){
  const local=db.units.find(x=>String(x.id)===String(unitId));
  vehicleKnownCallIds=null;
- document.getElementById("app").innerHTML=`<div class="card" id="vehicleTerminal">
-   <div class="row between"><div><h2>📱 Fahrzeugterminal</h2><div class="big">${esc(local?.opta||local?.name||unitId)}</div></div><span class="status s3" id="vehicleLive">VERBINDE…</span></div>
-   <div class="row" style="margin-top:8px">
-     <button onclick="unlockVehicleAudio()" title="Alarmton/Vibration testen und aktivieren">🔔 Alarmton testen</button>
-     <button onclick="toggleVehicleGeo('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')" title="Eigenen Standort live an die Leitstelle übermitteln">${vehicleGeoWatchId?"📍 GPS aktiv (stoppen)":"📍 Standort teilen"}</button>
+ vehicleKeyboardOpen=false;
+ document.getElementById("app").innerHTML=`<div class="radio-body" id="vehicleTerminal">
+   <div class="radio-topbar">
+     <div class="radio-emergency" title="Notruf (Deko)"></div>
+     <div style="font-size:12px;font-weight:800;letter-spacing:1px">${esc(local?.opta||local?.name||unitId)}</div>
+     <div class="radio-led" id="vehicleLiveLed" style="background:#e6b800;box-shadow:0 0 5px #e6b800" title="VERBINDE…"></div>
    </div>
-   <div id="vehicleBody"><p class="muted">Alarmdaten werden geladen …</p></div>
+   <div class="radio-screen" id="vehicleBody"><p class="muted">Alarmdaten werden geladen …</p></div>
+   <div class="radio-softkeys">
+     <button onclick="unlockVehicleAudio()">🔔 TON</button>
+     <button onclick="toggleVehicleGeo('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${vehicleGeoWatchId?"📍 GPS AUS":"📍 GPS AN"}</button>
+     <button onclick="toast('🔄 Aktualisiere…')">🔄 REFRESH</button>
+   </div>
+   <div class="radio-keypad" id="vehicleKeypad"></div>
+   <div id="vehicleInfo"></div>
  </div>`;
  async function refresh(){
    if(!dburl||!sid){
-     document.getElementById("vehicleLive").textContent="OFFLINE";
-     document.getElementById("vehicleBody").innerHTML=`<div class="card"><h2>Keine Live-Verbindung</h2><p>Dieser QR-Code wurde ohne eingerichtete Firebase-Datenbank erzeugt.</p></div>`;
+     const led=document.getElementById("vehicleLiveLed");
+     if(led){led.style.background="#c0392b";led.style.boxShadow="0 0 5px #c0392b";led.title="OFFLINE"}
+     document.getElementById("vehicleBody").innerHTML=`<b>OFFLINE</b><div style="font-size:11px;margin-top:6px">Dieser QR-Code wurde ohne eingerichtete Firebase-Datenbank erzeugt.</div>`;
      return;
    }
    const unit=await vehicleFetch(dburl,sid,`units/${encodeURIComponent(unitId)}`);
@@ -2264,28 +2413,31 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    else if(remoteIvena&&typeof remoteIvena==="object")vehicleIvenaCache=Object.values(remoteIvena).filter(Boolean);
    const remoteUnits=await vehicleFetch(dburl,sid,"units");
    if(remoteUnits&&typeof remoteUnits==="object")vehicleUnitsCache=Object.values(remoteUnits).filter(Boolean);
-   const live=document.getElementById("vehicleLive");
-   if(live){live.textContent="LIVE";live.className="status s2"}
-   const body=document.getElementById("vehicleBody"); if(!body)return;
+   const led=document.getElementById("vehicleLiveLed");
+   if(led){led.style.background="#2ecc71";led.style.boxShadow="0 0 5px #2ecc71";led.title="LIVE"}
    const vType=unit?.type||local?.type;
    const inCallStatus4=String(unit?.status)==="4" && calls.length>0;
    const canAssign=String(unit?.status)==="4" && ["RTW","RTH","NKTW","OrgL/LNA","NEF"].includes(vType);
    const canOrglFeedback=vType==="OrgL/LNA" && inCallStatus4;
-   body.innerHTML=`${vehicleGeoWatchId?`<div class="pill" style="margin-bottom:8px">📍 Standort wird live übertragen</div>`:""}<div class="card"><div class="row between"><div><b>Status</b><div class="big">${unit?statusName(String(unit.status)):"—"}</div></div><span class="status ${unit?statusClass(String(unit.status)):"s6"}">${unit?String(unit.status):"?"}</span></div>
-    <div class="answer" style="margin-top:12px">
-      ${statusOptionsFor(local).map(s=>`<button onclick="vehicleSetStatus('${unitId}','${s}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${s}<small style="display:block">${statusName(s)}</small></button>`).join("")}
-    </div>
-    ${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${calls[0]?esc(String(calls[0].id)):""}')">🏥 IVENA-${["OrgL/LNA","NEF"].includes(vType)?"Anmeldung":"Zuweisung"}</button></div>`:""}
-    ${inCallStatus4?`<div class="row" style="margin-top:12px"><button onclick="sendVehicleFeedback('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}','nafo')">📟 Nachfordern</button></div>`:""}
+   if(!vehicleKeyboardOpen){
+     const body=document.getElementById("vehicleBody"); if(!body)return;
+     body.innerHTML=`${vehicleGeoWatchId?`<div style="font-size:10px;opacity:.8;margin-bottom:4px">📍 STANDORT LIVE</div>`:""}
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">${unit?esc(statusName(String(unit.status))):"—"}</b><span style="font-size:20px;font-weight:800">${unit?esc(String(unit.status)):"?"}</span></div>
+      ${calls.length?calls.map(c=>`<div style="margin-top:6px;font-size:11px;border-top:1px solid #2a3325;padding-top:5px">🚨 ${esc(c.keyword||"Einsatz")}<br>📍 ${esc(c.location||"Ort unbekannt")}</div>`).join(""):`<div style="margin-top:6px;font-size:11px;opacity:.7">Kein aktueller Einsatz</div>`}`;
+     const keypad=document.getElementById("vehicleKeypad");
+     if(keypad)keypad.innerHTML=radioKeypadHTML(local,unit?.status,unitId,dburl,sid);
+   }
+   const info=document.getElementById("vehicleInfo"); if(!info)return;
+   info.innerHTML=`${canAssign?`<div class="row" style="margin-top:12px"><button class="primary" onclick="openVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${calls[0]?esc(String(calls[0].id)):""}')">🏥 IVENA-${["OrgL/LNA","NEF"].includes(vType)?"Anmeldung":"Zuweisung"}</button></div>`:""}
+    ${inCallStatus4?`<div class="row" style="margin-top:12px"><button onclick="openVehicleNachforderung('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}')">📟 Nachfordern</button></div>`:""}
     ${canOrglFeedback?`<div class="row" style="margin-top:12px"><button class="primary" onclick="sendOrglSituationReport('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}','${esc(String(calls[0].id))}')">📢 Lagemeldung (Status 4) senden</button></div>`:""}
-    </div>
-    ${calls.length?calls.map(c=>`<div class="card call">
+    ${calls.length?calls.map(c=>`<div class="card call" style="margin-top:12px">
        <div class="row between"><h2>🚨 ${esc(c.keyword||"Einsatz")}</h2><span class="status s3">ALARM</span></div>
        <div class="big">📍 ${esc(c.location||"Ort unbekannt")}</div>
        ${c.alarmFreeText?`<div class="suggest"><b>Meldetext / Zusatz:</b><div>${esc(c.alarmFreeText)}</div></div>`:""}
        <div class="suggest"><b>Alarmierte Mittel</b><div>${esc(c.suggestion||"—")}</div></div>
        ${Array.isArray(c.nafo)&&c.nafo.length?`<div class="card" style="background:#fff7ed"><b>📟 Nachforderung / Lageänderung</b>${c.nafo.slice(-3).map(n=>`<div>${esc(n.reason||"")}</div>`).join("")}</div>`:""}
-     </div>`).join(""):`<div class="card"><h2>Kein aktueller Einsatz</h2><p class="muted">Dieses Fahrzeug sieht nur Einsätze, denen es zugeordnet wurde.</p></div>`}
+     </div>`).join(""):""}
     ${vehicleIvenaCache?renderIvenaMini(vehicleIvenaCache):""}`;
  }
  await refresh();
@@ -2434,7 +2586,7 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  renderVehicleTerminal(unitId,dburl,sid);
 }
 
-const ORG_ORDER=["DLRG","Rettungsdienst","Feuerwehr","THW","Polizei","Luftrettung"];
+const ORG_ORDER=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Polizei","Luftrettung"];
 const ORG_ICON={"DLRG":"🌊","Rettungsdienst":"🚑","Feuerwehr":"🚒","THW":"🛠️","Polizei":"👮","Luftrettung":"🚁"};
 function mittel(){
  const units=db.units||[];
@@ -2783,7 +2935,7 @@ function setNeighborUnitStatus(id,status){
 }
 // Rein dekorative Funkrufgruppen-Felder wie auf echten Leitstellen-PCs. Keine Funktion außer
 // Optik und dem Sprechwunsch-Popup je Gruppe – die Kanalnummer selbst filtert nichts.
-const FUNK_GROUP_ORGS={F:["Feuerwehr"],K:["DLRG","THW"],R:["Rettungsdienst"]};
+const FUNK_GROUP_ORGS={F:["Feuerwehr"],K:["DLRG","THW","DRK"],R:["Rettungsdienst"]};
 const FUNK_GROUP_OPTIONS={F:["F Fri 1","F Fri 2","F Fri 3"],K:["K Fri 1","K Fri 2"],R:["R Fri 1","R Fri 2"]};
 // Rein dekorative Kanalnummern, wie sie auf einem echten BOS-Digitalfunkgerät neben der
 // Rufgruppe angezeigt werden. Ohne echte Funktion, nur fürs Erscheinungsbild.
@@ -2849,7 +3001,7 @@ function nachbarLks(){
          ${["1","2","3","4","6"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${esc(statusName(s))}</option>`).join("")}
         </select>
        </td>
-       <td>${String(u.status)==="1"&&openCalls.length?`<button onclick="openNeighborUnitPickerForCall('${kind}','${esc(String(openCalls[0].id))}')">🚨 Alarmieren</button>`:""}</td>
+       <td>${["1","2"].includes(String(u.status))&&openCalls.length?`<button onclick="openNeighborUnitPickerForCall('${kind}','${esc(String(openCalls[0].id))}')">🚨 Alarmieren</button>`:""}</td>
       </tr>`).join("")}
     </tbody></table></div>
    </div>`;

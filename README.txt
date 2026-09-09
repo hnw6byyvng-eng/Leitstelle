@@ -1003,3 +1003,90 @@ Version 3.53:
 - Mit Playwright geprüft: Kachelgröße exakt 70x70px, AAO-Kachel enthält nachweislich kein Emoji,
   nur den Text.
 - JavaScript-Syntax geprüft.
+
+Version 3.54:
+- Fahrzeugterminal (QR-Code-Aufruf) komplett im Design eines echten Sepura-Funkgeräts
+  (SC20/SC21, wie im BOS-Digitalfunk üblich) neu gestaltet:
+  - Dunkles Funkgerätegehäuse mit rundem Notruf-Knopf (Deko) und dreifarbiger Status-LED
+    (gelb=verbinde, grün=live, rot=offline)
+  - Dunkles LCD-Display für Status und aktuellen Einsatz
+  - 3 Kontexttasten (Softkeys) für Alarmton, GPS und Refresh
+  - Alphanumerische Tastatur (0–9, *, #) als Statustastenfeld: jede erlaubte Ziffer entspricht
+    direkt dem passenden Status (0–8), genau wie beim echten Sepura-Gerät ("Tastendruck =
+    Statusmeldung"). Nicht erlaubte Ziffern (z. B. 7/8 für Feuerwehr/THW/DLRG) werden
+    ausgegraut angezeigt. Aktueller Status wird rot hervorgehoben. Zusätzlich ein dekorativer
+    PTT-Balken.
+- Beim Nachfordern erscheint jetzt statt eines Browser-Eingabefensters eine eigene
+  Bildschirmtastatur (deutsche QWERTZ-Anordnung) direkt im Display, mit Abbrechen/Senden –
+  passend zum Funkgerät-Look. Andere Meldungen (Lagemeldung OrgL/LNA) nutzen weiterhin das
+  normale Eingabefenster, wie gewünscht nur beim Nachfordern die neue Tastatur.
+- Mit Playwright geprüft: alle erlaubten Statustasten korrekt beschriftet, gesperrte Tasten
+  ausgegraut, Bildschirmtastatur erscheint korrekt beim Nachfordern und Texteingabe
+  funktioniert.
+- JavaScript-Syntax geprüft.
+
+Version 3.55:
+- Nachbar-Fahrzeuge gelten jetzt auch bei Status 2 (Frei auf Wache) als einsatzbereit, nicht
+  mehr nur bei Status 1 (Frei über Funk) – konsistent zur bestehenden Regel für eigene
+  Fahrzeuge, die ebenfalls beide Status als "frei" behandelt. Betrifft:
+  - die automatische 20-km-Vorschlagslogik (nearestNeighborUnit)
+  - die Fahrzeugliste im Alarmieren-Dialog nach einer GOL-/Ostfriesland-Anfrage
+  - den "🚨 Alarmieren"-Button direkt in der Nachbar-LKs-Übersicht
+  - die Prüfung beim tatsächlichen Alarmieren (alarmNeighborUnit)
+- Mit Playwright geprüft: ein auf Status 2 gesetztes Nachbar-Fahrzeug wird jetzt korrekt
+  vorgeschlagen und lässt sich auch erfolgreich alarmieren.
+- JavaScript-Syntax geprüft.
+
+Version 3.56:
+- Neue Organisation "DRK" ergänzt: DRK Kreisverband Varel - Friesische Wehde e.V., Bereitschaft
+  Varel, Emil-Heeder-Straße 18, 26316 Varel (Koordinate exakt aus der Wachen-Datenbank
+  übernommen). Die Schnelleinsatzgruppe (SEG) ist 1991 aus dem früheren Sanitätszug 50
+  hervorgegangen und deckt laut Kreisverband Hintergrund-Rettungsdienst, Sanitätsdienst,
+  Großschadenslagen, Katastrophenschutz/SEG und Medical Task Force 6 ab.
+  Fahrzeuge (alle Quelle bos-fahrzeuge.info):
+  - Rotkreuz Friesland 42/11-01 (ELW1, Führung SEG)
+  - Rotkreuz Friesland 42/17-01 + 42/17-02 (je MTW, Mannschaftstransport)
+  - Rotkreuz Friesland 42/59-01 (GW-SEG, Sanitäts-/Betreuungsdienst)
+  - Rotkreuz Friesland 42/83-01 (RTW, Hintergrund-Rettungsdienst)
+  - Rotkreuz Friesland 48/96-01 (GW-San, Sanitätsdienst)
+- DRK überall dort ergänzt, wo Organisationen aufgezählt werden: Kartendarstellung
+  (Wachen-Marker, eigenes Symbol ✚, eigene Farbe), Mittelübersicht-Sortierung,
+  Status-Einschränkung (wie Feuerwehr/THW/DLRG kein Status 7/8, da keine Rettungswagenrolle
+  im engeren Sinne außer dem einen Hintergrund-RTW), und die Katastrophenschutz-Funkrufgruppe
+  (K Fri) im Dashboard.
+  Hinweis: Es gibt laut Wachen-Datenbank noch eine zweite DRK-Bereitschaft ("Friesische
+  Wehde", vermutlich Zetel) – bisher nicht mit aufgenommen, gerne auf Zuruf ergänzen.
+- Mit Playwright geprüft: alle 6 Fahrzeuge laden korrekt, lösen auf die exakte Adresse auf,
+  erscheinen korrekt im Sprechwunsch/Funkrufgruppen-Feld, bestehende Installationen bekommen
+  sie sauber nachgezogen.
+- JavaScript-Syntax geprüft.
+
+Version 3.57:
+- DRK Kreisverband Jeverland e.V., Bereitschaft Jever ergänzt (Schützenhofstraße 42a, 26441
+  Jever). Wichtiger fachlicher Hinweis umgesetzt: Jeverland hat keine eigenen RTW – der
+  Notfallkrankentransportwagen (N-KTW) ist aber wie ein vollwertiger RTW ausgestattet und
+  besetzt und wird daher bewusst als Typ "RTW" geführt statt als NKTW:
+  - Rotkreuz Friesland 41/16-01 + 41/17-01 (je MTW)
+  - Rotkreuz Friesland 41/19-01 (ELW1)
+  - Rotkreuz Friesland 41/69-01 (Küchenwagen – Verpflegung/Betreuung)
+  - Rotkreuz Friesland 41/74-01 (GW-Betreuung)
+  - Rotkreuz Friesland 41/93-01 (N-KTW, geführt als RTW)
+  Die zweite Bereitschaft "Friesische Wehde" (vermutlich Zetel) wurde auf Rückmeldung bewusst
+  nicht ergänzt.
+- Status 7/8 (Patient aufgenommen / bedingt verfügbar) beim DRK jetzt korrekt nur für das als
+  RTW geführte Fahrzeug freigegeben, alle anderen DRK-Fahrzeugtypen bleiben wie
+  Feuerwehr/THW/DLRG auf Status 0–6 beschränkt.
+- DRK ist ehrenamtlich organisiert: deutlich längere Ausrückezeit eingebaut (12 statt 2 Minuten
+  Rüstzeit), wirkt sich sowohl auf die Zeit bis Status 3 als auch bis Status 4 aus.
+- Bestätigt: DRK wird nie für normale Rettungsdienst-Einsätze vorgeschlagen (alle bestehenden
+  RTW-Anforderungen sind fest auf die Organisation "Rettungsdienst" beschränkt).
+- NEU: Bei einem Feuer mit mehr als 2 Feuerwehr-Fahrzeugen und OHNE verletzte/gefährdete
+  Personen wird automatisch ein DRK-Fahrzeug (Küchenwagen oder GW-Betreuung) für Verpflegung/
+  Betreuung der Einsatzkräfte hinzugezogen – sowohl bei der Erstalarmierung als auch bei
+  späterer Nachforderung weiterer Feuerwehr-Fahrzeuge.
+- Mit Playwright geprüft: N-KTW hat vollen Status-Bereich 0–8, andere DRK-Typen bleiben auf
+  0–6 beschränkt; DRK-ETA (15 Min. inkl. Ausrückezeit) deutlich länger als hauptamtlicher
+  Rettungsdienst (3 Min.) bei gleichem Standort; normale Medizinische Notfälle schlagen
+  ausschließlich Rettungsdienst vor; ein Feuer mit 3 Feuerwehr-Fahrzeugen ohne Verletzte zieht
+  automatisch den DRK-Küchenwagen hinzu.
+- JavaScript-Syntax geprüft.
