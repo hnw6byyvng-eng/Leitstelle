@@ -954,3 +954,16 @@ Version 3.48:
   die quadratischen Kacheln verteilen sich mit wachsenden Abständen gleichmäßig bis ganz nach
   unten, statt oben zusammengedrängt zu bleiben.
 - JavaScript-Syntax geprüft.
+
+Version 3.49:
+- Bereiche-Kacheln füllen jetzt exakt die Bildschirmhöhe aus, ohne dass man scrollen muss, um
+  alle 8 zu sehen: Kachelgröße wird jetzt aus der tatsächlichen Fensterhöhe berechnet statt aus
+  der Spaltenbreite, mit knapp bemessenem Rand, damit nichts über den unteren Bildschirmrand
+  hinausragt.
+- Zusätzlich macht das die Bereiche-Spalte jetzt "sticky": sie bleibt beim Scrollen langer
+  Seiten (z. B. der Rettungsmittel-Liste) an Ort und Stelle stehen, statt mit nach oben aus dem
+  Bild zu scrollen – die Kacheln sind dadurch von jeder Bildlaufposition aus erreichbar, ohne
+  selbst jemals gescrollt werden zu müssen.
+- Mit Playwright bei mehreren Bildschirmhöhen (700/900/1200px) geprüft: Kachel-Kasten ragt nie
+  über den unteren Rand hinaus, bleibt beim Scrollen der Hauptseite exakt an Position stehen.
+- JavaScript-Syntax geprüft.
