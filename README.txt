@@ -979,3 +979,12 @@ Version 3.50:
 - Mit Playwright geprüft: Kacheln exakt quadratisch (116×116px bei Testbreite), keine
   Überschrift mehr vorhanden, Spalte 150px breit, kein internes Scrollen nötig.
 - JavaScript-Syntax geprüft.
+
+Version 3.51:
+- Bereiche-Kacheln exakt auf 95x95px festgelegt (vorher an der Spaltenbreite orientiert und
+  dadurch leicht ungenau) – inklusive Fix für ein Flexbox-Schrumpfen, das die Höhe sonst auf
+  ca. 91,6px statt 95px zusammengedrückt hätte.
+- Alle Kacheln zeigen jetzt nur noch das Symbol, keinen Text mehr – außer "AAO": dort steht
+  bewusst nur die Schrift "AAO" ohne Symbol, wie gewünscht.
+- Mit Playwright geprüft: alle 8 Kacheln exakt 95×95px, AAO korrekt textbasiert statt mit Symbol.
+- JavaScript-Syntax geprüft.
