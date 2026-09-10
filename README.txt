@@ -1148,3 +1148,34 @@ Version 3.62:
     Kopfbereich gedacht) auf "default" (dunkle Schrift) geändert, da der obere Bereich der App
     jetzt hell ist – sonst wäre die Uhrzeit/Akkuanzeige in der Statusleiste kaum lesbar gewesen.
 - JavaScript- und Manifest-JSON-Syntax geprüft.
+
+Version 3.63:
+- Bug behoben: Die Tag/Nacht-Dienstplan-Automatik (betrifft die 6 Reserve-Fahrzeuge
+  81-83-02, 82-83-02, 81-93-01, 82-93-01, 84-93-01, 87-83-02) hat bisher jede Sekunde auch
+  einen manuell gesetzten Status "2" (Frei auf Wache) sofort wieder auf den planmäßigen Status
+  "1" zurückgesetzt. Dadurch konnte es so wirken, als würde beim Setzen eines Fahrzeugs auf
+  Status 2 "wie von selbst" wieder ein Fahrzeug auf Status 1 springen. Die Automatik greift
+  jetzt nur noch beim automatischen Wechsel zwischen "1" (im Dienst) und "6" (außer Dienst) –
+  ein manuell gesetztes Status 2 bleibt jetzt zuverlässig stehen.
+- Mit Playwright geprüft: manuelles Setzen auf Status 2 übersteht jetzt einen
+  Dienstplan-Durchlauf unverändert; der automatische 1/6-Wechsel funktioniert weiterhin normal.
+- JavaScript-Syntax geprüft.
+
+Version 3.64:
+- NEU: Bei jedem (Neu-)Start der Leitstellen-Seite gehen jetzt alle eigenen Fahrzeuge
+  automatisch auf Status 2 (Frei auf Wache) zurück – außer Fahrzeuge, die gerade auf Status 6
+  (Nicht einsatzbereit) stehen, die bleiben bewusst außer Dienst. Damit startet jede
+  Übungssitzung mit einem sauberen, einheitlichen Ausgangszustand.
+  Wichtiger Hinweis: Bei mehreren gleichzeitig verbundenen Geräten (Cloud-Sync aktiv) setzt ein
+  Neuladen der Leitstellen-Seite auch Fahrzeuge zurück, deren Besatzung gerade unterwegs ist
+  (z. B. Status 3/4) – das ist bewusst so gewünscht, sollte während einer laufenden Übung mit
+  mehreren Geräten aber beachtet werden.
+- NEU: Status 6 (Nicht einsatzbereit) kann eine Fahrzeugbesatzung ab sofort nicht mehr selbst
+  über ihr eigenes Fahrzeugterminal setzen – die Taste "6" ist dort ausgegraut und deaktiviert
+  (zeigt aber weiterhin rot hervorgehoben an, falls das Fahrzeug gerade auf Status 6 steht).
+  Nur die Leitstelle (über die Rettungsmittelübersicht) sowie die Tag/Nacht-Zeitautomatik für
+  bestimmte Reservefahrzeuge dürfen Status 6 weiterhin setzen.
+- Mit Playwright geprüft: bei simuliertem Neustart mit vorbestehenden Fahrzeugstatus (3, 6, 2,
+  0) gehen alle außer dem Status-6-Fahrzeug korrekt auf Status 2; die Status-6-Taste im
+  Fahrzeugterminal ist nachweislich deaktiviert und nicht klickbar.
+- JavaScript-Syntax geprüft.
