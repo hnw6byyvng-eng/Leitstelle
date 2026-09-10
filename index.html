@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#e30613">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="JET Leitstelle">
 <meta name="mobile-web-app-capable" content="yes">
 <title>DLRG JET Rettungsleitstelle</title>
@@ -84,7 +84,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.59</span>
+ <span id="versionTag">v3.62</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
@@ -1397,7 +1397,7 @@ function dashboard(){
   </div>`:""}
  <div class="grid">
  <section>
-  <div class="card"><div class="row between"><div><h2>🖥️ Leitstelle</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">＋ Neuer Notruf</button></div>
+  <div class="card"><div class="row between"><div><h2>🖥️ Leitstelle</h2><div class="muted">Mehrere Übungseinsätze können parallel geführt werden.</div></div><button class="primary" onclick="newCall()">📞 Notruf annehmen</button></div>
    ${hasAlarmed?`<div class="row" style="margin-top:10px;flex-wrap:wrap">
      <button onclick="openExternalRequest('polizei')">👮 Polizeileitstelle</button>
      <button onclick="openExternalRequest('gol')">📠 LST GOL</button>
@@ -2276,14 +2276,31 @@ function playAlarmTone(){
 function vibrateAlarm(){
  if(navigator.vibrate)navigator.vibrate([500,200,500,200,500,200,500]);
 }
+async function showVehicleNotification(call){
+ // Echte Push-Zustellung bei komplett geschlossenem Tab würde einen eigenen Server (VAPID/Push-
+ // Dienst) brauchen, den diese reine Webseite nicht hat. Diese Benachrichtigung erscheint aber
+ // bereits zuverlässig auf System-Ebene (auch wenn die Seite nur im Hintergrund läuft, nicht
+ // aktiv sichtbar ist), solange der Tab noch geöffnet/geladen ist – wie ein Meldeempfänger.
+ try{
+   if(!("Notification" in window) || Notification.permission!=="granted")return;
+   const title="🚨 Neuer Einsatz";
+   const body=`${call?.keyword||"Einsatz"} – ${call?.location||"Ort unbekannt"}`;
+   if(navigator.serviceWorker){
+     const reg=await navigator.serviceWorker.ready.catch(()=>null);
+     if(reg){reg.showNotification(title,{body,tag:"dlrg-jet-alarm",renotify:true,vibrate:[500,200,500,200,500,200,500],icon:"icon-192.png"});return}
+   }
+   new Notification(title,{body});
+ }catch(e){console.warn("Benachrichtigung fehlgeschlagen",e)}
+}
 function unlockVehicleAudio(){
  try{
    if(!vehicleAudioCtx)vehicleAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
    if(vehicleAudioCtx.state==="suspended")vehicleAudioCtx.resume();
  }catch(e){}
+ if("Notification" in window && Notification.permission==="default")Notification.requestPermission();
  playAlarmTone();
  vibrateAlarm();
- toast("Alarmton aktiviert – bei neuem Einsatz ertönt er automatisch");
+ toast("Alarmton & Benachrichtigung aktiviert – bei neuem Einsatz ertönt/erscheint automatisch");
 }
 function toggleVehicleGeo(unitId,dburl,sid){
  if(vehicleGeoWatchId){
@@ -2384,7 +2401,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    </div>
    <div class="radio-screen" id="vehicleBody"><p class="muted">Alarmdaten werden geladen …</p></div>
    <div class="radio-softkeys">
-     <button onclick="unlockVehicleAudio()">🔔 TON</button>
+     <button onclick="unlockVehicleAudio()">🔔 ALARM AN</button>
      <button onclick="toggleVehicleGeo('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">${vehicleGeoWatchId?"📍 GPS AUS":"📍 GPS AN"}</button>
      <button onclick="toast('🔄 Aktualisiere…')">🔄 REFRESH</button>
    </div>
@@ -2409,7 +2426,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    const newIds=new Set(calls.map(c=>String(c.id)));
    if(vehicleKnownCallIds!==null){
      const brandNew=[...newIds].some(id=>!vehicleKnownCallIds.has(id));
-     if(brandNew){playAlarmTone();vibrateAlarm()}
+     if(brandNew){playAlarmTone();vibrateAlarm();showVehicleNotification(calls.find(c=>!vehicleKnownCallIds.has(String(c.id))))}
    }
    vehicleKnownCallIds=newIds;
    const remoteIvena=await vehicleFetch(dburl,sid,"ivena");

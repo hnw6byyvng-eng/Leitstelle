@@ -1105,3 +1105,46 @@ Version 3.59:
 - Mit Playwright geprüft: Tasten erscheinen korrekt mit den passenden Statuswerten, aktueller
   Status ist visuell hervorgehoben.
 - JavaScript-Syntax geprüft.
+
+Version 3.60:
+- Meldeempfänger-ähnliche Benachrichtigung ergänzt: Wenn ein Fahrzeug einen neuen Einsatz
+  zugewiesen bekommt, erscheint jetzt zusätzlich zum Alarmton/Vibration eine System-
+  Benachrichtigung mit Einsatzstichwort und Ort ("🚨 Neuer Einsatz – ..."), die auch erscheint,
+  wenn die Terminal-Seite gerade im Hintergrund läuft (Tab nicht aktiv sichtbar), solange sie
+  noch geladen ist.
+- Softkey "🔔 TON" heißt jetzt "🔔 ALARM AN" und fragt beim ersten Antippen zusätzlich die
+  Benachrichtigungs-Berechtigung des Browsers ab.
+- Service Worker (sw.js) um einen Klick-Handler für die Benachrichtigung ergänzt: Antippen holt
+  die App wieder in den Vordergrund bzw. öffnet sie neu.
+- WICHTIGER HINWEIS (wie mit dem Nutzer besprochen): Das ist keine echte Push-Zustellung bei
+  vollständig geschlossenem Tab/Browser – dafür bräuchte es einen eigenen Push-Server (z. B.
+  mit VAPID-Schlüsseln), den diese reine, serverlose Webseite nicht hat. Die Benachrichtigung
+  funktioniert zuverlässig, solange die Seite geladen ist (auch im Hintergrund), passend zur
+  bereits bestehenden Einschränkung bei Alarmton/Vibration/GPS im Hintergrundbetrieb.
+- Mit Playwright geprüft: Benachrichtigungsfunktion erzeugt korrekten Titel/Text und fällt
+  sauber zurück, falls kein Service Worker verfügbar ist.
+- JavaScript-Syntax geprüft (index.html und sw.js).
+
+Version 3.61:
+- Button "＋ Neuer Notruf" auf der Startseite umbenannt in "📞 Notruf annehmen" (passend zur
+  bereits an anderer Stelle vorhandenen Bezeichnung).
+- App-Icon (icon-192.png, icon-512.png) überarbeitet: nur noch das Leitstellen-Symbol,
+  vollflächig rot hinterlegt, ohne Schriftzug und ohne sichtbaren schwarzen Rand. Der bisherige
+  schwarze Rahmen und "LEITSTELLE"-Schriftzug wurden entfernt – wichtig besonders für Apple/iOS,
+  da dort automatisch eine eigene Eckenrundung/Maskierung über das Icon gelegt wird und ein
+  eingebauter Rand darunter unschön hervorgeschaut hätte.
+- JavaScript-Syntax geprüft.
+
+Version 3.62:
+- Geprüft: Die App war technisch bereits vollständig als installierbare PWA eingerichtet
+  (manifest.json mit "display": "standalone", Apple-Meta-Tags für "Zum Home-Bildschirm
+  hinzufügen", eigenes Icon) – startet beim Installieren auf dem Handy bereits ohne
+  Browser-Leiste wie eine echte App.
+- Farben an das neue rote Icon/Design angepasst, die noch vom alten dunklen Kopfbalken stammten:
+  - theme-color (Statusleisten-/Browserfarbe) von Dunkelblau auf Rot (#e30613) geändert
+  - Splash-Screen-Hintergrund (background_color) auf das helle App-Grau (#eef2f6) geändert,
+    passend zum jetzt hellen Seitenhintergrund
+  - iOS-Statusleisten-Stil von "black-translucent" (weiße Schrift, für den früheren dunklen
+    Kopfbereich gedacht) auf "default" (dunkle Schrift) geändert, da der obere Bereich der App
+    jetzt hell ist – sonst wäre die Uhrzeit/Akkuanzeige in der Statusleiste kaum lesbar gewesen.
+- JavaScript- und Manifest-JSON-Syntax geprüft.
