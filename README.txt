@@ -1179,3 +1179,31 @@ Version 3.64:
   0) gehen alle außer dem Status-6-Fahrzeug korrekt auf Status 2; die Status-6-Taste im
   Fahrzeugterminal ist nachweislich deaktiviert und nicht klickbar.
 - JavaScript-Syntax geprüft.
+
+Version 3.65:
+- NEU: Szenario-Auswahl beim Start. Vor dem eigentlichen Programmstart wählt man jetzt
+  zwischen drei komplett getrennten Übungsszenarien, jedes mit eigenem gespeicherten
+  Fortschritt (eigener Speicher-Schlüssel, keine Vermischung):
+  - "Friesland / Wilhelmshaven" – die bisherige, vollständige Leitstelle (unverändert)
+  - "Übung Bremen" – vereinfachter Fuhrpark: RTW 1–10, NEF 1–3, ein OrgL, eine LNA. Dazu alle
+    10 echten Krankenhäuser der Stadt Bremen mit ihren tatsächlichen Fachabteilungen (Quelle:
+    krankenhauswegweiser.bremen.de, offizieller Wegweiser des Landes Bremen): Klinikum
+    Bremen-Mitte, -Ost, -Nord, Links der Weser, Rotes-Kreuz-Krankenhaus, Roland-Klinik,
+    AMEOS-Klinikum Dr. Heines, Paracelsus-Klinik, St. Joseph-Stift, DIAKO.
+  - "Übung 2" – generischer Fuhrpark ohne reale Vorbilder: 4 RTW, 10 Feuerwehrfahrzeuge (LF),
+    3 DLRG-Fahrzeuge, 2 NEF, dazu drei einfache Kliniken KH1–KH3.
+  Über den neuen Link "🔀 Szenario wechseln" oben links kommt man jederzeit zurück zur Auswahl.
+  Die komplette übrige Programmlogik (Notrufabfrage, AAO, IVENA, Karte, Fahrzeugterminal usw.)
+  ist unverändert dieselbe und wird von allen drei Szenarien gemeinsam genutzt.
+- Hinweis: Bei "Übung Bremen" und "Übung 2" gibt es bewusst keine adressgenauen Kartenkoordinaten
+  wie in Friesland – die Fahrzeuge nutzen eine gemeinsame, grobe Ortsangabe.
+- Mit Playwright ausführlich geprüft: alle drei Szenarien laden mit der korrekten Fahrzeug- und
+  Klinikanzahl, sind vollständig voneinander getrennt (ein Statuswechsel in einem Szenario
+  taucht nicht im anderen auf), Statusänderungen bleiben pro Szenario dauerhaft gespeichert,
+  alle Seiten laufen in allen drei Szenarien fehlerfrei, und der Szenario-Wechsel-Link
+  funktioniert zuverlässig.
+- Beim Bauen einen eigenen Fehler gemacht und korrigiert: ein erster Ansatz hätte durch
+  Block-Verschachtelung sämtliche Klick-Schaltflächen der App unbrauchbar gemacht – vor dem
+  Ausliefern bemerkt und durch einen saubereren Ansatz ersetzt, der die bestehende
+  Programmstruktur nicht antastet.
+- JavaScript-Syntax geprüft.

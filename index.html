@@ -84,13 +84,13 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.64</span>
+ <span id="versionTag">v3.65</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
+ <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
-const KEY="dlrg-jet-v3-2";
-const defaults={
+const DEFAULTS_FRI_WHV={
  units:[
   
   {id:1,name:"72-58-01",opta:"Pelikan Friesland 72-58-01",type:"GW Wasserrettung",org:"DLRG",location:"Varel",status:"1",crew:"2",skills:"Wasserrettungsgruppe-S (Wasserrettungszug Friesland) – Strömungsretter",verified:"Nutzerangabe"},
@@ -246,7 +246,77 @@ const defaults={
   {id:12,name:"50-83-01",opta:"Akkon Wesermarsch 50/83-01",type:"RTW",district:"Wesermarsch",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge",address:"Niedernstraße 9, 26936 Stadland (Rettungswache Schweierfeld)",lat:53.3992716629704,lng:8.386263932540885}
  ]
 };
-let db=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem("dlrg-jet-v3-0-1")||localStorage.getItem("dlrg-jet-v3-0")||localStorage.getItem("dlrg-jet-v2-8")||localStorage.getItem("dlrg-jet-v2-7")||localStorage.getItem("dlrg-jet-v2-6")||localStorage.getItem("dlrg-jet-v2-5")||localStorage.getItem("dlrg-jet-v2-4")||"null")||defaults;
+
+// Szenario "Übung Bremen": vereinfachter Fuhrpark (nur RTW/NEF/OrgL/LNA) plus die echten
+// Krankenhäuser der Stadt Bremen mit ihren tatsächlichen Fachabteilungen (Quelle:
+// krankenhauswegweiser.bremen.de, offizieller Wegweiser des Landes Bremen). Adressen sind
+// vorhanden, aber ohne Einzel-Geokoordinaten – diese Übung nutzt eine gemeinsame,
+// grobe Bremen-Koordinate statt der adressgenauen Präzision der Friesland-Wachen.
+const DEFAULTS_BREMEN={
+ units:(()=>{
+   const list=[];
+   for(let i=1;i<=10;i++)list.push({id:1000+i,name:`RTW ${i}`,opta:`RTW ${i}`,type:"RTW",org:"Rettungsdienst",location:"Bremen",status:"1",crew:"2",skills:"Notfallrettung",verified:"Nutzerangabe"});
+   for(let i=1;i<=3;i++)list.push({id:1100+i,name:`NEF ${i}`,opta:`NEF ${i}`,type:"NEF",org:"Rettungsdienst",location:"Bremen",status:"1",crew:"2",skills:"Notarzt",verified:"Nutzerangabe"});
+   list.push({id:1201,name:"OrgL",opta:"OrgL",type:"OrgL/LNA",org:"Rettungsdienst",location:"Bremen",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst",verified:"Nutzerangabe"});
+   list.push({id:1202,name:"LNA",opta:"LNA",type:"OrgL/LNA",org:"Rettungsdienst",location:"Bremen",status:"1",crew:"1",skills:"Leitender Notarzt",verified:"Nutzerangabe"});
+   return list;
+ })(),
+ aao:DEFAULTS_FRI_WHV.aao,
+ ivena:[
+  {id:1,name:"Klinikum Bremen-Mitte",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Allgem. Chirurgie","Unfallchirurgie","Pädiatrie","Kinderchirurgie","Neurochirurgie","MKG-Chirurgie","Augenheilkunde","HNO-Heilkunde","Dermatologie","Strahlenheilkunde","Nuklearmedizin","Urologie","Neurologie","Gynäkologie/Geburtshilfe","Schockraum","Intensivmedizin"]},
+  {id:2,name:"Klinikum Bremen-Ost",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Chirurgie","Pneumologie","Neurologie","Geriatrie","Psychiatrie","Psychosomatik/Psychotherapie"]},
+  {id:3,name:"Klinikum Bremen-Nord",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Allgem. Chirurgie","Unfallchirurgie","Pädiatrie","Geriatrie","Psychiatrie","Gynäkologie/Geburtshilfe"]},
+  {id:4,name:"Klinikum Links der Weser",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Kardiologie","Allgem. Chirurgie","Herzchirurgie","Pädiatrie","Gynäkologie/Geburtshilfe","Schockraum","Intensivmedizin"]},
+  {id:5,name:"Rotes-Kreuz-Krankenhaus Bremen",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Kardiologie","Allgemeine Chirurgie","Rheumachirurgie","Gefäßchirurgie","Rheumatologie"]},
+  {id:6,name:"Roland-Klinik",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Orthopädie","Handchirurgie"]},
+  {id:7,name:"AMEOS-Klinikum Dr. Heines Bremen",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Psychiatrie"]},
+  {id:8,name:"Paracelsus-Klinik Bremen",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Orthopädie","Neurochirurgie","Neurologie"]},
+  {id:9,name:"Krankenhaus St. Joseph-Stift",place:"Bremen",area:"Bremen",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Chirurgie","Geriatrie","Augenheilkunde","HNO-Heilkunde","Gynäkologie/Geburtshilfe"]},
+  {id:10,name:"DIAKO Ev. Diakonie-Krankenhaus",place:"Bremen",area:"Bremen",status:"grün",note:"Zertifiziertes lokales Traumazentrum",closures:[],fachrichtungen:["Innere Medizin","Chirurgie","Unfallchirurgie","Gynäkologie/Geburtshilfe","Schockraum"]}
+ ],
+ neighborUnits:[]
+};
+
+// Szenario "Übung 2": bewusst einfacher, generischer Fuhrpark ohne reale Vorbilder, für freie
+// Übungsgestaltung.
+const DEFAULTS_UEBUNG2={
+ units:(()=>{
+   const list=[];
+   for(let i=1;i<=4;i++)list.push({id:2000+i,name:`RTW ${i}`,opta:`RTW ${i}`,type:"RTW",org:"Rettungsdienst",location:"Übungsort",status:"1",crew:"2",skills:"Notfallrettung",verified:"Nutzerangabe"});
+   for(let i=1;i<=10;i++)list.push({id:2100+i,name:`Feuerwehr ${i}`,opta:`Feuerwehr ${i}`,type:"LF",org:"Feuerwehr",location:"Übungsort",status:"1",crew:"6",skills:"Brandbekämpfung, Technische Hilfeleistung",verified:"Nutzerangabe"});
+   for(let i=1;i<=3;i++)list.push({id:2200+i,name:`DLRG ${i}`,opta:`DLRG ${i}`,type:"RTB",org:"DLRG",location:"Übungsort",status:"1",crew:"2",skills:"Wasserrettung",verified:"Nutzerangabe"});
+   for(let i=1;i<=2;i++)list.push({id:2300+i,name:`NEF ${i}`,opta:`NEF ${i}`,type:"NEF",org:"Rettungsdienst",location:"Übungsort",status:"1",crew:"2",skills:"Notarzt",verified:"Nutzerangabe"});
+   return list;
+ })(),
+ aao:DEFAULTS_FRI_WHV.aao,
+ ivena:[
+  {id:1,name:"KH1",place:"Übungsort",area:"Übungsort",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Chirurgie","Schockraum"]},
+  {id:2,name:"KH2",place:"Übungsort",area:"Übungsort",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Chirurgie","Pädiatrie"]},
+  {id:3,name:"KH3",place:"Übungsort",area:"Übungsort",status:"grün",note:"",closures:[],fachrichtungen:["Innere Medizin","Chirurgie","Gynäkologie/Geburtshilfe"]}
+ ],
+ neighborUnits:[]
+};
+const SCENARIOS={
+ "fri-whv":{label:"Friesland / Wilhelmshaven",storageKey:"dlrg-jet-v3-2",defaults:DEFAULTS_FRI_WHV},
+ "bremen":{label:"Übung Bremen",storageKey:"dlrg-jet-v3-2-bremen",defaults:DEFAULTS_BREMEN},
+ "uebung2":{label:"Übung 2",storageKey:"dlrg-jet-v3-2-uebung2",defaults:DEFAULTS_UEBUNG2}
+};
+function chooseScenario(id){
+ localStorage.setItem("dlrg-jet-scenario",id);
+ location.reload();
+}
+let currentScenarioId=localStorage.getItem("dlrg-jet-scenario");
+if(!currentScenarioId||!SCENARIOS[currentScenarioId]){
+ document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:40px auto">
+  <h2>Szenario wählen</h2>
+  <p class="muted">Wähle, mit welchem Übungsszenario die Leitstelle starten soll. Jedes Szenario speichert seinen Fortschritt getrennt und kann jederzeit über den Link oben links gewechselt werden.</p>
+  ${Object.entries(SCENARIOS).map(([id,s])=>`<button class="primary" style="width:100%;margin-top:10px;text-align:left;padding:16px" onclick="chooseScenario('${id}')">${s.label}</button>`).join("")}
+ </div>`;
+ throw new Error("Warte auf Szenario-Auswahl");
+}
+const defaults=SCENARIOS[currentScenarioId].defaults;
+const KEY=SCENARIOS[currentScenarioId].storageKey;
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
 if(!Array.isArray(db.units))db.units=[];
 // Fahrzeuge, die in früheren Versionen mit erfundener OPTA-Nummer ausgeliefert wurden
 // und inzwischen bewusst zurückgezogen wurden – bei bereits laufenden Installationen
