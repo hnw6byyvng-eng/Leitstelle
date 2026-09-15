@@ -1270,3 +1270,39 @@ Version 3.69:
 - Mit Playwright geprüft: Schnellauswahl-Buttons erscheinen korrekt bei der Personenzahl,
   Klick auf "2" wird korrekt übernommen, die Altersfrage zeigt die Buttons zu Recht nicht.
 - JavaScript-Syntax geprüft.
+
+Version 3.70:
+- Ursache für die fehlerhafte Wassererkennung im Jadebusen gefunden: Große Buchten wie der
+  Jadebusen sind in OpenStreetMap gar nicht als durchsuchbare "Wasser"-Fläche erfasst (nur die
+  Küstenlinie selbst) – Nominatim liefert für einen Punkt mitten im Jadebusen deshalb einfach
+  die nächstgelegene Gemeinde (z. B. Varel) zurück, was für die bisherige Erkennung wie ein
+  normaler Landort aussah.
+- Behoben durch eine zusätzliche direkte geografische Prüfung anhand der bekannten groben
+  Ausdehnung des Jadebusens (ungefähr Wilhelmshaven im Norden, Dangast im Süden, Sande im
+  Westen, Butjadingen im Osten) – unabhängig davon, was Nominatim zurückliefert. Diese Prüfung
+  läuft zusätzlich zur bisherigen Nominatim-Klassifizierung (Nordsee, Wattenmeer, "natural=water"
+  usw.), die für andere Gewässer weiterhin genutzt wird.
+- Mit Playwright an sechs Referenzpunkten geprüft: Jadebusen-Mitte und Dangast-Küste korrekt
+  als Wasser erkannt; die Ortszentren von Varel, Jever, Wilhelmshaven und Sande korrekt weiterhin
+  als Land erkannt (nicht fälschlich als Wasser markiert). Kompletter Regressionstest über alle
+  drei Szenarien weiterhin fehlerfrei.
+- Da es sich um eine grobe rechteckige Annäherung an die tatsächliche Buchtform handelt, kann es
+  an einzelnen Rändern (z. B. ganz am Wilhelmshavener Hafenbereich) noch zu Ungenauigkeiten
+  kommen – gerne bei weiteren Fällen melden.
+- JavaScript-Syntax geprüft.
+
+Version 3.71:
+- Wassererkennung für den Jadebusen von einer groben rechteckigen Annäherung auf einen echten
+  Punkt-in-Polygon-Test umgestellt: der Umriss folgt jetzt einem 13-Punkte-Vieleck entlang
+  bekannter Küstenpunkte (Wilhelmshaven, Sande/Accumersiel, Dangast, Eckwarderhörne/Butjadingen)
+  statt eines einfachen Rechtecks. Kein amtliches Vermessungspolygon (das gibt es für den
+  Jadebusen als durchsuchbare Fläche in OpenStreetMap nicht), aber deutlich genauer als zuvor.
+- Dabei einen eigenen Fehler gefunden und behoben: die erste Polygon-Fassung hätte das
+  Stadtzentrum von Wilhelmshaven fälschlich als Wasser erkannt, weil die Kontur dort zu grob
+  über die Stadt hinweg verlief. Mit einem zusätzlichen Stützpunkt entlang der eigentlichen
+  Uferlinie korrigiert.
+- Mit Playwright an acht Referenzpunkten geprüft: Jadebusen-Mitte, Dangast-Küste und offene
+  Bucht bei Arngast korrekt als Wasser; die Ortszentren Varel, Jever, Wilhelmshaven, Sande und
+  Bockhorn korrekt weiterhin als Land. Kompletter Regressionstest über alle drei Szenarien
+  weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.
