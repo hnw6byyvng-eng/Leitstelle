@@ -1235,3 +1235,38 @@ Version 3.67:
   korrekt nur bei Friesland/Wilhelmshaven vorhanden; "Realistisch" hat in 30 Testläufen kein
   einziges Mal einem nicht-automatikgesteuerten Fahrzeug Status 6 zugewiesen.
 - JavaScript-Syntax geprüft.
+
+Version 3.68:
+- "Boot in Notlage" und "Tier im Wasser" als eigene Notruf-Ereignisse entfernt.
+- "Boot in Notlage" ist jetzt kein eigenes Ereignis mehr, sondern wird automatisch erkannt:
+  Bei einem Verkehrsunfall wird anhand der exakten Kartenposition (Adresssuche oder Kartenklick,
+  über die von Nominatim gelieferte Klassifizierung wie "natural=water", "waterway" oder
+  Ortsnamen wie Nordsee/Wattenmeer/Jadebusen) automatisch erkannt, ob sich der Unfallort auf
+  dem Wasser befindet – KEINE zusätzliche Rückfrage. Trifft das zu, wird automatisch das
+  Stichwort "H_Boot im Wasser" mit DLRG-Booten statt der üblichen VU-Fahrzeuge alarmiert. Diese
+  Erkennung läuft an allen Stellen, an denen ein Einsatzort gesetzt wird (Adress-Eingabe,
+  Kartenklick im Notruf-Mini-Fenster, vollständiger Karte-Reiter).
+- "Tier im Wasser" wurde ersatzlos entfernt; ein entsprechender Sachverhalt läuft jetzt über
+  "Sonstiger Notfall".
+- Name, Alter und Geschlecht der betroffenen Person sind jetzt ans Ende der Notrufabfrage
+  verschoben (nach der Gefahren-Frage, kurz vor der Alarmierung).
+- Die Wasser-Frage ("Befindet sich die Person im Wasser?") hat jetzt Ja/Nein/?-Buttons statt
+  Ja/Nein/Unbekannt.
+- Bei "E" (weitere Verletzungen/Umgebungseinflüsse) gibt es jetzt zusätzlich zum Freitextfeld
+  einen "unklar"-Button.
+- Mit Playwright geprüft: normaler VU an Land bleibt unverändert, ein als Wasser erkannter VU
+  liefert korrekt "H_Boot im Wasser" mit DLRG-Booten, die alten Ereignis-Buttons sind
+  verschwunden, die Wassererkennungs-Heuristik unterscheidet Wasser/Land korrekt, "?"- und
+  "unklar"-Buttons erscheinen wie vorgesehen, alle drei Szenarien laufen fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.69:
+- Bei der Frage "Wie viele Personen/Tiere sind betroffen?" gibt es jetzt zusätzlich zum
+  Freitext-/Zahlenfeld zwei eigene Klick-Buttons für "1" und "2" (die häufigsten Fälle),
+  direkt daneben. Die Frage nach dem Alter der Person nutzt technisch denselben Fragetyp,
+  bekommt diese Schnellauswahl aber bewusst nicht.
+- Bestätigt: "Geschlecht der betroffenen Person" stand bereits (seit v3.68) ganz am Ende der
+  Notrufabfrage, zusammen mit Name und Alter – keine weitere Änderung nötig.
+- Mit Playwright geprüft: Schnellauswahl-Buttons erscheinen korrekt bei der Personenzahl,
+  Klick auf "2" wird korrekt übernommen, die Altersfrage zeigt die Buttons zu Recht nicht.
+- JavaScript-Syntax geprüft.

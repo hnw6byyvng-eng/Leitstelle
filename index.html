@@ -84,7 +84,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.67</span>
+ <span id="versionTag">v3.69</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -721,7 +721,7 @@ async function searchMap(){
 function chooseMapResult(i){
   const r=window._mapSearchResults[i];
   const lat=Number(r.lat),lng=Number(r.lon);
-  selectedMapLocation={lat,lng,address:r.display_name};
+  selectedMapLocation={lat,lng,address:r.display_name,isWater:nominatimLooksLikeWater(r)};
   document.getElementById("mapAddress").value=r.display_name;
   document.getElementById("mapCoords").textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   leafletMap.setView([lat,lng],17);
@@ -735,10 +735,10 @@ async function reverseGeocode(lat,lng){
     const res=await fetch(url,{headers:{"Accept":"application/json"}});
     const r=await res.json();
     const address=r.display_name||`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    selectedMapLocation={lat,lng,address};
+    selectedMapLocation={lat,lng,address,isWater:nominatimLooksLikeWater(r)};
     document.getElementById("mapAddress").value=address;
   }catch(e){
-    selectedMapLocation={lat,lng,address:`${lat.toFixed(6)}, ${lng.toFixed(6)}`};
+    selectedMapLocation={lat,lng,address:`${lat.toFixed(6)}, ${lng.toFixed(6)}`,isWater:false};
   }
 }
 
@@ -758,6 +758,7 @@ function applyMapLocation(){
   c.location=address;
   c.answers.location=address;
   if(lat&&lng){c.lat=lat;c.lng=lng}
+  c.locationIsWater=!!selectedMapLocation?.isWater;
   const existing=c.history.find(x=>x.q&&x.q.includes("Wo genau"));
   if(existing) existing.a=address;
   else c.history.unshift({q:"📍 Wo genau ist der Notfallort?",a:address});
@@ -1505,19 +1506,19 @@ const qs=[
  ["count","👥 Wie viele Personen/Tiere sind betroffen?","count"],
  ["trapped","🚗 Ist jemand eingeklemmt oder eingeschlossen?","ynTech"],
  ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
- ["water","🌊 Befindet sich eine Person oder ein Tier im Wasser?","ynWater"],
+ ["water","🌊 Befindet sich die Person im Wasser?","ynQ"],
  ["waterState","🌊 Wie ist der Zustand der Person im Wasser?","waterState"],
  ["personDanger","⚠️ Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
- ["patientName","👤 Name der betroffenen Person (falls bekannt)","text"],
- ["patientAge","🎂 Alter der betroffenen Person","count"],
- ["patientGender","⚧ Geschlecht der betroffenen Person","gender"],
  ["x_massive","X – Gibt es eine kritische / lebensbedrohliche Blutung?","xyn"],
  ["a_airway","A – Ist der Atemweg frei?","xairway"],
  ["b_breath","B – Wie ist die Atmung?","xbreathing"],
  ["c_circ","C – Gibt es Kreislaufprobleme, Schockzeichen oder relevante Blutungen?","xcirc"],
  ["d_disability","D – Wie ist der neurologische Zustand / das Bewusstsein?","xdisability"],
  ["e_exposure","E – Weitere Verletzungen, Erkrankungszeichen oder Umgebungseinflüsse?","textarea"],
- ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"]
+ ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
+ ["patientName","👤 Name der betroffenen Person (falls bekannt)","text"],
+ ["patientAge","🎂 Alter der betroffenen Person","count"],
+ ["patientGender","⚧ Geschlecht der betroffenen Person","gender"]
 ];
 let notrufDetailsVisible=false;
 function toggleNotrufDetails(){notrufDetailsVisible=!notrufDetailsVisible;notruf();}
@@ -1568,7 +1569,6 @@ function needsXABCDE(c=db.currentCall){
  if(["Reanimation","Medizinischer Notfall","Verkehrsunfall"].includes(e))return true;
  if(e==="Person im Wasser" && a.waterState!=="Bergung")return true;
  if(e==="Feuer / Rauchentwicklung" && a.firePeople==="ja")return true;
- if(e==="Boot in Notlage" && a.personDanger==="ja")return true;
  if(["Technische Hilfeleistung","Sonstiger Notfall"].includes(e) && a.personDanger==="ja")return true;
  if(a.personDanger==="ja")return true;
  return false;
@@ -1583,7 +1583,7 @@ function questionHTML(q){
  const c=db.currentCall, e=c?.answers?.event||"";
  const fire=e==="Feuer / Rauchentwicklung";
  const tech=["Verkehrsunfall","Technische Hilfeleistung"].includes(e);
- const water=["Person im Wasser","Tier im Wasser","Boot in Notlage"].includes(e);
+ const water=e==="Person im Wasser";
 
  const skip=(value)=>{
    setTimeout(()=>answer(id,value),0);
@@ -1603,12 +1603,11 @@ function questionHTML(q){
 
  if(type==="ynFire"&&!fire)return skip("nicht zutreffend");
  if(type==="ynTech"&&!tech)return skip("nicht zutreffend");
- if(type==="ynWater"&&!water)return skip("nein");
+ if(id==="water"&&!water)return skip("nein");
  if(type==="waterState"&&e!=="Person im Wasser")return skip("nicht zutreffend");
 
  if(type==="ynPersonDanger"){
    if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return skip("ja");
-   if(e==="Tier im Wasser")return skip("nein");
  }
 
  if(["xyn","xairway","xbreathing","xcirc","xdisability"].includes(type) && !needsXABCDE(c))
@@ -1632,11 +1631,12 @@ function questionHTML(q){
     <div class="row"><input id="ans" type="text" placeholder="…oder Ort manuell eingeben" style="flex:1"><button class="primary" onclick="answer('location',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
  }
  if(type==="text"||type==="count"){
-   return `<label>${label}</label><div class="row"><input id="ans" type="${type==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
+   const quick=id==="count"?`<button onclick="answer('${id}','1')">1</button><button onclick="answer('${id}','2')">2</button>`:"";
+   return `<label>${label}</label><div class="row"><input id="ans" type="${type==="count"?"number":"text"}" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${quick}</div>`;
  }
  if(type==="textarea"){
    const ph=id==="freeText"?"Freie Schilderung des Anrufers, zusätzliche Angaben, Besonderheiten …":"z. B. Verletzungen, Schmerzen, Haut, Temperatur, Unfallmechanismus, Vergiftung …";
-   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button></div>`;
+   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${id==="e_exposure"?`<button onclick="answer('${id}','unklar')">unklar</button>`:""}</div>`;
  }
  if(type==="waterState") return `<label>${label}</label><div class="answer">
    <button onclick="answer('${id}','Lebenszeichen')">🟢 Mit Lebenszeichen (sichtbar/ansprechbar)</button>
@@ -1655,10 +1655,12 @@ function questionHTML(q){
    <button onclick="answer('event','Technische Hilfeleistung')">🛠️ Technische Hilfeleistung</button>
    <button onclick="answer('event','Person im Wasser')">🌊 Person im Wasser</button>
    <button onclick="answer('event','Vermisste Person')">🛸 Vermisste Person (Suche)</button>
-   <button onclick="answer('event','Tier im Wasser')">🐕 Tier im Wasser</button>
-   <button onclick="answer('event','Boot in Notlage')">🚤 Boot in Notlage</button>
    <button onclick="answer('event','Sonstiger Notfall')">❓ Sonstiger Notfall</button>
  </div>`;
+ if(type==="ynQ") return `<label>${label}</label><div class="answer">
+   <button onclick="answer('${id}','Ja')">Ja</button>
+   <button onclick="answer('${id}','Nein')">Nein</button>
+   <button onclick="answer('${id}','?')">?</button></div>`;
  if(type==="xyn") return `<label>${label}</label><div class="answer">
    <button onclick="answer('${id}','Nein')">Nein</button>
    <button onclick="answer('${id}','Ja')">Ja</button>
@@ -1686,6 +1688,21 @@ function questionHTML(q){
  return `<label>${label}</label><div class="answer"><button onclick="answer('${id}','ja')">Ja</button><button onclick="answer('${id}','nein')">Nein</button><button onclick="answer('${id}','unbekannt')">Unbekannt</button></div>`;
 }
 
+// Erkennt automatisch anhand der Nominatim-Antwort (Adresssuche oder Kartenklick), ob der
+// gewählte Einsatzort auf/im Wasser liegt (Nordsee, Wattenmeer, Jadebusen, Kanal usw.) – ohne
+// eigene Rückfrage. Wird u. a. genutzt, um bei einem Verkehrsunfall automatisch zu erkennen,
+// ob es sich eigentlich um ein Boot in Notlage handelt.
+function nominatimLooksLikeWater(r){
+ if(!r)return false;
+ const cls=(r.class||r.category||"").toLowerCase();
+ const typ=(r.type||"").toLowerCase();
+ if(cls==="natural" && ["water","bay","strait","coastline","reef"].includes(typ))return true;
+ if(cls==="place" && ["sea","ocean"].includes(typ))return true;
+ if(cls==="waterway")return true;
+ if(typ==="water")return true;
+ const name=(r.display_name||"").toLowerCase();
+ return /nordsee|wattenmeer|jadebusen|hafenbecken|kanal|wasserstraße|see\b/.test(name);
+}
 async function geocodeIncidentAddress(address){
  if(!address || address.trim().length<3)return false;
  try{
@@ -1696,6 +1713,7 @@ async function geocodeIncidentAddress(address){
      const c=db.currentCall;
      c.lat=Number(rows[0].lat); c.lng=Number(rows[0].lon);
      c.geocodedAddress=rows[0].display_name||address;
+     c.locationIsWater=nominatimLooksLikeWater(rows[0]);
      return true;
    }
  }catch(e){}
@@ -1743,6 +1761,7 @@ async function reverseGeocodeForNotruf(lat,lng){
    const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,{headers:{"Accept":"application/json"}});
    const r=await res.json();
    if(r?.display_name)address=r.display_name;
+   if(db.currentCall)db.currentCall.locationIsWater=nominatimLooksLikeWater(r);
  }catch(e){}
  const input=document.getElementById("ans");
  if(input)input.value=address;
@@ -1765,6 +1784,7 @@ function chooseNotrufMapResult(i){
  if(notrufLeafletMap)notrufLeafletMap.setView([lat,lng],17);
  setNotrufMarker(lat,lng);
  const input=document.getElementById("ans");if(input)input.value=r.display_name;
+ if(db.currentCall)db.currentCall.locationIsWater=nominatimLooksLikeWater(r);
  const box=document.getElementById("notrufMapResults");if(box)box.innerHTML="";
 }
 
@@ -1836,23 +1856,22 @@ function evaluate(){
      add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG");
      add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
    }
- } else if(e==="Tier im Wasser"){
-   keyword="H_Tier im Wasser R1";
-   add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
-   add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
- } else if(e==="Boot in Notlage"){
-   const cnt=Number(a.count)||1;
-   keyword=cnt>=2?"H_Boot YY R1":"H_Boot Y R1";
-   add("GW Wasserrettung",1,"DLRG"); add("MTW",1,"DLRG"); add("GW Drohne",1,"DLRG");
-   add("HLF",1,"Feuerwehr"); add("RTW",Math.max(1,Math.min(cnt,3)),"Rettungsdienst");
  } else if(e==="Feuer / Rauchentwicklung"){
    keyword=a.firePeople==="ja"?"F_2_Y":"F_2";
    add("HLF",1,"Feuerwehr"); add("LF",1,"Feuerwehr");
    if(a.firePeople==="ja"){add("DLK",1,"Feuerwehr");add("RTW",1,"Rettungsdienst")}
  } else if(e==="Verkehrsunfall"){
-   keyword=a.trapped==="ja"?"H_Eingeklemmt_2 R1":"H_VU R1";
-   add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
-   if(a.trapped==="ja")add("RW",1,"Feuerwehr");
+   if(c.locationIsWater){
+     // Einsatzort liegt laut Karten-/Adressdaten auf dem Wasser (z. B. Boot in Notlage) – kein
+     // klassischer VU mehr, sondern Wasserrettungslage mit Booten statt Rüstwagen an Land.
+     keyword="H_Boot im Wasser";
+     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG");
+     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+   } else {
+     keyword=a.trapped==="ja"?"H_Eingeklemmt_2 R1":"H_VU R1";
+     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+     if(a.trapped==="ja")add("RW",1,"Feuerwehr");
+   }
  } else if(e==="Technische Hilfeleistung"){
    keyword="TH";
    add("HLF",1,"Feuerwehr");
