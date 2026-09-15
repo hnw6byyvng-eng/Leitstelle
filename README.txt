@@ -1207,3 +1207,31 @@ Version 3.65:
   Ausliefern bemerkt und durch einen saubereren Ansatz ersetzt, der die bestehende
   Programmstruktur nicht antastet.
 - JavaScript-Syntax geprüft.
+
+Version 3.66:
+- Cloud-Verbindung (Datenbank-URL, Sitzungs-ID, Live-Status) läuft jetzt wieder wie vor der
+  Szenario-Auswahl über EINE gemeinsame Einstellung für alle drei Szenarien, statt für jedes
+  Szenario einzeln eingerichtet werden zu müssen. Einmal eingerichtet – egal in welchem
+  Szenario – gilt die Verbindung automatisch auch in den beiden anderen.
+  Technisch liegt die Cloud-Konfiguration jetzt in einem eigenen, vom Szenario unabhängigen
+  Speicherplatz statt im szenario-spezifischen Speicher.
+- Mit Playwright geprüft: Cloud-Verbindung in einem Szenario eingerichtet erscheint danach
+  identisch (URL, Sitzungs-ID, aktiviert) in beiden anderen Szenarien.
+- JavaScript-Syntax geprüft.
+
+Version 3.67:
+- Bei "Übung Bremen" und "Übung 2" ist der Reiter "Nachbar LKs" jetzt ausgeblendet (ergibt bei
+  diesen Szenarien ohne Nachbarlandkreis-Bezug keinen Sinn). Bei "Friesland/Wilhelmshaven"
+  bleibt er unverändert vorhanden.
+- Bei "Übung Bremen" und "Übung 2" zeigen die drei Funkrufgruppen-Felder jetzt keine Beschriftung
+  mehr (kein "F Fri 1" o. ä. – ergibt dort keinen inhaltlichen Sinn). Bei
+  "Friesland/Wilhelmshaven" unverändert mit Beschriftung und Umschaltmöglichkeit.
+- Bei "Übung Bremen" und "Übung 2" steht unter den Funkfeldern jetzt nichts mehr, wenn kein
+  Sprechwunsch ansteht (vorher "frei"). Bei "Friesland/Wilhelmshaven" unverändert.
+- Der "🎲 Realistisch"-Zufallsgenerator setzt Fahrzeuge jetzt nie mehr zufällig auf Status 6
+  (Nicht einsatzbereit) – das bleibt wie vorgesehen der Leitstelle selbst und der
+  Tag/Nacht-Zeitautomatik für die dafür vorgesehenen Reservefahrzeuge vorbehalten.
+- Mit Playwright über alle drei Szenarien geprüft: Nachbar-LKs-Kachel und Funk-Beschriftungen
+  korrekt nur bei Friesland/Wilhelmshaven vorhanden; "Realistisch" hat in 30 Testläufen kein
+  einziges Mal einem nicht-automatikgesteuerten Fahrzeug Status 6 zugewiesen.
+- JavaScript-Syntax geprüft.

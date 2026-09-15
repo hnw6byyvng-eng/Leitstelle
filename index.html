@@ -84,7 +84,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.65</span>
+ <span id="versionTag">v3.67</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -343,7 +343,13 @@ if(!Array.isArray(db.aao))db.aao=[];
  });
 }
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
-if(!db.cloud)db.cloud={enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
+// Die Cloud-Verbindung (Datenbank-URL, Sitzungs-ID) ist bewusst NICHT Teil des
+// szenario-spezifischen Speichers, sondern liegt in einem gemeinsamen, geteilten Speicherplatz –
+// damit alle drei Szenarien (Friesland/WHV, Übung Bremen, Übung 2) über dieselbe Cloud-Sitzung
+// laufen, ohne für jedes Szenario separat eingerichtet werden zu müssen.
+const CLOUD_KEY="dlrg-jet-cloud-shared";
+function saveCloudConfig(){localStorage.setItem(CLOUD_KEY,JSON.stringify(db.cloud))}
+db.cloud=JSON.parse(localStorage.getItem(CLOUD_KEY)||"null")||{enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=defaults.ivena.map(h=>({...h,closures:[],fachrichtungen:[...h.fachrichtungen]}));
@@ -410,7 +416,8 @@ const NAV_PAGES=[
  ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"],["nachbarLks","🚑 Nachbar LKs"]
 ];
 function navHTML(active){
- return `<nav style="position:static;padding:0;background:transparent;display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-between;align-items:center">${NAV_PAGES.map(x=>{
+ const pages=currentScenarioId==="fri-whv"?NAV_PAGES:NAV_PAGES.filter(x=>x[0]!=="nachbarLks");
+ return `<nav style="position:static;padding:0;background:transparent;display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-between;align-items:center">${pages.map(x=>{
    const icon=x[1].split(" ")[0];
    const content=x[0]==="aao"?`<span style="font-weight:800;font-size:15px">AAO</span>`:`<span style="font-size:36px;line-height:1">${icon}</span>`;
    return `<button class="${active===x[0]?"active":""}" style="width:70px;height:70px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0" title="${esc(x[1])}" onclick="render('${x[0]}')">${content}</button>`;
@@ -1040,7 +1047,7 @@ function realisticMode(){
   const shuffled=[...candidates].sort(()=>Math.random()-.5);
   const n=Math.max(3,Math.min(10,Math.floor(shuffled.length*0.18)));
   shuffled.slice(0,n).forEach((u,i)=>{
-    const wanted=u.org==="Feuerwehr"?["3","4","6"]:["3","4","6","8"];
+    const wanted=u.org==="Feuerwehr"?["3","4"]:["3","4","8"];
     const allowed=wanted.filter(s=>statusOptionsFor(u).includes(s));
     if(!allowed.length)return;
     setUnitStatus(u,allowed[i%allowed.length]);
@@ -2248,6 +2255,7 @@ function saveCloudSetup(enable){
  db.cloud.sessionId=(document.getElementById("cloudSid")?.value||"").trim()||("JET-"+Math.random().toString(36).slice(2,8).toUpperCase());
  db.cloud.enabled=!!enable && !!db.cloud.databaseURL;
  save();
+ saveCloudConfig();
  if(db.cloud.enabled){
    startCloudPolling();
    pushAllUnitsCloud();
@@ -2258,7 +2266,7 @@ function saveCloudSetup(enable){
  toast(db.cloud.enabled?"Live-Verbindung aktiviert":"Cloud-Einstellungen gespeichert");
  render("mittel");
 }
-function disableCloud(){db.cloud.enabled=false;save();stopCloudPolling();toast("Live-Verbindung deaktiviert");render("mittel")}
+function disableCloud(){db.cloud.enabled=false;save();saveCloudConfig();stopCloudPolling();toast("Live-Verbindung deaktiviert");render("mittel")}
 function vehicleURL(u){
  if(!u)return location.href;
  const base=location.origin+location.pathname;
@@ -3056,16 +3064,17 @@ function funkGroupPanel(letter){
  const current=db.funkChannels[letter];
  const bg=FUNK_GROUP_COLORS[letter];
  const textColor=letter==="R"?"#111":"#fff";
+ const isFri=currentScenarioId==="fri-whv";
  return `<div style="flex:1;min-width:130px">
   <div style="background:${bg};border:1.5px solid #111;border-radius:6px;padding:8px 6px;font-family:'Courier New',monospace;color:${textColor};text-align:center;aspect-ratio:2/1;display:flex;align-items:flex-start;justify-content:center">
-   <select onchange="setFunkChannel('${letter}',this.value)" style="background:transparent;color:${textColor};border:none;font-family:'Courier New',monospace;font-weight:700;font-size:15px;text-align:center;letter-spacing:1px;appearance:none;-webkit-appearance:none;padding:0;margin:0;width:auto">
+   ${isFri?`<select onchange="setFunkChannel('${letter}',this.value)" style="background:transparent;color:${textColor};border:none;font-family:'Courier New',monospace;font-weight:700;font-size:15px;text-align:center;letter-spacing:1px;appearance:none;-webkit-appearance:none;padding:0;margin:0;width:auto">
     ${FUNK_GROUP_OPTIONS[letter].map(o=>`<option value="${esc(o)}" style="background:${bg};color:${textColor}" ${current===o?"selected":""}>${esc(o)}</option>`).join("")}
-   </select>
+   </select>`:""}
   </div>
   ${sprech.length?`<div style="margin-top:7px">${sprech.map(u=>`<div class="status ${statusClass(u.status)}" style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;width:100%" title="${esc(statusName(u.status))}">
     <span style="cursor:pointer;flex:1;text-align:left" onclick="render('mittel')">${esc(u.opta||u.name)}</span>
     <button onclick="confirmSprechwunsch(${u.id})" title="Sprechwunsch bestätigen" style="background:rgba(255,255,255,.35);border:none;border-radius:5px;padding:2px 7px;cursor:pointer;font-weight:800;color:inherit">✓</button>
-   </div>`).join("")}</div>`:`<div class="muted" style="margin-top:7px;font-size:11px;text-align:center">frei</div>`}
+   </div>`).join("")}</div>`:(isFri?`<div class="muted" style="margin-top:7px;font-size:11px;text-align:center">frei</div>`:"")}
  </div>`;
 }
 function funkGruppenPanel(){
