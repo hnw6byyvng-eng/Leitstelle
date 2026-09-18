@@ -1371,3 +1371,15 @@ Version 3.74:
   antippen und wieder einklappen, der zuletzt bearbeitete Einsatz ist automatisch aufgeklappt.
   Kompletter Seitenrundgang über alle drei Szenarien fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.75:
+- Horizontales Scrollen (z. B. auf dem iPad) global unterbunden. Ursache war eine feste
+  2-Spalten-Aufteilung (Hauptinhalt + 127px-Kachel-Spalte) für die Hülle jeder Seite, die
+  bisher immer per Inline-Stil erzwungen wurde und nicht auf schmalere Bildschirme reagierte.
+  Jetzt eine eigene, auf schmalen Bildschirmen (unter 600px) auf eine Spalte umschaltende
+  CSS-Regel, plus zusätzlich ein globales overflow-x:hidden auf der ganzen Seite als
+  Sicherheitsnetz gegen jede Art von seitlichem Verrutschen.
+- Mit Playwright auf drei iPad-Auflösungen (768×1024, 1024×768, 834×1194) über mehrere Seiten
+  (Leitstelle, Rettungsmittel, AAO, Karte) geprüft: kein horizontales Scrollen mehr feststellbar.
+  Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.
