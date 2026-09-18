@@ -83,8 +83,8 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.73</span>
+<div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
+ <span id="versionTag">v3.74</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -1502,8 +1502,22 @@ function dashboard(){
      <button onclick="openExternalRequest('ostfriesland')">📠 LST Ostfriesland</button>
    </div>`:""}
   </div>
-  ${calls.length?`<div id="incidentCarousel" style="display:flex;overflow-x:auto;gap:12px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:8px;cursor:grab">${sortedCalls.map(c=>`<div style="min-width:340px;max-width:340px;scroll-snap-align:start;flex-shrink:0">${incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))}</div>`).join("")}</div>
-   <p class="muted" style="margin-top:4px;font-size:11px">↔️ Reihenfolge: dringende Einsätze vorne, R0 danach, bereits alarmierte Einsätze ganz hinten – nach links wischen/ziehen, um sie zu sehen.</p>`:`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
+  ${calls.length?`<div id="incidentStack" style="display:flex;flex-direction:column;margin-top:4px">${sortedCalls.map((c,i)=>{
+    const isCurrentCall=db.currentCall&&String(db.currentCall.id)===String(c.id);
+    const isExpanded=expandedCallId!==undefined?String(expandedCallId)===String(c.id):isCurrentCall;
+    if(isExpanded){
+      return `<div style="position:relative;z-index:${sortedCalls.length+2};margin-top:${i===0?0:6}px">
+        <button onclick="toggleIncidentExpand('${esc(String(c.id))}')" style="width:100%;text-align:left;background:#eef2f6;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;padding:8px 14px;font-weight:800">▲ Einklappen – #${esc(c.id)}</button>
+        <div style="margin-top:0">${incidentCard(c,isCurrentCall)}</div>
+       </div>`;
+    }
+    const stateColor=c.alarmTime?"#e30613":"#94a3b8";
+    return `<div onclick="toggleIncidentExpand('${esc(String(c.id))}')" style="cursor:pointer;background:var(--panel);border:1px solid var(--line);border-left:5px solid ${stateColor};border-radius:10px;padding:10px 14px;margin-top:${i===0?0:-9}px;position:relative;z-index:${sortedCalls.length-i};display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 2px 5px rgba(0,0,0,.10)">
+      <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${c.alarmTime?"🚨":"📞"} #${esc(c.id)}</b> <span class="muted">${esc(c.keyword||"Noch keine Bewertung")} – ${esc(c.location||"Ort unbekannt")}</span></div>
+      <span class="status ${c.alarmTime?"s3":"s2"}" style="flex-shrink:0">${c.alarmTime?"Alarmiert":"Bearbeitung"}</span>
+     </div>`;
+  }).join("")}</div>
+   <p class="muted" style="margin-top:8px;font-size:11px">📂 Wie ein Aktensortierer: dringende Einsätze oben, R0 danach, bereits alarmierte ganz unten. Auf einen Eintrag tippen, um alle Infos zu sehen.</p>`:`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
  </section>
  <aside>
   <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
@@ -1513,20 +1527,12 @@ function dashboard(){
   ${funkGruppenPanel()}
  </div>
  <div style="height:170px"></div>`;
- enableIncidentCarouselDrag();
  enableFunkBarDrag();
 }
-function enableIncidentCarouselDrag(){
- const el=document.getElementById("incidentCarousel");
- if(!el)return;
- let isDown=false,startX=0,scrollLeft=0;
- const start=x=>{isDown=true;el.style.cursor="grabbing";startX=x-el.offsetLeft;scrollLeft=el.scrollLeft};
- const end=()=>{isDown=false;el.style.cursor="grab"};
- const move=x=>{if(!isDown)return;const walk=x-el.offsetLeft-startX;el.scrollLeft=scrollLeft-walk};
- el.addEventListener("mousedown",e=>start(e.pageX));
- el.addEventListener("mouseleave",end);
- el.addEventListener("mouseup",end);
- el.addEventListener("mousemove",e=>move(e.pageX));
+let expandedCallId;
+function toggleIncidentExpand(id){
+ expandedCallId=(expandedCallId!==undefined&&String(expandedCallId)===String(id))?null:id;
+ render("leitstelle");
 }
 function enableFunkBarDrag(){
  const bar=document.getElementById("funkBar");
@@ -1708,7 +1714,7 @@ function questionHTML(q){
  }
  if(type==="textarea"){
    const ph=id==="freeText"?"Freie Schilderung des Anrufers, zusätzliche Angaben, Besonderheiten …":"z. B. Verletzungen, Schmerzen, Haut, Temperatur, Unfallmechanismus, Vergiftung …";
-   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${id==="e_exposure"?`<button onclick="answer('${id}','unklar')">unklar</button>`:""}</div>`;
+   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${id==="e_exposure"?`<button onclick="answer('${id}','Unauffällig')">Unauffällig</button><button onclick="answer('${id}','unklar')">unklar</button>`:""}</div>`;
  }
  if(type==="waterState") return `<label>${label}</label><div class="answer">
    <button onclick="answer('${id}','Lebenszeichen')">🟢 Mit Lebenszeichen (sichtbar/ansprechbar)</button>

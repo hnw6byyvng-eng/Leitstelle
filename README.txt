@@ -1352,3 +1352,22 @@ Version 3.73:
   Sortierreihenfolge mit drei Testeinsätzen (dringend/R0/bereits alarmiert) exakt wie
   vorgesehen. Kompletter Seitenrundgang über alle drei Szenarien fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.74:
+- Obere Leiste (Version/"Szenario wechseln") ist jetzt fest oben fixiert (sticky) statt mit der
+  Seite wegzuscrollen. Die rechte Kachel-Spalte ("Bereiche") war bereits fest fixiert und
+  unverändert nicht verschiebbar.
+- Die Liste der offenen Einsätze ist jetzt kein horizontal wischbarer Kartenstapel mehr,
+  sondern ein vertikaler Aktensortierer: jeder Einsatz erscheint als schmaler, leicht
+  überlappender Reiter (Stichwort, Ort, Status), mehrere Einsätze rutschen dabei sichtbar
+  nach unten. Antippen eines Reiters klappt den vollständigen Einsatz mit allen Infos auf,
+  "▲ Einklappen" klappt ihn wieder ein. Der aktuell in Bearbeitung befindliche Einsatz ist
+  standardmäßig aufgeklappt. Reihenfolge (dringend oben, R0 danach, bereits alarmiert unten)
+  bleibt wie zuvor festgelegt.
+- Bei der Frage "E" gibt es jetzt zusätzlich zum "unklar"-Button einen "Unauffällig"-Button –
+  dieser Wert wird von der bestehenden R0-Erkennung (leichte Hilfeleistung ohne Sonderrechte)
+  bereits korrekt als unauffällig erkannt.
+- Mit Playwright geprüft: obere Leiste bleibt beim Scrollen fixiert, Einsatz-Reiter lassen sich
+  antippen und wieder einklappen, der zuletzt bearbeitete Einsatz ist automatisch aufgeklappt.
+  Kompletter Seitenrundgang über alle drei Szenarien fehlerfrei.
+- JavaScript-Syntax geprüft.
