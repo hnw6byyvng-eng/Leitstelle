@@ -1306,3 +1306,49 @@ Version 3.71:
   Bockhorn korrekt weiterhin als Land. Kompletter Regressionstest über alle drei Szenarien
   weiterhin fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.72:
+- Alarmton auf dem Fahrzeugterminal zuverlässiger gemacht: iOS setzt einen ungenutzten
+  AudioContext nach kurzer Zeit automatisch wieder auf "pausiert" – ein Aufwecken direkt aus
+  dem Hintergrund-Abfrageintervall heraus (wenn ein neuer Einsatz erkannt wird, keine echte
+  Nutzer-Geste) schlägt dort oft lautlos fehl. Ein dauerhaft laufender, nahezu unhörbarer
+  Halte-Ton wird jetzt gestartet, sobald "🔔 ALARM AN" einmal angetippt wurde, damit der
+  eigentliche Alarmton später zuverlässig zu hören ist.
+- Funkrufgruppen-Block ist jetzt eine fest positionierte, per Ziehgriff (⋮⋮⋮) verschiebbare
+  Leiste am unteren Bildschirmrand statt am Ende der Seite – dadurch auf dem iPad ohne Scrollen
+  immer sichtbar, lässt sich bei Bedarf aber weiter nach oben ziehen.
+- Die Liste der offenen Einsätze ist jetzt ein horizontal wischbarer/ziehbarer Kartenstapel
+  statt einer langen vertikalen Liste. Noch nicht alarmierte (neue) sowie auf R0 (leichte
+  Hilfeleistung ohne Sonderrechte) heruntergestufte Einsätze werden dabei automatisch nach
+  hinten sortiert, sodass dringende/bereits alarmierte Einsätze vorne bleiben.
+- NEU: Sobald für ein Fahrzeug über "📱 Link / QR" ein Fahrzeugterminal-Link erzeugt wurde, gilt
+  es als "einem Handy zugewiesen" – von da an wechselt es bei einer Alarmierung NICHT mehr
+  automatisch auf Status 3, sondern die Besatzung muss das selbst über ihr Fahrzeugterminal
+  bestätigen. Nicht zugewiesene Fahrzeuge verhalten sich weiterhin wie gewohnt automatisch.
+- Mit Playwright geprüft: leeres Dashboard benötigt auf iPad-Auflösung kein Scrollen mehr,
+  Funkrufgruppen-Leiste ist fixiert und mit Ziehgriff ausgestattet, ein nicht alarmierter
+  Einsatz wird im Kartenstapel korrekt hinter einen bereits alarmierten einsortiert, und ein
+  Handy-zugewiesenes Fahrzeug bleibt bei der Alarmierung auf seinem bisherigen Status stehen
+  während ein normales Fahrzeug korrekt automatisch auf Status 3 wechselt. Kompletter
+  Seitenrundgang über alle drei Szenarien fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.73:
+- "Weiterverbinden"-Funktion für Einsätze außerhalb der Zuständigkeit (Stadt Wilhelmshaven oder
+  außerhalb Landkreis Friesland) war bereits vollständig eingebaut (Prüfung direkt nach Setzen
+  des Einsatzortes, sowohl bei Adresseingabe als auch beim Kartenklick) – beim Testen jetzt
+  gründlich bestätigt: Warnhinweis erscheint korrekt, "📞 Weiterverbinden" schließt den Einsatz
+  sauber ab, "Trotzdem hier bearbeiten" hebt die Warnung für diesen Einsatz auf und die normale
+  Abfrage geht weiter.
+- Dabei einen kleinen Mangel gefunden und behoben: Das abgeschlossene Protokoll zeigte bisher
+  teils noch "Noch unklar" statt eines eindeutigen Stichworts. "Weiterverbinden" setzt das
+  Stichwort jetzt immer eindeutig auf "WEITERVERBINDUNG – Außerhalb Zuständigkeit".
+- Sortierung der offenen Einsätze im Kartenstapel neu geregelt (nach Rückfrage genauer
+  festgelegt): 1) noch nicht alarmierte, dringende Einsätze ganz vorne, 2) noch nicht
+  alarmierte R0-Einsätze danach, 3) bereits alarmierte Einsätze (Fahrzeuge unterwegs/vor Ort)
+  ganz hinten. Innerhalb jeder Stufe die ältesten zuerst, die neuesten rutschen weiter nach
+  hinten.
+- Mit Playwright geprüft: kompletter Weiterverbinden-Ablauf inkl. Protokolleintrag korrekt,
+  Sortierreihenfolge mit drei Testeinsätzen (dringend/R0/bereits alarmiert) exakt wie
+  vorgesehen. Kompletter Seitenrundgang über alle drei Szenarien fehlerfrei.
+- JavaScript-Syntax geprüft.

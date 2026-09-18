@@ -84,7 +84,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px">
- <span id="versionTag">v3.71</span>
+ <span id="versionTag">v3.73</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -707,7 +707,7 @@ async function searchMap(){
   const box=document.getElementById("mapResults");
   box.innerHTML='<div class="muted">Suche …</div>';
   try{
-    const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=de&q=${encodeURIComponent(q)}`;
+    const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=de&q=${encodeURIComponent(q)}`;
     const res=await fetch(url,{headers:{"Accept":"application/json"}});
     const data=await res.json();
     if(!data.length){box.innerHTML='<div class="muted">Kein Treffer gefunden.</div>';return}
@@ -721,7 +721,7 @@ async function searchMap(){
 function chooseMapResult(i){
   const r=window._mapSearchResults[i];
   const lat=Number(r.lat),lng=Number(r.lon);
-  selectedMapLocation={lat,lng,address:r.display_name,isWater:nominatimLooksLikeWater(r,lat,lng)};
+  selectedMapLocation={lat,lng,address:r.display_name,isWater:nominatimLooksLikeWater(r,lat,lng),outOfJurisdiction:isOutOfJurisdiction(r)};
   document.getElementById("mapAddress").value=r.display_name;
   document.getElementById("mapCoords").textContent=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   leafletMap.setView([lat,lng],17);
@@ -731,11 +731,11 @@ function chooseMapResult(i){
 
 async function reverseGeocode(lat,lng){
   try{
-    const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lng}`;
     const res=await fetch(url,{headers:{"Accept":"application/json"}});
     const r=await res.json();
     const address=r.display_name||`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    selectedMapLocation={lat,lng,address,isWater:nominatimLooksLikeWater(r,lat,lng)};
+    selectedMapLocation={lat,lng,address,isWater:nominatimLooksLikeWater(r,lat,lng),outOfJurisdiction:isOutOfJurisdiction(r)};
     document.getElementById("mapAddress").value=address;
   }catch(e){
     selectedMapLocation={lat,lng,address:`${lat.toFixed(6)}, ${lng.toFixed(6)}`,isWater:false};
@@ -759,6 +759,7 @@ function applyMapLocation(){
   c.answers.location=address;
   if(lat&&lng){c.lat=lat;c.lng=lng}
   c.locationIsWater=!!selectedMapLocation?.isWater;
+  c.outOfJurisdiction=!!selectedMapLocation?.outOfJurisdiction;
   const existing=c.history.find(x=>x.q&&x.q.includes("Wo genau"));
   if(existing) existing.a=address;
   else c.history.unshift({q:"📍 Wo genau ist der Notfallort?",a:address});
@@ -1272,7 +1273,7 @@ function addResourceType(type,mode="additional"){
  appendUnitToCall(c,u,isNafo?"Nachforderung":"zusätzlich");
 
  if(c.alarmTime || isNafo){
-   setUnitStatus(u,"3");
+   if(!u.phoneAssigned)setUnitStatus(u,"3");
    c.alarmedUnits=c.alarmedUnits||[];
    if(!c.alarmedUnits.some(id=>String(id)===String(u.id)))c.alarmedUnits.push(u.id);
  }
@@ -1466,6 +1467,22 @@ function dashboard(){
  const calls=allOpenCalls();
  const sprech=sprechwunschUnits();
  const hasAlarmed=calls.some(c=>c.alarmTime);
+ // Einsätze ohne Alarmierung (noch in Bearbeitung) und auf R0 (leichte Hilfeleistung ohne
+ // Sonderrechte) heruntergestufte Einsätze werden im wischbaren Kartenstapel nach hinten
+ // sortiert, damit dringende/bereits alarmierte Einsätze vorne bleiben.
+ // Reihenfolge: 1) noch nicht alarmierte Einsätze, die (noch) nicht auf R0 heruntergestuft
+ // sind (mutmaßlich Blaulicht/dringend) ganz vorne; 2) noch nicht alarmierte R0-Einsätze
+ // (leichte Hilfeleistung ohne Sonderrechte) danach; 3) bereits alarmierte Einsätze (Fahrzeuge
+ // unterwegs/vor Ort – vom Disponenten schon bearbeitet) ganz hinten. Innerhalb jeder Stufe
+ // die ältesten zuerst, die neuesten rutschen weiter nach hinten.
+ const isR0=c=>!!(c.keyword&&c.keyword.includes("(R0)"));
+ const tier=c=>c.alarmTime?3:(isR0(c)?2:1);
+ const ageKey=c=>c.createdAt||c.alarmTime||String(c.id);
+ const sortedCalls=[...calls].sort((a,b)=>{
+   const t=tier(a)-tier(b);
+   if(t!==0)return t;
+   return ageKey(a)<ageKey(b)?-1:ageKey(a)>ageKey(b)?1:0;
+ });
  document.getElementById("app").innerHTML=`
  ${sprech.length?`<div class="card" style="border:2px solid #f59e0b;background:#fffbeb;margin-bottom:14px">
    <h2 style="color:#92400e;margin-bottom:6px">📻 Sprechwunsch (${sprech.length})</h2>
@@ -1485,12 +1502,52 @@ function dashboard(){
      <button onclick="openExternalRequest('ostfriesland')">📠 LST Ostfriesland</button>
    </div>`:""}
   </div>
-  ${calls.length?calls.map(c=>incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))).join(""):`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
+  ${calls.length?`<div id="incidentCarousel" style="display:flex;overflow-x:auto;gap:12px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:8px;cursor:grab">${sortedCalls.map(c=>`<div style="min-width:340px;max-width:340px;scroll-snap-align:start;flex-shrink:0">${incidentCard(c,db.currentCall&&String(db.currentCall.id)===String(c.id))}</div>`).join("")}</div>
+   <p class="muted" style="margin-top:4px;font-size:11px">↔️ Reihenfolge: dringende Einsätze vorne, R0 danach, bereits alarmierte Einsätze ganz hinten – nach links wischen/ziehen, um sie zu sehen.</p>`:`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
  </section>
  <aside>
   <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
  </aside></div>
- <div class="card">${funkGruppenPanel()}</div>`;
+ <div class="card" id="funkBar" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:8;box-shadow:0 4px 18px rgba(0,0,0,.25);max-width:900px;margin:0 auto">
+  <div id="funkDragHandle" style="cursor:grab;text-align:center;margin:-8px 0 6px;color:var(--muted);font-size:16px;line-height:1;touch-action:none">⋮⋮⋮</div>
+  ${funkGruppenPanel()}
+ </div>
+ <div style="height:170px"></div>`;
+ enableIncidentCarouselDrag();
+ enableFunkBarDrag();
+}
+function enableIncidentCarouselDrag(){
+ const el=document.getElementById("incidentCarousel");
+ if(!el)return;
+ let isDown=false,startX=0,scrollLeft=0;
+ const start=x=>{isDown=true;el.style.cursor="grabbing";startX=x-el.offsetLeft;scrollLeft=el.scrollLeft};
+ const end=()=>{isDown=false;el.style.cursor="grab"};
+ const move=x=>{if(!isDown)return;const walk=x-el.offsetLeft-startX;el.scrollLeft=scrollLeft-walk};
+ el.addEventListener("mousedown",e=>start(e.pageX));
+ el.addEventListener("mouseleave",end);
+ el.addEventListener("mouseup",end);
+ el.addEventListener("mousemove",e=>move(e.pageX));
+}
+function enableFunkBarDrag(){
+ const bar=document.getElementById("funkBar");
+ const handle=document.getElementById("funkDragHandle");
+ if(!bar||!handle)return;
+ let dragging=false,startY=0,startBottom=16;
+ const start=y=>{dragging=true;startY=y;startBottom=parseInt(bar.style.bottom,10)||16};
+ const end=()=>{dragging=false};
+ const move=y=>{
+   if(!dragging)return;
+   const delta=startY-y;
+   let newBottom=startBottom+delta;
+   newBottom=Math.max(0,Math.min(window.innerHeight-80,newBottom));
+   bar.style.bottom=newBottom+"px";
+ };
+ handle.addEventListener("mousedown",e=>{start(e.clientY);e.preventDefault()});
+ handle.addEventListener("touchstart",e=>{start(e.touches[0].clientY)},{passive:true});
+ window.addEventListener("mouseup",end);
+ window.addEventListener("touchend",end);
+ window.addEventListener("mousemove",e=>move(e.clientY));
+ window.addEventListener("touchmove",e=>{move(e.touches[0].clientY)},{passive:true});
 }
 function newCall(pref={}){
  if(db.currentCall)parkCurrentCall();
@@ -1526,10 +1583,25 @@ function nearestAvailableUnits(limit=6){
  const avail=db.units.filter(u=>["1","2","8"].includes(String(u.status)));
  return nearestFirst(avail).slice(0,limit);
 }
+function overrideJurisdiction(){
+ if(db.currentCall){db.currentCall.jurisdictionOverride=true;save()}
+ render("notruf");
+}
+function weiterverbindenCall(){
+ const c=db.currentCall;
+ if(!c)return;
+ c.history=c.history||[];
+ c.history.push({q:"📞 Weiterverbinden",a:`Einsatzort außerhalb der Zuständigkeit (${c.geocodedAddress||c.location}) – Anrufer an zuständige Stelle weiterverbunden.`});
+ c.keyword="WEITERVERBINDUNG – Außerhalb Zuständigkeit";
+ save();
+ finishCall(String(c.id));
+ toast("Anruf weiterverbunden, Einsatz abgeschlossen");
+}
 function notruf(){
  if(!db.currentCall){document.getElementById("app").innerHTML=`<div class="card"><h2>📞 Übungsnotruf</h2><p>Starte einen neuen Anruf. Die Software führt dich Schritt für Schritt durch die Abfrage.</p><button class="primary" onclick="newCall()">Notruf annehmen</button></div>`;return}
  const c=db.currentCall, idx=qs.findIndex(q=>!(q[0] in c.answers) && !(q[0]==="location"&&c.location));
- const q=idx<0?null:qs[idx];
+ const outOfArea=c.location && c.outOfJurisdiction && !c.jurisdictionOverride;
+ const q=outOfArea?null:(idx<0?null:qs[idx]);
  const answeredCount=qs.filter(x=>x[0] in c.answers || (x[0]==="location"&&c.location)).length;
  const nearest=nearestAvailableUnits();
  document.getElementById("app").innerHTML=`<div class="grid"><section>
@@ -1544,7 +1616,7 @@ function notruf(){
    ${renderVehicleFeedbackBadges(c)}
    ${q?`<div class="muted" style="margin-top:10px">Frage ${answeredCount+1} von ${qs.length}</div>
    <div style="height:6px;background:#eef2f6;border-radius:999px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${Math.round(100*answeredCount/qs.length)}%;background:#e30613"></div></div>`:""}
-   <div style="margin-top:15px">${q?questionHTML(q):(c.answers.callType&&c.answers.callType!=="112"?`<div class="suggest"><h2>☎️ Weiterleitung</h2><p>${esc(c.suggestion)}</p><p class="muted">Kein Fall für diese Rettungsleitstelle – kein Alarmvorschlag, keine weiteren Fragen nötig.</p><button onclick="render('leitstelle')">Zur Übersicht</button></div>`:`<div class="suggest"><h2>✅ Abfrage abgeschlossen</h2><p>${c.suggestion||"Kein Alarmvorschlag verfügbar."}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render('karte')">🗺️ Notfallort prüfen</button></div><button onclick="toggleNotrufDetails()">🔍 ${notrufDetailsVisible?"Details verbergen":"Interne Codes & Rohdaten anzeigen"}</button><div class="${notrufDetailsVisible?"":"hidden"}" style="margin-top:10px"><hr><b>Einsatzstichwort (intern)</b><div class="big">${esc(c.keyword)}</div><b>Antworten (Rohdaten)</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div></div>`)}</div>
+   <div style="margin-top:15px">${outOfArea?`<div class="suggest" style="background:#fff8e1;border-color:#f0c419"><h2>⚠️ Vermutlich nicht zuständig</h2><p>Der Einsatzort scheint auf dem Gebiet der Stadt Wilhelmshaven oder außerhalb des Landkreises Friesland zu liegen (${esc(c.geocodedAddress||c.location)}).</p><div class="row" style="margin:10px 0"><button class="primary" onclick="weiterverbindenCall()">📞 Weiterverbinden</button><button onclick="overrideJurisdiction()">Trotzdem hier bearbeiten</button></div></div>`:(q?questionHTML(q):(c.answers.callType&&c.answers.callType!=="112"?`<div class="suggest"><h2>☎️ Weiterleitung</h2><p>${esc(c.suggestion)}</p><p class="muted">Kein Fall für diese Rettungsleitstelle – kein Alarmvorschlag, keine weiteren Fragen nötig.</p><button onclick="render('leitstelle')">Zur Übersicht</button></div>`:`<div class="suggest"><h2>✅ Abfrage abgeschlossen</h2><p>${c.suggestion||"Kein Alarmvorschlag verfügbar."}</p><div class="row" style="margin:10px 0"><button class="primary" onclick="prepareAlarm()">🚨 Vorschlag alarmieren</button><button onclick="render('karte')">🗺️ Notfallort prüfen</button></div><button onclick="toggleNotrufDetails()">🔍 ${notrufDetailsVisible?"Details verbergen":"Interne Codes & Rohdaten anzeigen"}</button><div class="${notrufDetailsVisible?"":"hidden"}" style="margin-top:10px"><hr><b>Einsatzstichwort (intern)</b><div class="big">${esc(c.keyword)}</div><b>Antworten (Rohdaten)</b><pre style="white-space:pre-wrap">${esc(JSON.stringify(c.answers,null,2))}</pre></div></div>`))}</div>
   </div>
   <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div>
  </section>
@@ -1723,6 +1795,19 @@ function pointInPolygon(lat,lng,poly){
 function isInJadebusen(lat,lng){
  return pointInPolygon(lat,lng,JADEBUSEN_POLYGON);
 }
+// Erkennt automatisch anhand der von Nominatim gelieferten Adressstruktur (addressdetails=1),
+// ob ein Einsatzort außerhalb der eigenen Zuständigkeit liegt: auf dem Gebiet der (kreisfreien)
+// Stadt Wilhelmshaven, oder generell außerhalb des Landkreises Friesland. Ohne verwertbare
+// Adressdaten wird NICHT von "außerhalb" ausgegangen (im Zweifel lieber normal weiterfragen).
+function isOutOfJurisdiction(r){
+ const addr=r?.address;
+ if(!addr)return false;
+ const city=(addr.city||addr.town||addr.municipality||"").toLowerCase();
+ if(city.includes("wilhelmshaven"))return true;
+ const county=(addr.county||"").toLowerCase();
+ if(county && !county.includes("friesland"))return true;
+ return false;
+}
 function nominatimLooksLikeWater(r,lat,lng){
  if(Number.isFinite(lat) && Number.isFinite(lng) && isInJadebusen(lat,lng))return true;
  if(!r)return false;
@@ -1739,13 +1824,14 @@ async function geocodeIncidentAddress(address){
  if(!address || address.trim().length<3)return false;
  try{
    const q=encodeURIComponent(address.includes("Friesland")?address:`${address}, Landkreis Friesland, Niedersachsen, Deutschland`);
-   const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=de&q=${q}`,{headers:{"Accept":"application/json"}});
+   const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=de&q=${q}`,{headers:{"Accept":"application/json"}});
    const rows=await res.json();
    if(rows&&rows[0]){
      const c=db.currentCall;
      c.lat=Number(rows[0].lat); c.lng=Number(rows[0].lon);
      c.geocodedAddress=rows[0].display_name||address;
      c.locationIsWater=nominatimLooksLikeWater(rows[0],Number(rows[0].lat),Number(rows[0].lon));
+     c.outOfJurisdiction=isOutOfJurisdiction(rows[0]);
      return true;
    }
  }catch(e){}
@@ -1790,10 +1876,10 @@ function setNotrufMarker(lat,lng){
 async function reverseGeocodeForNotruf(lat,lng){
  let address=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
  try{
-   const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,{headers:{"Accept":"application/json"}});
+   const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lng}`,{headers:{"Accept":"application/json"}});
    const r=await res.json();
    if(r?.display_name)address=r.display_name;
-   if(db.currentCall)db.currentCall.locationIsWater=nominatimLooksLikeWater(r,lat,lng);
+   if(db.currentCall){db.currentCall.locationIsWater=nominatimLooksLikeWater(r,lat,lng);db.currentCall.outOfJurisdiction=isOutOfJurisdiction(r);}
  }catch(e){}
  const input=document.getElementById("ans");
  if(input)input.value=address;
@@ -1803,7 +1889,7 @@ async function searchNotrufMap(){
  if(!q)return;
  try{
    const query=encodeURIComponent(q.includes("Friesland")?q:`${q}, Landkreis Friesland, Niedersachsen, Deutschland`);
-   const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=de&q=${query}`,{headers:{"Accept":"application/json"}});
+   const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=de&q=${query}`,{headers:{"Accept":"application/json"}});
    const rows=await res.json();
    window._notrufSearchResults=rows;
    const box=document.getElementById("notrufMapResults");
@@ -1816,7 +1902,7 @@ function chooseNotrufMapResult(i){
  if(notrufLeafletMap)notrufLeafletMap.setView([lat,lng],17);
  setNotrufMarker(lat,lng);
  const input=document.getElementById("ans");if(input)input.value=r.display_name;
- if(db.currentCall)db.currentCall.locationIsWater=nominatimLooksLikeWater(r,lat,lng);
+ if(db.currentCall){db.currentCall.locationIsWater=nominatimLooksLikeWater(r,lat,lng);db.currentCall.outOfJurisdiction=isOutOfJurisdiction(r);}
  const box=document.getElementById("notrufMapResults");if(box)box.innerHTML="";
 }
 
@@ -2090,7 +2176,7 @@ function alarmProposal(){
  for(const id of c.proposedUnitIds){
    const u=db.units.find(x=>x.id===id);
    if(!u)continue;
-   setUnitStatus(u,"3");
+   if(!u.phoneAssigned)setUnitStatus(u,"3");
    if(!c.alarmedUnits.includes(id))c.alarmedUnits.push(id);
  }
  c.alarmTime=now.toISOString();
@@ -2329,6 +2415,8 @@ function vehicleURL(u){
 }
 function showVehicleQR(id){
  const u=db.units.find(x=>String(x.id)===String(id)); if(!u)return;
+ u.phoneAssigned=true;
+ save();
  const url=vehicleURL(u);
  document.getElementById("app").innerHTML=`<div class="card">
   <h2>📱 Fahrzeugterminal – ${esc(u.opta||u.name)}</h2>
@@ -2381,11 +2469,29 @@ async function vehicleFetch(dburl,sid,path,method="GET",data=null){
  }catch(e){console.warn(e);return null}
 }
 let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null, vehicleKnownCallIds=null;
-let vehicleAudioCtx=null, vehicleGeoWatchId=null, vehicleGeoLastPush=0;
-function playAlarmTone(){
+let vehicleAudioCtx=null, vehicleGeoWatchId=null, vehicleGeoLastPush=0, vehicleAudioKeepAlive=null;
+function startAudioKeepAlive(){
+ // iOS setzt einen ungenutzten AudioContext nach kurzer Zeit wieder auf "suspended" – ein
+ // programmatisches resume() außerhalb einer echten Nutzer-Geste (z. B. aus dem Poll-Intervall
+ // heraus, wenn ein neuer Einsatz erkannt wird) schlägt dort dann oft lautlos fehl. Ein
+ // dauerhaft laufender, nahezu unhörbarer Ton hält den Context aktiv, damit der eigentliche
+ // Alarmton später zuverlässig zu hören ist.
+ try{
+   if(vehicleAudioKeepAlive)return;
+   const osc=vehicleAudioCtx.createOscillator();
+   const gain=vehicleAudioCtx.createGain();
+   gain.gain.setValueAtTime(0.00001,vehicleAudioCtx.currentTime);
+   osc.frequency.setValueAtTime(20,vehicleAudioCtx.currentTime);
+   osc.connect(gain).connect(vehicleAudioCtx.destination);
+   osc.start();
+   vehicleAudioKeepAlive=osc;
+ }catch(e){}
+}
+async function playAlarmTone(){
  try{
    if(!vehicleAudioCtx)vehicleAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-   if(vehicleAudioCtx.state==="suspended")vehicleAudioCtx.resume();
+   if(vehicleAudioCtx.state==="suspended")await vehicleAudioCtx.resume();
+   startAudioKeepAlive();
    const now=vehicleAudioCtx.currentTime;
    const freqs=[970,1300]; // zweitoniger Wechselton, angelehnt an klassische Pager-/Meldeempfänger-Alarmierung (Swissphone X35 u.ä.)
    const toneLen=0.4, gap=0.05, repeats=6;
@@ -2428,6 +2534,7 @@ function unlockVehicleAudio(){
  try{
    if(!vehicleAudioCtx)vehicleAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
    if(vehicleAudioCtx.state==="suspended")vehicleAudioCtx.resume();
+   startAudioKeepAlive();
  }catch(e){}
  if("Notification" in window && Notification.permission==="default")Notification.requestPermission();
  playAlarmTone();
