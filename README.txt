@@ -1383,3 +1383,34 @@ Version 3.75:
   (Leitstelle, Rettungsmittel, AAO, Karte) geprüft: kein horizontales Scrollen mehr feststellbar.
   Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.76:
+- Funkrufgruppen-Leiste unten und die rechte Kachel-Spalte ("Bereiche") überlappten sich
+  bisher teilweise. Behoben: die Leiste endet jetzt genau an der linken Kante der Kachel-Spalte
+  statt darunter/dahinter zu ragen.
+- Die Verschiebbarkeit der Funkrufgruppen-Leiste (Ziehgriff) wieder entfernt – beide Bereiche
+  (Kachel-Spalte rechts und Funk-Leiste unten) sind jetzt vollständig unbeweglich fixiert und
+  bilden eine durchgehende, feste Ecke statt sich einzeln oder gemeinsam verschieben zu lassen.
+- Mit Playwright bei voller iPad-Auflösung mit vier gestapelten Einsätzen geprüft: keine
+  Überlappung mehr, beide Bereiche bleiben unbeweglich. Kompletter Seitenrundgang über alle drei
+  Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.77:
+- Bug behoben: Die rechte Kachel-Spalte war seit dem Überlappungs-Fix (v3.75) versehentlich auf
+  ca. 450px statt der ursprünglichen 127px aufgebläht. Ursache war eine CSS-Reihenfolge-
+  Kollision: die allgemeine ".grid"-Regel stand im Stylesheet nach der neuen ".outer-grid"-Regel
+  und hat deren feste Spaltenbreite bei gleicher Spezifität überschrieben. Behoben durch
+  Umsortieren der Regeln.
+- Mit Playwright nachgemessen: Kachel-Box ist jetzt wieder exakt 127px breit wie in v3.74.
+  Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.78:
+- Funkrufgruppen-Leiste unten und die rechte Kachel-Spalte sind jetzt an ihrer Berührungsstelle
+  rechtwinklig ("orthogonal") verbunden statt mit zwei runden Ecken aneinanderzustoßen: die
+  obere rechte Ecke der Funk-Leiste sowie die untere linke Ecke der Kachel-Spalte sind dort
+  jeweils eckig statt abgerundet, sodass ein durchgehender, sauberer rechter Winkel entsteht.
+- Mit Playwright geprüft: Änderung fehlerfrei, kompletter Seitenrundgang über alle drei
+  Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.

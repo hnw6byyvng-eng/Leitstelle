@@ -24,12 +24,12 @@ nav button{border:0;background:#243044;color:#dbe4ef;border-radius:5px;padding:2
 nav button.active{background:#e30613;color:white}
 @media(min-width:851px){
  .bereiche-card{display:flex;flex-direction:column;height:calc(100vh - 49px);overflow:hidden}
- .outer-grid{grid-template-columns:1fr 127px}
- @media(max-width:600px){.outer-grid{grid-template-columns:1fr}.outer-grid .bereiche-card{height:auto;flex-direction:row;overflow-x:auto}.outer-grid .bereiche-card nav{flex-direction:row}}
  .bereiche-card nav{flex:1;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 }
 main{max-width:1250px;margin:0 auto;padding:16px}
 .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+.outer-grid{grid-template-columns:1fr 127px}
+@media(max-width:600px){.outer-grid{grid-template-columns:1fr}.outer-grid .bereiche-card{height:auto;flex-direction:row;overflow-x:auto}.outer-grid .bereiche-card nav{flex-direction:row}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #0000000a;margin-bottom:14px}
 h1,h2,h3{margin:0 0 12px} h2{font-size:20px} h3{font-size:16px}
 .muted{color:var(--muted)} .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
@@ -86,7 +86,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.75</span>
+ <span id="versionTag">v3.78</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -441,7 +441,7 @@ function render(page="leitstelle"){
  const app=document.getElementById("app");
  if(app){
    const inner=app.innerHTML;
-   app.innerHTML=`<div class="grid outer-grid"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card">${navHTML(page)}</div></aside></div>`;
+   app.innerHTML=`<div class="grid outer-grid"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card" style="border-radius:14px 14px 14px 0">${navHTML(page)}</div></aside></div>`;
  }
 }
 
@@ -1524,38 +1524,15 @@ function dashboard(){
  <aside>
   <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
  </aside></div>
- <div class="card" id="funkBar" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:8;box-shadow:0 4px 18px rgba(0,0,0,.25);max-width:900px;margin:0 auto">
-  <div id="funkDragHandle" style="cursor:grab;text-align:center;margin:-8px 0 6px;color:var(--muted);font-size:16px;line-height:1;touch-action:none">⋮⋮⋮</div>
+ <div class="card" id="funkBar" style="position:fixed;left:16px;right:143px;bottom:0;border-radius:14px 0 0 0;z-index:8;box-shadow:0 -4px 18px rgba(0,0,0,.2);max-width:773px;margin:0">
   ${funkGruppenPanel()}
  </div>
  <div style="height:170px"></div>`;
- enableFunkBarDrag();
 }
 let expandedCallId;
 function toggleIncidentExpand(id){
  expandedCallId=(expandedCallId!==undefined&&String(expandedCallId)===String(id))?null:id;
  render("leitstelle");
-}
-function enableFunkBarDrag(){
- const bar=document.getElementById("funkBar");
- const handle=document.getElementById("funkDragHandle");
- if(!bar||!handle)return;
- let dragging=false,startY=0,startBottom=16;
- const start=y=>{dragging=true;startY=y;startBottom=parseInt(bar.style.bottom,10)||16};
- const end=()=>{dragging=false};
- const move=y=>{
-   if(!dragging)return;
-   const delta=startY-y;
-   let newBottom=startBottom+delta;
-   newBottom=Math.max(0,Math.min(window.innerHeight-80,newBottom));
-   bar.style.bottom=newBottom+"px";
- };
- handle.addEventListener("mousedown",e=>{start(e.clientY);e.preventDefault()});
- handle.addEventListener("touchstart",e=>{start(e.touches[0].clientY)},{passive:true});
- window.addEventListener("mouseup",end);
- window.addEventListener("touchend",end);
- window.addEventListener("mousemove",e=>move(e.clientY));
- window.addEventListener("touchmove",e=>{move(e.touches[0].clientY)},{passive:true});
 }
 function newCall(pref={}){
  if(db.currentCall)parkCurrentCall();
