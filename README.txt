@@ -1414,3 +1414,50 @@ Version 3.78:
 - Mit Playwright geprüft: Änderung fehlerfrei, kompletter Seitenrundgang über alle drei
   Szenarien weiterhin fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.79:
+- Eigentliche Ursache für die Lücke zwischen Funk-Leiste und Kachel-Spalte gefunden: das
+  zentrale "<main>"-Element ist auf breiten Bildschirmen zentriert (max-width:1250px), die
+  fest positionierte Funk-Leiste bezog sich aber auf den kompletten Bildschirmrand statt auf
+  diesen zentrierten Bereich – bei sehr breiten Bildschirmen (z. B. großes iPad Pro im Querformat)
+  entstand dadurch eine deutliche Lücke statt einer echten Berührung.
+- Behoben: die Position der Funk-Leiste wird jetzt per JavaScript exakt anhand der tatsächlichen
+  Lage der Kachel-Spalte berechnet (nicht mehr über feste Pixel-Werte vom Bildschirmrand aus),
+  inklusive Neuberechnung bei Größenänderung/Drehung des Geräts.
+- Beim Umbauen einen eigenen Fehler gemacht und gefunden: die Berechnung lief zunächst zu früh,
+  bevor die Kachel-Spalte überhaupt im Seitenaufbau vorhanden war (die wird von einer äußeren
+  Funktion erst im Anschluss ergänzt) – an die richtige Stelle im Ablauf verschoben.
+- Mit Playwright bei mehreren Bildschirmbreiten (1400px, 1024px, 2224px) sowie nach einer
+  simulierten Größenänderung geprüft: Abstand zwischen Funk-Leiste und Kachel-Spalte ist jetzt
+  in jedem Fall exakt 0px. Kompletter Seitenrundgang über alle drei Szenarien weiterhin
+  fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.80:
+- Letzter sichtbarer Rest der Trennung zwischen Funk-Leiste und Kachel-Spalte entfernt:
+  Schatten der Funk-Leiste an dieser Kante entfernt, damit beide Flächen wirklich wie aus einem
+  Stück wirken statt durch einen Schlagschatten getrennt zu erscheinen.
+- Geprüft und bestätigt (waren bereits vorher so umgesetzt): Einsätze werden im eingeklappten
+  Zustand nur mit Einsatznummer und Alarmstichwort angezeigt, und der Einsatz-Stapel ist exakt
+  so breit wie die "Leitstelle"-Karte darüber.
+- Mit Playwright erneut vermessen: 0px Abstand zwischen Funk-Leiste und Kachel-Spalte bestätigt.
+  Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.
+
+Version 3.81:
+- Gründlich auf allen 8 gängigen iPad-Größen geprüft (Mini/Air/10.9"/Pro 11"/Pro 12.9", jeweils
+  Hoch- und Querformat) und zwei echte Ursachen für unnötiges Scrollen im Querformat gefunden
+  und behoben:
+  1) Das äußere Seiten-Grid streckte die linke Inhaltsspalte automatisch auf die Höhe der
+     rechten Kachel-Spalte (Standardverhalten von CSS-Grid), unabhängig vom tatsächlichen
+     Inhalt – behoben, jede Spalte richtet sich jetzt nur nach ihrem eigenen Inhalt.
+  2) Die Höhenformel der Kachel-Spalte berücksichtigte den unteren Innenabstand der Seite und
+     den Kartenabstand darunter nicht vollständig – um exakt 22px korrigiert (inkl. eines
+     weiteren CSS-Reihenfolge-Konflikts wie schon zuvor bei der Spaltenbreite, diesmal mit
+     höherer Spezifität dauerhaft gelöst).
+  Der zuvor feste 170px-Platzhalter für die Funk-Leiste wird jetzt außerdem exakt anhand der
+  tatsächlichen Leisten-Höhe berechnet statt geschätzt.
+- Mit Playwright auf allen 8 iPad-Größen mit mehreren offenen Einsätzen geprüft: kein
+  Scrollen, kein Überlauf, letzte Kachel immer sichtbar, Funk-Leiste passt immer exakt in den
+  Bildschirm. Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.

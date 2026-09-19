@@ -23,12 +23,13 @@ nav{display:flex;gap:6px;background:#111827;padding:8px;overflow:auto;position:s
 nav button{border:0;background:#243044;color:#dbe4ef;border-radius:5px;padding:22px 18px;font-weight:800;font-size:17px;white-space:nowrap}
 nav button.active{background:#e30613;color:white}
 @media(min-width:851px){
- .bereiche-card{display:flex;flex-direction:column;height:calc(100vh - 49px);overflow:hidden}
+ .bereiche-card{display:flex;flex-direction:column;height:calc(100vh - 57px);overflow:hidden}
+ .card.bereiche-card{margin-bottom:0}
  .bereiche-card nav{flex:1;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 }
 main{max-width:1250px;margin:0 auto;padding:16px}
 .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
-.outer-grid{grid-template-columns:1fr 127px}
+.outer-grid{grid-template-columns:1fr 127px;align-items:start}
 @media(max-width:600px){.outer-grid{grid-template-columns:1fr}.outer-grid .bereiche-card{height:auto;flex-direction:row;overflow-x:auto}.outer-grid .bereiche-card nav{flex-direction:row}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #0000000a;margin-bottom:14px}
 h1,h2,h3{margin:0 0 12px} h2{font-size:20px} h3{font-size:16px}
@@ -86,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.78</span>
+ <span id="versionTag">v3.81</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -441,8 +442,9 @@ function render(page="leitstelle"){
  const app=document.getElementById("app");
  if(app){
    const inner=app.innerHTML;
-   app.innerHTML=`<div class="grid outer-grid"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card" style="border-radius:14px 14px 14px 0">${navHTML(page)}</div></aside></div>`;
+   app.innerHTML=`<div class="grid outer-grid"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card" style="border-radius:14px 14px 14px 0;border-left:none">${navHTML(page)}</div></aside></div>`;
  }
+ if(page==="leitstelle")alignFunkBar();
 }
 
 let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
@@ -1514,9 +1516,8 @@ function dashboard(){
        </div>`;
     }
     const stateColor=c.alarmTime?"#e30613":"#94a3b8";
-    return `<div onclick="toggleIncidentExpand('${esc(String(c.id))}')" style="cursor:pointer;background:var(--panel);border:1px solid var(--line);border-left:5px solid ${stateColor};border-radius:10px;padding:10px 14px;margin-top:${i===0?0:-9}px;position:relative;z-index:${sortedCalls.length-i};display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 2px 5px rgba(0,0,0,.10)">
-      <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${c.alarmTime?"🚨":"📞"} #${esc(c.id)}</b> <span class="muted">${esc(c.keyword||"Noch keine Bewertung")} – ${esc(c.location||"Ort unbekannt")}</span></div>
-      <span class="status ${c.alarmTime?"s3":"s2"}" style="flex-shrink:0">${c.alarmTime?"Alarmiert":"Bearbeitung"}</span>
+    return `<div onclick="toggleIncidentExpand('${esc(String(c.id))}')" style="cursor:pointer;background:var(--panel);border:1px solid var(--line);border-left:5px solid ${stateColor};border-radius:10px;padding:8px 14px;margin-top:${i===0?0:-9}px;position:relative;z-index:${sortedCalls.length-i};box-shadow:0 2px 5px rgba(0,0,0,.10);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+      <b>#${esc(c.id)}</b> <span class="muted">${esc(c.keyword||"Noch keine Bewertung")}</span>
      </div>`;
   }).join("")}</div>
    <p class="muted" style="margin-top:8px;font-size:11px">📂 Wie ein Aktensortierer: dringende Einsätze oben, R0 danach, bereits alarmierte ganz unten. Auf einen Eintrag tippen, um alle Infos zu sehen.</p>`:`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
@@ -1524,11 +1525,24 @@ function dashboard(){
  <aside>
   <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
  </aside></div>
- <div class="card" id="funkBar" style="position:fixed;left:16px;right:143px;bottom:0;border-radius:14px 0 0 0;z-index:8;box-shadow:0 -4px 18px rgba(0,0,0,.2);max-width:773px;margin:0">
+ <div class="card" id="funkBar" style="position:fixed;bottom:0;z-index:8;border-radius:14px 0 0 0;box-shadow:none;margin:0;border-right:none">
   ${funkGruppenPanel()}
  </div>
- <div style="height:170px"></div>`;
+ <div id="funkSpacer" style="height:170px"></div>`;
 }
+function alignFunkBar(){
+ const bar=document.getElementById("funkBar");
+ const sidebar=document.querySelector(".bereiche-card");
+ const main=document.querySelector("main");
+ const spacer=document.getElementById("funkSpacer");
+ if(!bar||!sidebar||!main)return;
+ const mainRect=main.getBoundingClientRect();
+ const sidebarRect=sidebar.getBoundingClientRect();
+ bar.style.left=mainRect.left+"px";
+ bar.style.right=(window.innerWidth-sidebarRect.left)+"px";
+ if(spacer)spacer.style.height=Math.ceil(bar.getBoundingClientRect().height+16)+"px";
+}
+window.addEventListener("resize",()=>{if(currentPage==="leitstelle")alignFunkBar();});
 let expandedCallId;
 function toggleIncidentExpand(id){
  expandedCallId=(expandedCallId!==undefined&&String(expandedCallId)===String(id))?null:id;
