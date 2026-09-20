@@ -87,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.83</span>
+ <span id="versionTag">v3.84</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -352,7 +352,7 @@ if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 // laufen, ohne für jedes Szenario separat eingerichtet werden zu müssen.
 const CLOUD_KEY="dlrg-jet-cloud-shared";
 function saveCloudConfig(){localStorage.setItem(CLOUD_KEY,JSON.stringify(db.cloud))}
-db.cloud=JSON.parse(localStorage.getItem(CLOUD_KEY)||"null")||{enabled:false,databaseURL:"",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
+db.cloud=JSON.parse(localStorage.getItem(CLOUD_KEY)||"null")||{enabled:true,databaseURL:"https://dlrg-lst-default-rtdb.europe-west1.firebasedatabase.app",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=defaults.ivena.map(h=>({...h,closures:[],fachrichtungen:[...h.fachrichtungen]}));

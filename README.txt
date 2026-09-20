@@ -1504,3 +1504,17 @@ Version 3.83:
   erscheint im Einsatz-Format auf dem Display. Kompletter Seitenrundgang über alle drei
   Szenarien weiterhin fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.84:
+- Live-Verbindung (Firebase) ist jetzt von Anfang an fertig eingerichtet: die Datenbank-URL
+  ist fest im Programm hinterlegt, die Cloud-Verbindung startet automatisch aktiviert. Es muss
+  nichts mehr manuell eingegeben werden, um mehrere Geräte (Leitstelle + Fahrzeugterminals)
+  live zu verbinden – eine zufällige Sitzungs-ID wird wie gehabt automatisch erzeugt.
+- Hinweis: Die Datenbank-URL steht damit direkt im Code der Datei. Für eine isolierte
+  Übungsdatenbank unproblematisch, aber die Datenbank sollte nicht für sensible oder echte
+  Patientendaten verwendet werden. Die Verbindung lässt sich jederzeit wie gewohnt über
+  "Rettungsmittel" -> "Live-Verbindung" ändern oder deaktivieren.
+- Mit Playwright geprüft: Cloud-Verbindung ist beim allerersten Laden bereits aktiv und korrekt
+  konfiguriert, generierte Fahrzeug-Links enthalten die Datenbank-URL und Sitzungs-ID
+  automatisch korrekt. Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.

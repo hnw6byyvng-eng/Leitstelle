@@ -24,3 +24,11 @@ Der QR-Code enthält Fahrzeug-ID, Übungs-ID und Datenbank-URL.
 
 8. QR auf dem Fahrzeug-Handy öffnen. Dieses Terminal sieht nur die Einsätze, denen dieses Fahrzeug zugeordnet wurde.
 Statusänderungen am Fahrzeug werden an die Leitstelle zurückgeschrieben.
+
+--- Update ---
+Ab v3.84 ist die Firebase-Datenbank-URL bereits fest im Programm hinterlegt
+(https://dlrg-lst-default-rtdb.europe-west1.firebasedatabase.app) und die Live-Verbindung ist
+von Anfang an aktiviert. Es muss nichts mehr manuell eingetragen werden – die Leitstelle
+verbindet sich beim ersten Öffnen automatisch mit einer neuen, zufälligen Sitzungs-ID.
+Falls die Datenbank mal gewechselt werden soll, geht das weiterhin ganz normal über
+"Rettungsmittel" -> "Live-Verbindung" -> neue URL eintragen.
