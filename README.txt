@@ -1518,3 +1518,26 @@ Version 3.84:
   konfiguriert, generierte Fahrzeug-Links enthalten die Datenbank-URL und Sitzungs-ID
   automatisch korrekt. Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.85:
+- PTT-Taste auf dem Fahrzeugterminal ist jetzt keine reine Deko mehr, sondern nimmt echte
+  Sprachnachrichten auf und verteilt sie an alle anderen verbundenen Geräte (Leitstelle und
+  andere Fahrzeugterminals):
+  - Taste GEDRÜCKT HALTEN zum Sprechen (Mikrofonaufnahme startet), LOSLASSEN zum Senden.
+  - Die Aufnahme wird über die bestehende Firebase-Verbindung an alle anderen Geräte verteilt,
+    die automatisch beim nächsten Abfrage-Durchlauf (alle 2–3 Sekunden) abspielen – ähnlich
+    einer kurzen Sprechfunk-/Walkie-Talkie-Nachricht mit leichter Verzögerung, kein echtes
+    Live-Gespräch (das würde eine deutlich aufwendigere Technik mit eigenem Server erfordern).
+  - Das eigene, gerade gesendete Fahrzeug hört seine eigene Nachricht nicht noch einmal
+    (kein Echo).
+  - Aufnahmen sind auf ca. 800 KB begrenzt (einige Sekunden Sprache), zu kurze/leere Aufnahmen
+    werden verworfen.
+- Wichtiger Hinweis (wie besprochen): Mikrofonzugriff erlauben Browser nur auf HTTPS-Seiten
+  (oder localhost) – wird die App als lokale Datei oder über eine reine HTTP-Adresse geöffnet,
+  blockiert der Browser das Mikrofon automatisch. Die App zeigt in diesem Fall eine klare
+  Meldung statt stillschweigend nichts zu tun.
+- Mit Playwright geprüft: PTT-Taste vorhanden, Rückfallverhalten bei fehlendem/verweigertem
+  Mikrofonzugriff funktioniert sauber ohne Absturz, Wiedergabe-Logik erkennt neue Nachrichten
+  korrekt und verhindert zuverlässig ein erneutes Abspielen bereits gehörter Nachrichten.
+  Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.

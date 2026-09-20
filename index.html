@@ -87,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.84</span>
+ <span id="versionTag">v3.85</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -2357,6 +2357,7 @@ function stopCloudPolling(){
 }
 async function pollCloudUnits(){
  if(!db.cloud?.enabled)return;
+ checkVoiceMessages(db.cloud.databaseURL,db.cloud.sessionId,"Leitstelle");
  let changed=false;
  const remote=await cloudRequest("units");
  if(remote){
@@ -2692,6 +2693,71 @@ function toggleVehicleGeo(unitId,dburl,sid){
  renderVehicleTerminal(unitId,dburl,sid);
 }
 let vehicleKeyboardOpen=false, vehicleKeyboardCtx=null, vehicleKeyboardText="";
+let pttRecorder=null, pttChunks=[], pttStream=null, knownVoiceIds=null;
+function blobToBase64(blob){
+ return new Promise((resolve,reject)=>{
+   const reader=new FileReader();
+   reader.onloadend=()=>resolve(reader.result);
+   reader.onerror=reject;
+   reader.readAsDataURL(blob);
+ });
+}
+async function startPTT(label,dburl,sid){
+ if(pttRecorder && pttRecorder.state==="recording")return;
+ if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+   toast("🎙️ Mikrofonzugriff nicht verfügbar (Seite muss über HTTPS aufgerufen werden)");
+   return;
+ }
+ try{
+   pttStream=await navigator.mediaDevices.getUserMedia({audio:true});
+   pttChunks=[];
+   pttRecorder=new MediaRecorder(pttStream);
+   pttRecorder.ondataavailable=e=>{if(e.data.size>0)pttChunks.push(e.data)};
+   pttRecorder.start();
+   const btn=document.getElementById("pttButton");
+   if(btn){btn.style.background="linear-gradient(180deg,#ff4d4d,#b30000)";const d=btn.querySelector(".digit");if(d)d.textContent="🔴 AUFNAHME – LOSLASSEN ZUM SENDEN"}
+ }catch(e){
+   toast("🎙️ Mikrofonzugriff verweigert oder nicht möglich");
+ }
+}
+async function stopPTT(label,dburl,sid){
+ if(!pttRecorder || pttRecorder.state!=="recording")return;
+ const btn=document.getElementById("pttButton");
+ if(btn){btn.style.background="";const d=btn.querySelector(".digit");if(d)d.textContent="PTT – SPRECHEN"}
+ const rec=pttRecorder;
+ const stopped=new Promise(res=>{rec.onstop=res});
+ rec.stop();
+ await stopped;
+ pttStream?.getTracks().forEach(t=>t.stop());
+ const blob=new Blob(pttChunks,{type:rec.mimeType||"audio/webm"});
+ if(blob.size<300)return; // zu kurz/leer, keine echte Aufnahme
+ if(blob.size>800000){toast("🎙️ Aufnahme zu lang – bitte kürzer sprechen");return}
+ const base64=await blobToBase64(blob);
+ await pushVoiceCloud(dburl,sid,label,base64);
+ toast("🎙️ Sprechfunk gesendet");
+}
+async function pushVoiceCloud(dburl,sid,fromLabel,base64Audio){
+ if(!dburl||!sid)return;
+ const id=Date.now();
+ await vehicleFetch(dburl,sid,`voice/${id}`,"PUT",{id,from:fromLabel,audio:base64Audio,time:new Date().toISOString()});
+}
+async function checkVoiceMessages(dburl,sid,myLabel){
+ if(!dburl||!sid)return;
+ const remote=await vehicleFetch(dburl,sid,"voice")||{};
+ const list=Object.values(remote).filter(Boolean).sort((a,b)=>a.id-b.id);
+ if(knownVoiceIds!==null){
+   const newOnes=list.filter(v=>!knownVoiceIds.has(String(v.id)) && v.from!==myLabel);
+   for(const v of newOnes)playVoiceMessage(v);
+ }
+ knownVoiceIds=new Set(list.map(v=>String(v.id)));
+}
+function playVoiceMessage(v){
+ try{
+   const audio=new Audio(v.audio);
+   audio.play().catch(()=>{});
+   toast(`🎙️ Sprechfunk von ${v.from||"?"}`);
+ }catch(e){}
+}
 function radioKeypadHTML(local,currentStatus,unitId,dburl,sid){
  // Status 6 (Nicht einsatzbereit) darf die Besatzung nicht selbst setzen – das entscheidet nur
  // die Leitstelle (oder die Tag/Nacht-Zeitautomatik für bestimmte Reservefahrzeuge). Ist das
@@ -2704,7 +2770,7 @@ function radioKeypadHTML(local,currentStatus,unitId,dburl,sid){
    if(!/^[0-9]$/.test(d)||!allowed.includes(d)) return `<div class="radio-key disabled${isCurrent?" current":""}"><span class="digit">${esc(d)}</span></div>`;
    return `<button class="radio-key${isCurrent?" current":""}" onclick="vehicleSetStatus('${unitId}','${d}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')"><span class="digit">${esc(d)}</span><span class="label">${esc(statusName(d))}</span></button>`;
  }).join("");
- return `<div class="radio-keypad">${keys}<button class="radio-key ptt" onclick="toast('🎙️ PTT (nur Deko)')"><span class="digit">PTT – SPRECHEN</span></button></div>`;
+ return `<div class="radio-keypad">${keys}<button class="radio-key ptt" id="pttButton" onpointerdown="startPTT('${esc((local?.opta||local?.name||unitId)+"").replace(/'/g,"\\'")}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')" onpointerup="stopPTT('${esc((local?.opta||local?.name||unitId)+"").replace(/'/g,"\\'")}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')" onpointerleave="stopPTT('${esc((local?.opta||local?.name||unitId)+"").replace(/'/g,"\\'")}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')"><span class="digit">PTT – SPRECHEN</span></button></div>`;
 }
 function openVehicleNachforderung(unitId,dburl,sid,callId){
  vehicleKeyboardCtx={unitId,dburl,sid,callId};
@@ -2806,6 +2872,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
      if(newSds){playAlarmTone();vibrateAlarm();showVehicleNotification({keyword:"✉️ Neue SDS-Nachricht",location:sdsList[0]?.text||""})}
    }
    vehicleKnownSdsIds=sdsIds;
+   checkVoiceMessages(dburl,sid,(unit?.opta||local?.opta||local?.name||unitId)+"");
    const remoteIvena=await vehicleFetch(dburl,sid,"ivena");
    if(Array.isArray(remoteIvena))vehicleIvenaCache=remoteIvena;
    else if(remoteIvena&&typeof remoteIvena==="object")vehicleIvenaCache=Object.values(remoteIvena).filter(Boolean);
