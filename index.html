@@ -87,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.81</span>
+ <span id="versionTag">v3.83</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -1523,7 +1523,9 @@ function dashboard(){
    <p class="muted" style="margin-top:8px;font-size:11px">📂 Wie ein Aktensortierer: dringende Einsätze oben, R0 danach, bereits alarmierte ganz unten. Auf einen Eintrag tippen, um alle Infos zu sehen.</p>`:`<div class="card"><h2>Keine offenen Einsätze</h2><p class="muted">Starte einen Übungsnotruf.</p></div>`}
  </section>
  <aside>
-  <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p></div>
+  <div class="card"><h2>Offene Einsätze</h2><div class="big">${calls.length}</div><p class="muted">Alarmierte und noch in Bearbeitung befindliche Notrufe.</p>
+   <button onclick="openSdsCompose()" style="margin-top:10px;width:100%">✉️ SDS schreiben</button>
+  </div>
  </aside></div>
  <div class="card" id="funkBar" style="position:fixed;bottom:0;z-index:8;border-radius:14px 0 0 0;box-shadow:none;margin:0;border-right:none">
   ${funkGruppenPanel()}
@@ -2230,6 +2232,60 @@ function deleteUnit(id){
 }
 function setStatus(id,s){db.units.find(x=>x.id===id).status=s;save();toast("Status geändert")}
 
+function openSdsCompose(){
+ const units=geoSortUnits(db.units);
+ const neighbors=db.neighborUnits||[];
+ document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto">
+  <div class="row between"><h2>✉️ SDS schreiben</h2><button onclick="render('leitstelle')">Abbrechen</button></div>
+  <p class="muted">Kurznachricht (Short Data Service, wie im echten BOS-Digitalfunk) an ein Fahrzeug senden – erscheint auf dessen Fahrzeugterminal, inklusive Alarmton.</p>
+  <label>Empfänger</label>
+  <select id="sdsTarget" style="width:100%">
+   <option value="">– Fahrzeug wählen –</option>
+   <optgroup label="Eigene Fahrzeuge">
+    ${units.map(u=>`<option value="own:${esc(String(u.id))}">${esc(u.opta||u.name)} (${esc(u.location||"")})</option>`).join("")}
+   </optgroup>
+   ${neighbors.length?`<optgroup label="Externe Geräte (Nachbarlandkreise)">
+    ${neighbors.map(nu=>`<option value="neighbor:${esc(String(nu.id))}">${esc(nu.opta)} – ${esc(nu.district)}</option>`).join("")}
+   </optgroup>`:""}
+  </select>
+  <label style="margin-top:10px">Nachricht (max. 140 Zeichen)</label>
+  <textarea id="sdsText" rows="4" maxlength="140" style="width:100%;box-sizing:border-box" placeholder="Kurznachricht …"></textarea>
+  <div class="row" style="margin-top:12px">
+   <button onclick="render('leitstelle')">Abbrechen</button>
+   <button class="primary" onclick="sendSdsFromCompose()">📨 Senden</button>
+  </div>
+ </div>`;
+}
+async function sendSdsFromCompose(){
+ const target=document.getElementById("sdsTarget")?.value||"";
+ const text=(document.getElementById("sdsText")?.value||"").trim();
+ if(!target){toast("Bitte einen Empfänger wählen");return}
+ if(!text){toast("Bitte eine Nachricht eingeben");return}
+ const [kind,rawId]=target.split(":");
+ const sds={id:Date.now(),text,time:new Date().toISOString(),from:"Leitstelle"};
+ if(kind==="neighbor"){
+   const nu=db.neighborUnits.find(x=>String(x.id)===String(rawId));
+   if(!nu){toast("Externes Gerät nicht gefunden");return}
+   nu.sdsInbox=nu.sdsInbox||[];
+   nu.sdsInbox.push(sds);
+   save();
+   await pushSdsCloud(`neighbor-${rawId}`,sds);
+   toast(`SDS an ${nu.opta} (${nu.district}) gesendet`);
+ }else{
+   const u=db.units.find(x=>String(x.id)===String(rawId));
+   if(!u){toast("Fahrzeug nicht gefunden");return}
+   u.sdsInbox=u.sdsInbox||[];
+   u.sdsInbox.push(sds);
+   save();
+   await pushSdsCloud(rawId,sds);
+   toast(`SDS an ${u.opta||u.name} gesendet`);
+ }
+ render("leitstelle");
+}
+async function pushSdsCloud(unitId,sds){
+ if(!db.cloud?.enabled)return;
+ await cloudRequest(`sds/${encodeURIComponent(String(unitId))}/${encodeURIComponent(String(sds.id))}`,"PUT",sds);
+}
 function cleanDatabaseURL(url){
  return String(url||"").trim().replace(/\/+$/,"");
 }
@@ -2447,12 +2503,83 @@ function openVehiclePreview(id){
 }
 function initVehicleMode(){
  const params=new URLSearchParams(location.search);
- const vehicle=params.get("vehicle"); if(!vehicle)return false;
+ const vehicle=params.get("vehicle");
+ const neighbor=params.get("neighbor");
+ if(!vehicle && !neighbor)return false;
  const dburl=cleanDatabaseURL(params.get("db")||"");
  const sid=params.get("sid")||"";
  document.querySelector("nav")?.remove();
- renderVehicleTerminal(vehicle,dburl,sid);
+ if(vehicle)renderVehicleTerminal(vehicle,dburl,sid);
+ else renderNeighborTerminal(neighbor,dburl,sid);
  return true;
+}
+function neighborTerminalURL(nu){
+ const base=location.origin+location.pathname;
+ const q=new URLSearchParams();
+ q.set("neighbor",String(nu.id));
+ q.set("sid",db.cloud?.sessionId||"");
+ if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
+ return `${base}?${q.toString()}`;
+}
+function showNeighborQR(id){
+ const nu=db.neighborUnits.find(x=>String(x.id)===String(id)); if(!nu)return;
+ const url=neighborTerminalURL(nu);
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>📱 Funkdisplay (externes Gerät) – ${esc(nu.opta)}</h2>
+  <p class="muted">${db.cloud?.enabled?"Dieser Link kann auf einem zweiten Gerät geöffnet werden, um zu zeigen, was das Nachbar-Fahrzeug per SDS empfängt.":"QR-Link ist erzeugt; für Live-Nachrichten bitte zuerst die Cloud-Verbindung aktivieren."}</p>
+  <div style="display:flex;justify-content:center;margin:18px"><div id="qrCanvas"></div></div>
+  <label>Link</label>
+  <textarea id="vehicleLink" rows="4" readonly>${esc(url)}</textarea>
+  <div class="row" style="margin-top:12px">
+   <button onclick="copyVehicleLink()">📋 Link kopieren</button>
+   <button onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">👁️ Öffnen</button>
+   <button onclick="render('nachbarLks')">Zurück</button>
+  </div>
+ </div>`;
+ const target=document.getElementById("qrCanvas");
+ if(window.QRCode && target){
+   new QRCode(target,{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});
+ }else if(target){
+   target.innerHTML='<div class="card"><b>QR-Code konnte nicht geladen werden.</b><br><span class="muted">Der Link darunter kann trotzdem kopiert werden.</span></div>';
+ }
+}
+async function renderNeighborTerminal(id,dburl,sid){
+ const nu=db.neighborUnits.find(x=>String(x.id)===String(id));
+ vehicleKnownSdsIds=null;
+ document.getElementById("app").innerHTML=`<div class="radio-body" id="vehicleTerminal">
+   <div class="radio-topbar">
+     <div class="radio-emergency" title="Notruf (Deko)"></div>
+     <div style="font-size:12px;font-weight:800;letter-spacing:1px">${esc(nu?.opta||id)}</div>
+     <div class="radio-led" id="vehicleLiveLed" style="background:#e6b800;box-shadow:0 0 5px #e6b800" title="VERBINDE…"></div>
+   </div>
+   <div class="radio-screen" id="vehicleBody"><p class="muted">Warte auf Nachrichten …</p></div>
+   <div class="radio-softkeys">
+     <button onclick="unlockVehicleAudio()">🔔 ALARM AN</button>
+     <button onclick="toast('🔄 Aktualisiere…')">🔄 REFRESH</button>
+   </div>
+ </div>`;
+ async function refresh(){
+   const led=document.getElementById("vehicleLiveLed");
+   if(!dburl||!sid){
+     if(led){led.style.background="#c0392b";led.style.boxShadow="0 0 5px #c0392b";led.title="OFFLINE"}
+     document.getElementById("vehicleBody").innerHTML=`<b>OFFLINE</b><div style="font-size:11px;margin-top:6px">Dieser Link wurde ohne eingerichtete Firebase-Datenbank erzeugt.</div>`;
+     return;
+   }
+   const remoteSds=await vehicleFetch(dburl,sid,`sds/${encodeURIComponent("neighbor-"+id)}`)||{};
+   const sdsList=Object.values(remoteSds).filter(Boolean).sort((a,b)=>new Date(b.time)-new Date(a.time));
+   const sdsIds=new Set(sdsList.map(s=>String(s.id)));
+   if(vehicleKnownSdsIds!==null){
+     const newSds=[...sdsIds].some(x=>!vehicleKnownSdsIds.has(x));
+     if(newSds){playAlarmTone();vibrateAlarm();showVehicleNotification({keyword:"✉️ Neue SDS-Nachricht",location:sdsList[0]?.text||""})}
+   }
+   vehicleKnownSdsIds=sdsIds;
+   if(led){led.style.background="#2ecc71";led.style.boxShadow="0 0 5px #2ecc71";led.title="LIVE"}
+   const body=document.getElementById("vehicleBody");
+   body.innerHTML=sdsList.length?sdsList.map(s=>`<div style="margin-top:6px;font-size:12px;border-top:1px solid #2a3325;padding-top:5px">🚨 ${esc(s.text)}</div>`).join(""):`<div style="opacity:.7">Keine Nachrichten</div>`;
+ }
+ await refresh();
+ clearInterval(vehiclePollTimer);
+ vehiclePollTimer=setInterval(refresh,2000);
 }
 function vehicleCloudURL(dburl,sid,path){
  return `${cleanDatabaseURL(dburl)}/sessions/${encodeURIComponent(sid)}/${path}.json`;
@@ -2467,7 +2594,7 @@ async function vehicleFetch(dburl,sid,path,method="GET",data=null){
   return await r.json();
  }catch(e){console.warn(e);return null}
 }
-let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null, vehicleKnownCallIds=null;
+let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null, vehicleKnownCallIds=null, vehicleKnownSdsIds=null;
 let vehicleAudioCtx=null, vehicleGeoWatchId=null, vehicleGeoLastPush=0, vehicleAudioKeepAlive=null;
 function startAudioKeepAlive(){
  // iOS setzt einen ungenutzten AudioContext nach kurzer Zeit wieder auf "suspended" – ein
@@ -2671,6 +2798,14 @@ async function renderVehicleTerminal(unitId,dburl,sid){
      if(brandNew){playAlarmTone();vibrateAlarm();showVehicleNotification(calls.find(c=>!vehicleKnownCallIds.has(String(c.id))))}
    }
    vehicleKnownCallIds=newIds;
+   const remoteSds=await vehicleFetch(dburl,sid,`sds/${encodeURIComponent(unitId)}`)||{};
+   const sdsList=Object.values(remoteSds).filter(Boolean).sort((a,b)=>new Date(b.time)-new Date(a.time));
+   const sdsIds=new Set(sdsList.map(s=>String(s.id)));
+   if(vehicleKnownSdsIds!==null){
+     const newSds=[...sdsIds].some(id=>!vehicleKnownSdsIds.has(id));
+     if(newSds){playAlarmTone();vibrateAlarm();showVehicleNotification({keyword:"✉️ Neue SDS-Nachricht",location:sdsList[0]?.text||""})}
+   }
+   vehicleKnownSdsIds=sdsIds;
    const remoteIvena=await vehicleFetch(dburl,sid,"ivena");
    if(Array.isArray(remoteIvena))vehicleIvenaCache=remoteIvena;
    else if(remoteIvena&&typeof remoteIvena==="object")vehicleIvenaCache=Object.values(remoteIvena).filter(Boolean);
@@ -2686,7 +2821,8 @@ async function renderVehicleTerminal(unitId,dburl,sid){
      const body=document.getElementById("vehicleBody"); if(!body)return;
      body.innerHTML=`${vehicleGeoWatchId?`<div style="font-size:10px;opacity:.8;margin-bottom:4px">📍 STANDORT LIVE</div>`:""}
       <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">${unit?esc(statusName(String(unit.status))):"—"}</b><span style="font-size:20px;font-weight:800">${unit?esc(String(unit.status)):"?"}</span></div>
-      ${calls.length?calls.map(c=>`<div style="margin-top:6px;font-size:11px;border-top:1px solid #2a3325;padding-top:5px">🚨 ${esc(c.keyword||"Einsatz")}<br>📍 ${esc(c.location||"Ort unbekannt")}</div>`).join(""):`<div style="margin-top:6px;font-size:11px;opacity:.7">Kein aktueller Einsatz</div>`}`;
+      ${calls.length?calls.map(c=>`<div style="margin-top:6px;font-size:11px;border-top:1px solid #2a3325;padding-top:5px">🚨 ${esc(c.keyword||"Einsatz")}<br>📍 ${esc(c.location||"Ort unbekannt")}</div>`).join(""):`<div style="margin-top:6px;font-size:11px;opacity:.7">Kein aktueller Einsatz</div>`}
+      ${sdsList.length?`<div style="margin-top:6px;font-size:11px;border-top:1px solid #2a3325;padding-top:5px;color:#ffd966">✉️ SDS: ${esc(sdsList[0].text)}</div>`:""}`;
      const keypad=document.getElementById("vehicleKeypad");
      if(keypad)keypad.innerHTML=radioKeypadHTML(local,unit?.status,unitId,dburl,sid);
    }
@@ -3263,7 +3399,10 @@ function nachbarLks(){
          ${["1","2","3","4","6"].map(s=>`<option value="${s}" ${String(u.status)===s?"selected":""}>${esc(statusName(s))}</option>`).join("")}
         </select>
        </td>
-       <td>${["1","2"].includes(String(u.status))&&openCalls.length?`<button onclick="openNeighborUnitPickerForCall('${kind}','${esc(String(openCalls[0].id))}')">🚨 Alarmieren</button>`:""}</td>
+       <td>
+        ${["1","2"].includes(String(u.status))&&openCalls.length?`<button onclick="openNeighborUnitPickerForCall('${kind}','${esc(String(openCalls[0].id))}')">🚨 Alarmieren</button>`:""}
+        <button onclick="showNeighborQR('${esc(String(u.id))}')">📱 Link / QR</button>
+       </td>
       </tr>`).join("")}
     </tbody></table></div>
    </div>`;

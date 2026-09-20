@@ -1461,3 +1461,46 @@ Version 3.81:
   Scrollen, kein Überlauf, letzte Kachel immer sichtbar, Funk-Leiste passt immer exakt in den
   Bildschirm. Kompletter Seitenrundgang über alle drei Szenarien weiterhin fehlerfrei.
 - JavaScript-Syntax geprüft.
+
+Version 3.82:
+- NEU: Button "✉️ SDS schreiben" unter "Offene Einsätze" auf der Startseite. SDS (Short Data
+  Service) ist im echten BOS-Digitalfunk der Kurznachrichtendienst zwischen Leitstelle und
+  Funkgerät, ähnlich SMS. Fahrzeug auswählen, Kurznachricht (max. 140 Zeichen) eingeben,
+  senden – die Nachricht erscheint auf dem Fahrzeugterminal des Empfängers inklusive Alarmton,
+  Vibration und Systembenachrichtigung, genau wie bei einem neuen Einsatz.
+- Alarmierung und geräteübergreifende Statusmeldungen nochmal vollständig durchgeprüft:
+  - Rundweg Fahrzeug → Leitstelle bestätigt: Drückt die Besatzung am Fahrzeugterminal einen
+    Status, wird das per PATCH an Firebase gesendet (inkl. Kennzeichnung "phoneControlled");
+    die Leitstelle fragt alle 3 Sekunden ab, übernimmt den neuen Status, speichert und
+    aktualisiert automatisch die Ansicht (ohne den Disponenten mitten in der Notrufabfrage zu
+    stören).
+  - Rundweg Leitstelle → Fahrzeug bestätigt: Sobald ein neuer Einsatz erkannt wird, lösen
+    Alarmton, Vibration und Systembenachrichtigung zuverlässig gemeinsam aus.
+  - Hinweis: Eine vollständige Ende-zu-Ende-Prüfung über echte Geräte und ein echtes
+    Firebase-Projekt kann in dieser Umgebung nicht durchgeführt werden (kein Internetzugriff) –
+    geprüft wurde die komplette Code-Logik sowie das Auslöseverhalten in Isolation.
+- Mit Playwright geprüft: SDS-Button vorhanden, Formular öffnet und speichert korrekt,
+  Nachrichtenanzeige auf dem Fahrzeugterminal-Display funktioniert, Alarm-Auslösekette
+  (Ton+Vibration+Benachrichtigung) feuert zuverlässig gemeinsam. Kompletter Seitenrundgang über
+  alle drei Szenarien fehlerfrei.
+- Beim Bauen einen eigenen Fehler zweimal gemacht und sofort korrigiert: zwei Funktionsdefinitionen
+  (cleanDatabaseURL) wurden durch einen unvollständigen Textersatz kurzzeitig gelöscht und
+  wiederhergestellt, bevor etwas ausgeliefert wurde.
+- JavaScript-Syntax geprüft.
+
+Version 3.83:
+- "SDS schreiben" um externe Geräte erweitert: Im Auswahlmenü gibt es jetzt neben den eigenen
+  Fahrzeugen auch eine Gruppe "Externe Geräte (Nachbarlandkreise)" mit allen Fahrzeugen aus
+  Wittmund, Leer, Ammerland und Wesermarsch.
+- NEU: Nachbar-Fahrzeuge bekommen jetzt ebenfalls ein eigenes, per Link/QR aufrufbares
+  Funkdisplay (Button "📱 Link / QR" direkt in der Nachbar-LKs-Übersicht) – im selben
+  Sepura-Funkgerät-Design wie bei den eigenen Fahrzeugen, allerdings ohne Statustasten (das
+  Fahrzeug gehört ja nicht zur eigenen Leitstelle). Eine gesendete SDS erscheint dort im
+  "🚨"-Format wie ein echter Einsatz im Display, inklusive Alarmton, Vibration und
+  Systembenachrichtigung.
+- Mit Playwright geprüft: externe Geräte erscheinen korrekt in der SDS-Empfängerliste, eine
+  gesendete Nachricht wird korrekt gespeichert, der Link/QR-Button ist vorhanden, das
+  Funkdisplay des externen Geräts rendert korrekt mit OPTA-Anzeige, und die SDS-Nachricht
+  erscheint im Einsatz-Format auf dem Display. Kompletter Seitenrundgang über alle drei
+  Szenarien weiterhin fehlerfrei.
+- JavaScript-Syntax geprüft.
