@@ -40,8 +40,6 @@ html[data-device="handy"] .outer-grid .bereiche-card nav{flex-direction:row}
 html[data-device="handy"] .bereiche-card{height:auto}
 html[data-device="handy"] main{padding:10px;max-width:100%}
 html[data-device="handy"] nav button{padding:16px 12px;font-size:14px}
-html[data-device="handy"] #funkBar{position:static!important;bottom:auto!important;left:auto!important;right:auto!important;border-radius:14px!important;box-shadow:0 2px 8px #0000000a!important;border:1px solid var(--line)!important;margin:14px 0!important}
-html[data-device="handy"] #funkSpacer{height:0!important}
 html[data-device="handy"] .formgrid{grid-template-columns:1fr}
 html[data-device="handy"] .row{flex-wrap:wrap}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #0000000a;margin-bottom:14px}
@@ -100,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.87</span>
+ <span id="versionTag">v3.88</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="deviceSwitchLink" href="#" onclick="localStorage.removeItem('dlrg-jet-device');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">📱⇄📲 Ansicht wechseln</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600">🔀 Szenario wechseln</a>
@@ -1613,15 +1611,15 @@ function dashboard(){
    <button onclick="openSdsCompose()" style="margin-top:10px;width:100%">✉️ SDS schreiben</button>
   </div>
  </aside></div>
- <div class="card" id="funkBar" style="position:fixed;bottom:0;z-index:8;border-radius:14px 0 0 0;box-shadow:none;margin:0;border-right:none">
+ ${isHandyMode()?"":`<div class="card" id="funkBar" style="position:fixed;bottom:0;z-index:8;border-radius:14px 0 0 0;box-shadow:none;margin:0;border-right:none">
   ${funkGruppenPanel()}
  </div>
- <div id="funkSpacer" style="height:170px"></div>`;
+ <div id="funkSpacer" style="height:170px"></div>`}`;
 }
 function isHandyMode(){return document.documentElement.getAttribute("data-device")==="handy"}
 function alignFunkBar(){
- // In der Handy-Ansicht steht die Funkrufgruppen-Leiste ganz normal im Textfluss (siehe CSS
- // [data-device="handy"] #funkBar), daher keine feste Positionierung per JS berechnen.
+ // In der Handy-Ansicht wird die Funkrufgruppen-Leiste gar nicht gerendert (siehe dashboard()),
+ // daher hier nichts zu positionieren.
  if(isHandyMode())return;
  const bar=document.getElementById("funkBar");
  const sidebar=document.querySelector(".bereiche-card");

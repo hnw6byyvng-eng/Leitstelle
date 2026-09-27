@@ -341,3 +341,9 @@ Version 3.87:
   lokalen Speicher) – vorher wären sie dort ohne Weiterleitung hängen geblieben.
 - JavaScript-Syntax geprüft, Playwright-Test für Handy-Ansicht, iPad-Ansicht, Ansicht-wechseln-
   Link sowie Fahrzeug-Terminal auf frischem Gerät durchgeführt.
+
+Version 3.88:
+- Handy-Ansicht: Die (rein dekorative) Funkrufgruppen-Leiste (F/K/R-Kanäle) wird in der
+  Handy-Ansicht jetzt gar nicht mehr angezeigt, statt nur nicht mehr fest positioniert zu sein.
+  In der iPad-Ansicht bleibt sie unverändert als feste Leiste am unteren Rand erhalten.
+- JavaScript-Syntax geprüft, Playwright-Test für beide Ansichten durchgeführt.
