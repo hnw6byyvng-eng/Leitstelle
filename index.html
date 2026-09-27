@@ -87,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.85</span>
+ <span id="versionTag">v3.86</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
 </div>
@@ -832,10 +832,15 @@ function autoAdvanceEnRoute(){
    if(u.phoneControlled)return;
    const status=String(u.status);
    if(status==="3" && u.status3Since){
+     // ETA anhand der TATSÄCHLICH dem Fahrzeug zugeordneten Einsatzstelle berechnen – NICHT
+     // anhand des Einsatzes, der gerade zufällig in der Leitstellenoberfläche geöffnet ist
+     // (geographicRank()/estimatedEtaMinutes() beziehen sich auf db.currentCall). Sonst bleibt
+     // die Automatik aus, sobald kein oder ein anderer Einsatz geöffnet ist.
      const call=findUnitCall(u);
      const home=unitPoint(u), dest=callDestinationPoint(call);
      if(home&&dest){
-       const etaMs=(estimatedEtaMinutes(u)||10)*60000;
+       const km=haversine(home[0],home[1],dest[0],dest[1]);
+       const etaMs=(etaMinutesForDistance(u,km)||10)*60000;
        if(now-u.status3Since>=etaMs){setUnitStatus(u,"4");changed=true;}
      }
    } else if(status==="4" && u.status4Since){
@@ -851,7 +856,8 @@ function autoAdvanceEnRoute(){
      const start=callDestinationPoint(call)||unitPoint(u);
      const dest=asg&&hospitalPoint(asg.hospitalId);
      if(start&&dest){
-       const etaMs=(estimatedEtaMinutes(u)||10)*60000;
+       const km=haversine(start[0],start[1],dest[0],dest[1]);
+       const etaMs=(etaMinutesForDistance(u,km)||10)*60000;
        if(now-u.status7Since>=etaMs){setUnitStatus(u,"8");changed=true;}
      }
    }
@@ -1009,9 +1015,8 @@ function geographicRank(u){
  if(area&&optaAreaName(u)===area)return 0;
  return 999;
 }
-function estimatedEtaMinutes(u){
- const km=geographicRank(u);
- if(km>=999)return null;
+function etaMinutesForDistance(u,km){
+ if(km==null||km>=999)return null;
  // Rettungshubschrauber sind deutlich schneller unterwegs als Bodenfahrzeuge (Reisegeschwindigkeit
  // typischer Rettungshubschrauber ca. 200 km/h), dafür etwas längere Rüst-/Startzeit.
  // Das DRK ist ehrenamtlich organisiert (Kreisverbände Jeverland und Varel-Friesische Wehde) –
@@ -1023,6 +1028,9 @@ function estimatedEtaMinutes(u){
  const speedKmh=isAir?200:60;
  const turnoutMin=isAir?5:(isVolunteer?12:2);
  return Math.max(1,Math.round(turnoutMin+(km/speedKmh)*60));
+}
+function estimatedEtaMinutes(u){
+ return etaMinutesForDistance(u,geographicRank(u));
 }
 function nearestFirst(arr){
  return [...arr].sort((a,b)=>{
@@ -1235,15 +1243,20 @@ function showResourcePicker(mode="additional"){
  const c=db.currentCall;
  if(!c){toast("Kein Einsatz ausgewählt");return}
  const isNafo=mode==="nafo";
+ const assignedIds=[...new Set([...(c.alarmedUnits||[]),...(c.proposedUnitIds||[])].map(String))];
+ const assignedUnits=assignedIds.map(id=>db.units.find(u=>String(u.id)===id)).filter(Boolean);
  document.getElementById("app").innerHTML=`<div class="card call">
   <div class="row between">
-   <div><h2>${isNafo?"📟 Nachforderung":"➕ Weitere Rettungsmittel"}</h2>
+   <div><h2>${isNafo?"📟 Nachforderung":"✏️ Rettungsmittel bearbeiten"}</h2>
    <div class="muted">Einsatz #${esc(c.id)} · ${esc(c.location||"Ort unbekannt")}</div></div>
    <button onclick="render('leitstelle')">Zurück</button>
   </div>
   ${isNafo?`<label>Nachforderungsgrund / Lageänderung</label>
     <textarea id="nafoReason" rows="4" placeholder="z. B. weiterer Patient, Zustand verschlechtert, zusätzliche technische Rettung erforderlich …">${esc(c.pendingNafoReason||"")}</textarea>`:""}
-  <label style="margin-top:12px">${isNafo?"Rettungsmittel nachfordern":"Rettungsmittel zum Einsatz hinzufügen"}</label>
+  ${!isNafo?`<label>Aktuell zugeordnete Rettungsmittel</label>
+  ${assignedUnits.length?assignedUnits.map(u=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>${vehicleLabelBlock(u)}</span><button onclick="removeCallUnit('${esc(String(u.id))}')">🗑️ Entfernen</button></div>`).join(""):`<p class="muted">Noch keine Mittel zugeordnet.</p>`}
+  <hr>`:""}
+  <label style="margin-top:12px">${isNafo?"Rettungsmittel nachfordern":"Rettungsmittel hinzufügen"}</label>
   <div class="answer">
    ${QUICK_RESOURCE_TYPES.map(({type:t,label})=>{
      const u=chooseAvailableByType(t);
@@ -1253,11 +1266,34 @@ function showResourcePicker(mode="additional"){
      return `<button ${u?"":"disabled"} onclick="addResourceType(${typeArg},'${mode}')">${esc(displayLabel)}<small style="display:block">${u?`${esc(u.opta||u.name)} · ${distance}`:"nicht verfügbar"}</small></button>`;
    }).join("")}
   </div>
-  <hr>
-  <label>Aktuell dem Einsatz zugeordnet</label>
-  <div class="suggest">${esc(c.suggestion||"Noch keine Mittel.")}</div>
-  <p class="muted">${isNafo?"Das gewählte Mittel wird sofort als Nachforderung alarmiert und auf Status 3 gesetzt.":"Bei bereits alarmiertem Einsatz wird das gewählte Mittel sofort dem Einsatz zugeordnet und auf Status 3 gesetzt. Vor der Erstalarmierung wird es nur dem Alarmvorschlag hinzugefügt."}</p>
+  ${isNafo?`<hr><label>Aktuell dem Einsatz zugeordnet</label><div class="suggest">${esc(c.suggestion||"Noch keine Mittel.")}</div>`:""}
+  <p class="muted">${isNafo?"Das gewählte Mittel wird sofort als Nachforderung alarmiert und auf Status 3 gesetzt.":"Bei bereits alarmiertem Einsatz wird ein neu hinzugefügtes Mittel sofort dem Einsatz zugeordnet und auf Status 3 gesetzt. Ein entferntes Mittel wird sofort wieder freigegeben (Status 1). Vor der Erstalarmierung wirkt sich beides nur auf den Alarmvorschlag aus."}</p>
  </div>`;
+}
+function removeCallUnit(unitId){
+ const c=db.currentCall;
+ if(!c){toast("Kein Einsatz ausgewählt");return}
+ const u=db.units.find(x=>String(x.id)===String(unitId));
+ if(!u){toast("Fahrzeug nicht gefunden");return}
+ const wasAlarmed=(c.alarmedUnits||[]).some(id=>String(id)===String(u.id));
+ c.alarmedUnits=(c.alarmedUnits||[]).filter(id=>String(id)!==String(u.id));
+ c.proposedUnitIds=(c.proposedUnitIds||[]).filter(id=>String(id)!==String(u.id));
+ c.proposal=(c.proposal||[]).filter(x=>String(x.id)!==String(u.id));
+ if(c.neighborUnitId && String(c.neighborUnitId)===String(u.id))delete c.neighborUnitId;
+ rebuildSuggestionFromProposal(c);
+ if(u.neighborLoan){
+   const orig=db.neighborUnits.find(n=>String(n.id)===String(u.neighborUnitId));
+   if(orig)orig.status="1";
+   db.units=db.units.filter(x=>String(x.id)!==String(u.id));
+ } else if(wasAlarmed){
+   setUnitStatus(u,"1");
+ }
+ c.history=c.history||[];
+ c.history.push({q:"🗑️ Rettungsmittel entfernt",a:unitLabel(u)});
+ save();
+ if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
+ toast(`${u.opta||u.name} entfernt`);
+ showResourcePicker("additional");
 }
 function addResourceType(type,mode="additional"){
  const c=db.currentCall;
@@ -1404,7 +1440,8 @@ function incidentCard(c,isSelected){
     <button onclick="selectCall('${esc(c.id)}','notruf')">${isSelected?"Notruf öffnen":"Einsatz öffnen"}</button>
     <button onclick="selectCall('${esc(c.id)}','karte')">🗺️ Karte</button>
     ${!c.alarmTime?`<button class="primary" onclick="selectCall('${esc(c.id)}','notruf')">Weiter bearbeiten</button>`:""}
-    <button onclick="openAdditionalResources('${esc(c.id)}')">➕ Weitere Rettungsmittel</button>
+    <button onclick="openAdditionalResources('${esc(c.id)}')">✏️ Rettungsmittel bearbeiten</button>
+    <button onclick="showCallerQR('${esc(String(c.id))}')">📱 QR für Anrufer</button>
     ${c.alarmTime?`<button class="btn blue" onclick="openNachforderung('${esc(c.id)}')">📟 Nachforderung</button>`:""}
     <button class="primary" onclick="finishCall('${esc(c.id)}')">✅ Einsatz abschließen</button>
    </div>
@@ -2006,27 +2043,32 @@ function evaluate(){
  // liefert ein eigenes, spezifischeres Meldestichwort – unabhängig vom Grundereignis
  // (Wasser, VU, Feuer mit Personengefährdung, …), sofern XABCDE erhoben wurde.
  if(needsXABCDE(c)){
+   // Bei Reanimation ist RTW+NEF(+NKTW als First Responder) bereits über den Grundstichwort-
+   // Zweig alarmiert. Die XABCDE-Verschärfung darf hier keine weiteren/doppelten RTW/NEF
+   // nachlegen (führte zuvor dazu, dass z. B. 2× NEF disponiert wurden) – sie liefert für
+   // Reanimation nur noch das genauere Meldestichwort-Label.
+   const reaAlready=(e==="Reanimation");
    let xLabel=null;
    if(a.x_massive==="Ja"){
-     add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+     if(!reaAlready){add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst")}
      xLabel="RD_X – Kritische Blutung (Schockraum voranmelden)";
    } else if(a.b_breath==="Keine normale Atmung"){
-     add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+     if(!reaAlready){add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst")}
      xLabel="RD_B – Atemstillstand / reanimationspflichtig";
    } else if(a.c_circ==="Relevante Blutung"){
-     add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+     if(!reaAlready){add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst")}
      xLabel="RD_C – Relevante Blutung (Schockraum voranmelden)";
    } else if(a.c_circ==="Auffällig / Schockzeichen"){
-     add("NEF",1,"Rettungsdienst");
+     if(!reaAlready)add("NEF",1,"Rettungsdienst");
      xLabel="RD_C – Schockzeichen";
    } else if(a.a_airway==="Gefährdet / verlegt"){
-     add("NEF",1,"Rettungsdienst");
+     if(!reaAlready)add("NEF",1,"Rettungsdienst");
      xLabel="RD_A – Atemweg gefährdet";
    } else if(a.d_disability==="Bewusstlos"){
-     add("NEF",1,"Rettungsdienst");
+     if(!reaAlready)add("NEF",1,"Rettungsdienst");
      xLabel="RD_D – Bewusstlos";
    } else if(a.d_disability==="Krampfanfall / neurologisch auffällig"){
-     add("NEF",1,"Rettungsdienst");
+     if(!reaAlready)add("NEF",1,"Rettungsdienst");
      xLabel="RD_D – Krampfanfall";
    } else if(a.b_breath==="Auffällig"){
      xLabel="RD_B – Atmung auffällig";
@@ -2151,7 +2193,7 @@ function prepareAlarm(){
    <textarea id="alarmFreeText" rows="7" placeholder="Zusätzliche Lageinformationen, Hinweise zur Anfahrt, Gefahren, Zugang, Ansprechpartner …">${esc(c.alarmFreeText||"")}</textarea>
    <div class="row" style="margin-top:12px">
      <button onclick="render('leitstelle')">Zurück</button>
-     <button onclick="showResourcePicker('additional')">➕ Weitere Rettungsmittel</button>
+     <button onclick="showResourcePicker('additional')">✏️ Rettungsmittel bearbeiten</button>
      <button onclick="manageProposal()">🚗 Fahrzeuge bearbeiten</button>
      <button class="primary" onclick="confirmAlarm()">🚨 Jetzt alarmieren</button>
    </div>
@@ -2506,12 +2548,14 @@ function initVehicleMode(){
  const params=new URLSearchParams(location.search);
  const vehicle=params.get("vehicle");
  const neighbor=params.get("neighbor");
- if(!vehicle && !neighbor)return false;
+ const caller=params.get("caller");
+ if(!vehicle && !neighbor && !caller)return false;
  const dburl=cleanDatabaseURL(params.get("db")||"");
  const sid=params.get("sid")||"";
  document.querySelector("nav")?.remove();
  if(vehicle)renderVehicleTerminal(vehicle,dburl,sid);
- else renderNeighborTerminal(neighbor,dburl,sid);
+ else if(neighbor)renderNeighborTerminal(neighbor,dburl,sid);
+ else renderCallerTerminal(caller,dburl,sid);
  return true;
 }
 function neighborTerminalURL(nu){
@@ -2543,6 +2587,88 @@ function showNeighborQR(id){
  }else if(target){
    target.innerHTML='<div class="card"><b>QR-Code konnte nicht geladen werden.</b><br><span class="muted">Der Link darunter kann trotzdem kopiert werden.</span></div>';
  }
+}
+function callerURL(c){
+ const base=location.origin+location.pathname;
+ const q=new URLSearchParams();
+ q.set("caller",String(c.id));
+ q.set("sid",db.cloud?.sessionId||"");
+ if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
+ return `${base}?${q.toString()}`;
+}
+function showCallerQR(id){
+ const c=allOpenCalls().find(x=>String(x.id)===String(id));
+ if(!c){toast("Einsatz nicht gefunden");return}
+ if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
+ const url=callerURL(c);
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>📱 QR-Code für den Anrufer – Einsatz #${esc(c.id)}</h2>
+  <p class="muted">${db.cloud?.enabled?"Dieser Link ist für den Anrufer gedacht (z. B. zweites Gerät in der Übung) und zeigt eine laienverständliche Statusanzeige zu seinem Notruf – ohne interne Einsatzdetails.":"QR-Link ist erzeugt; für eine Live-Anzeige bitte zuerst die Cloud-Verbindung aktivieren."}</p>
+  <div style="display:flex;justify-content:center;margin:18px"><div id="qrCanvas"></div></div>
+  <label>Anrufer-Link</label>
+  <textarea id="callerLink" rows="4" readonly>${esc(url)}</textarea>
+  <div class="row" style="margin-top:12px">
+   <button onclick="copyCallerLink()">📋 Link kopieren</button>
+   <button onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">👁️ Öffnen</button>
+   <button onclick="render('leitstelle')">Zurück</button>
+  </div>
+ </div>`;
+ const target=document.getElementById("qrCanvas");
+ if(window.QRCode && target){
+   new QRCode(target,{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});
+ }else if(target){
+   target.innerHTML='<div class="card"><b>QR-Code konnte nicht geladen werden.</b><br><span class="muted">Der Anrufer-Link darunter kann trotzdem kopiert werden.</span></div>';
+ }
+}
+async function copyCallerLink(){
+ const val=document.getElementById("callerLink")?.value||"";
+ try{await navigator.clipboard.writeText(val);toast("Anrufer-Link kopiert")}catch(e){toast("Link markieren und kopieren")}
+}
+async function renderCallerTerminal(callId,dburl,sid){
+ document.querySelector("nav")?.remove();
+ document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto;text-align:center">
+   <h2>📞 Ihr Notruf</h2>
+   <div id="callerStatusIcon" style="font-size:54px;margin:14px 0">⏳</div>
+   <div id="callerStatusText" style="font-size:20px;font-weight:800">Verbinde …</div>
+   <div id="callerStatusSub" class="muted" style="margin-top:8px"></div>
+   <p class="muted" style="margin-top:24px;font-size:12px">Diese Anzeige dient nur der Übung/Ausbildung und ersetzt keine echte Rückmeldung im Notfall.</p>
+ </div>`;
+ async function refresh(){
+   const iconEl=document.getElementById("callerStatusIcon");
+   const textEl=document.getElementById("callerStatusText");
+   const subEl=document.getElementById("callerStatusSub");
+   if(!iconEl)return;
+   if(!dburl||!sid){
+     iconEl.textContent="⚠️";textEl.textContent="Keine Verbindung";
+     subEl.textContent="Dieser Link wurde ohne eingerichtete Live-Verbindung erzeugt.";
+     return;
+   }
+   const call=await vehicleFetch(dburl,sid,`calls/${encodeURIComponent(callId)}`);
+   if(!call){
+     iconEl.textContent="⏳";textEl.textContent="Ihr Notruf wird aufgenommen …";
+     subEl.textContent="Bitte bleiben Sie am Telefon erreichbar.";
+     return;
+   }
+   const units=call.units||[];
+   const anyOnScene=units.some(u=>["4","7","8"].includes(String(u.status)));
+   const anyEnRoute=units.some(u=>String(u.status)==="3");
+   if(call.endTime){
+     iconEl.textContent="✅";textEl.textContent="Einsatz abgeschlossen";
+     subEl.textContent="Die Rettungskräfte haben den Einsatz beendet.";
+   }else if(anyOnScene){
+     iconEl.textContent="🚑";textEl.textContent="Rettungskräfte sind vor Ort";
+     subEl.textContent="Hilfe ist bei Ihnen eingetroffen.";
+   }else if(anyEnRoute||call.alarmTime){
+     iconEl.textContent="🚨";textEl.textContent="Hilfe ist unterwegs";
+     subEl.textContent="Rettungsmittel wurden alarmiert und sind auf dem Weg zu Ihnen.";
+   }else{
+     iconEl.textContent="⏳";textEl.textContent="Ihr Notruf wird bearbeitet";
+     subEl.textContent="Bitte bleiben Sie erreichbar und folgen Sie den Anweisungen der Leitstelle.";
+   }
+ }
+ await refresh();
+ clearInterval(vehiclePollTimer);
+ vehiclePollTimer=setInterval(refresh,3000);
 }
 async function renderNeighborTerminal(id,dburl,sid){
  const nu=db.neighborUnits.find(x=>String(x.id)===String(id));
