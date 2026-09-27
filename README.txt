@@ -347,3 +347,18 @@ Version 3.88:
   Handy-Ansicht jetzt gar nicht mehr angezeigt, statt nur nicht mehr fest positioniert zu sein.
   In der iPad-Ansicht bleibt sie unverändert als feste Leiste am unteren Rand erhalten.
 - JavaScript-Syntax geprüft, Playwright-Test für beide Ansichten durchgeführt.
+
+Version 3.89:
+- Anrufer-QR-Code neu organisiert: Der Button dafür sitzt nicht mehr am einzelnen Einsatz,
+  sondern als eigener Bereich "📞 Anrufer" ganz oben in der Rettungsmittelübersicht – über
+  "＋ Anrufer" lassen sich beliebig viele, durchnummerierte Anrufer (Anrufer 1, Anrufer 2, …)
+  anlegen, unabhängig vom Einsatz.
+- Jeder Anrufer-Eintrag wird genau wie ein Fahrzeug in der Rettungsmittelliste dargestellt
+  (gleiche Spalten/Optik), inkl. Wähltasten im Stil der manuellen Fahrzeug-Statussteuerung –
+  hier aber zur Auswahl, welchem offenen Einsatz dieser Anrufer zugeordnet ist, statt eines
+  Status (Anrufer haben bewusst keine Status-Möglichkeit wie Rettungsmittel).
+- Der QR-/Link-Button eines Anrufer-Eintrags ist erst aktiv, sobald ein Einsatz zugeordnet
+  wurde; über "–" lässt sich die Zuordnung auch wieder aufheben, über 🗑️ der ganze
+  Anrufer-Eintrag löschen.
+- JavaScript-Syntax geprüft, Playwright-Test für Anlegen/Zuordnen/QR-Anzeige/Entfernen von
+  Anrufer-Einträgen durchgeführt.

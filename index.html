@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.88</span>
+ <span id="versionTag">v3.89</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="deviceSwitchLink" href="#" onclick="localStorage.removeItem('dlrg-jet-device');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">📱⇄📲 Ansicht wechseln</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600">🔀 Szenario wechseln</a>
@@ -368,6 +368,7 @@ const defaults=SCENARIOS[currentScenarioId].defaults;
 const KEY=SCENARIOS[currentScenarioId].storageKey;
 let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
 if(!Array.isArray(db.units))db.units=[];
+if(!Array.isArray(db.callers))db.callers=[];
 // Fahrzeuge, die in früheren Versionen mit erfundener OPTA-Nummer ausgeliefert wurden
 // und inzwischen bewusst zurückgezogen wurden – bei bereits laufenden Installationen
 // automatisch entfernen, damit sie nicht dauerhaft in der lokal gespeicherten Flotte hängen.
@@ -1488,7 +1489,6 @@ function incidentCard(c,isSelected){
     <button onclick="selectCall('${esc(c.id)}','karte')">🗺️ Karte</button>
     ${!c.alarmTime?`<button class="primary" onclick="selectCall('${esc(c.id)}','notruf')">Weiter bearbeiten</button>`:""}
     <button onclick="openAdditionalResources('${esc(c.id)}')">✏️ Rettungsmittel bearbeiten</button>
-    <button onclick="showCallerQR('${esc(String(c.id))}')">📱 QR für Anrufer</button>
     ${c.alarmTime?`<button class="btn blue" onclick="openNachforderung('${esc(c.id)}')">📟 Nachforderung</button>`:""}
     <button class="primary" onclick="finishCall('${esc(c.id)}')">✅ Einsatz abschließen</button>
    </div>
@@ -3260,7 +3260,8 @@ function mittel(){
      ${locBlocks}
    </div>`;
  }).join("");
- document.getElementById("app").innerHTML=`<div class="card">
+ document.getElementById("app").innerHTML=`${callerBlock()}
+ <div class="card">
    <div class="row between">
      <div>
        <h2>🚤 Rettungsmittel</h2>
@@ -3278,6 +3279,50 @@ function mittel(){
    </div>
  </div>
  ${orgBlocks}`;
+}
+function callerBlock(){
+ const open=allOpenCalls();
+ const keys=[{id:"",label:"–"},...open.map(o=>({id:String(o.id),label:"#"+o.id}))];
+ const rows=(db.callers||[]).map((c,i)=>{
+   const linked=open.find(x=>String(x.id)===String(c.callId));
+   return `<tr>
+    <td><b>📞 Anrufer ${i+1}</b></td>
+    <td><div class="row"><button ${linked?"":"disabled"} onclick="showCallerQR('${linked?esc(String(linked.id)):""}')">📱 Link / QR</button><button onclick="deleteCallerSlot('${esc(String(c.id))}')" title="Anrufer-Eintrag löschen">🗑️</button></div></td>
+    <td>${keys.map(k=>`<button class="radio-key-mini${String(c.callId||"")===k.id?" current":""}" onclick="linkCallerToCall('${esc(String(c.id))}','${esc(k.id)}')" title="${k.id?`Diesem Einsatz zuordnen: #${esc(k.id)}`:"Keinem Einsatz zugeordnet"}">${esc(k.label)}</button>`).join("")}</td>
+   </tr>`;
+ }).join("");
+ return `<div class="card">
+   <div class="row between">
+     <div>
+       <h2>📞 Anrufer</h2>
+       <p class="muted">Eigener QR-Code/Link je Anrufer – laienverständliche Statusanzeige zum Notruf, ohne interne Einsatzdetails. Kein eigener Status wie bei Rettungsmitteln, nur die Zuordnung zu einem Einsatz.</p>
+     </div>
+     <button class="primary" onclick="addCallerSlot()">＋ Anrufer</button>
+   </div>
+   ${(db.callers||[]).length?`<div style="overflow:auto"><table>
+     <thead><tr><th>Anrufer</th><th>Anrufer-Terminal</th><th>Einsatz zuordnen</th></tr></thead>
+     <tbody>${rows}</tbody>
+    </table></div>`:`<p class="muted">Noch keine Anrufer-QR-Codes angelegt.</p>`}
+  </div>`;
+}
+function addCallerSlot(){
+ db.callers=db.callers||[];
+ db.callers.push({id:Date.now(),callId:null});
+ save();
+ render("mittel");
+}
+function linkCallerToCall(callerId,callId){
+ const c=(db.callers||[]).find(x=>String(x.id)===String(callerId));
+ if(!c)return;
+ c.callId=callId?String(callId):null;
+ save();
+ render("mittel");
+}
+function deleteCallerSlot(id){
+ if(!confirm("Anrufer-Eintrag wirklich entfernen?"))return;
+ db.callers=(db.callers||[]).filter(x=>String(x.id)!==String(id));
+ save();
+ render("mittel");
 }
 
 function setStatusFromSelect(id,status){
