@@ -31,6 +31,19 @@ main{max-width:1250px;margin:0 auto;padding:16px}
 .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
 .outer-grid{grid-template-columns:1fr 127px;align-items:start}
 @media(max-width:600px){.outer-grid{grid-template-columns:1fr}.outer-grid .bereiche-card{height:auto;flex-direction:row;overflow-x:auto}.outer-grid .bereiche-card nav{flex-direction:row}}
+/* Handy-Ansicht: schlankes, einspaltiges Layout ohne feste Seitenleiste/Funkleiste – unabhängig
+   von der tatsächlichen Fensterbreite, da die Geräteauswahl (📱 Handy / 📲 iPad) bewusst
+   persistent pro Gerät ist und nicht von der Bildschirmbreite abhängen soll. */
+html[data-device="handy"] .outer-grid{grid-template-columns:1fr}
+html[data-device="handy"] .outer-grid .bereiche-card{height:auto;flex-direction:row;overflow-x:auto;position:static}
+html[data-device="handy"] .outer-grid .bereiche-card nav{flex-direction:row}
+html[data-device="handy"] .bereiche-card{height:auto}
+html[data-device="handy"] main{padding:10px;max-width:100%}
+html[data-device="handy"] nav button{padding:16px 12px;font-size:14px}
+html[data-device="handy"] #funkBar{position:static!important;bottom:auto!important;left:auto!important;right:auto!important;border-radius:14px!important;box-shadow:0 2px 8px #0000000a!important;border:1px solid var(--line)!important;margin:14px 0!important}
+html[data-device="handy"] #funkSpacer{height:0!important}
+html[data-device="handy"] .formgrid{grid-template-columns:1fr}
+html[data-device="handy"] .row{flex-wrap:wrap}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #0000000a;margin-bottom:14px}
 h1,h2,h3{margin:0 0 12px} h2{font-size:20px} h3{font-size:16px}
 .muted{color:var(--muted)} .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
@@ -87,9 +100,10 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.86</span>
+ <span id="versionTag">v3.87</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
- <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🔀 Szenario wechseln</a>
+ <a id="deviceSwitchLink" href="#" onclick="localStorage.removeItem('dlrg-jet-device');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">📱⇄📲 Ansicht wechseln</a>
+ <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600">🔀 Szenario wechseln</a>
 </div>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
@@ -308,14 +322,49 @@ function chooseScenario(id){
  localStorage.setItem("dlrg-jet-scenario",id);
  location.reload();
 }
+// Fahrzeug-/Nachbar-/Anrufer-Terminals (per QR auf einem fremden Gerät geöffnet) sollen NIE
+// den Szenario- oder Geräteauswahl-Dialog der Leitstelle sehen – auf einem frisch geöffneten
+// Gerät (leeres localStorage) wären sie sonst dort blockiert, bevor initVehicleMode() überhaupt
+// läuft. Deshalb werden beide Auswahl-Gates übersprungen, sobald einer der Terminal-Parameter
+// in der URL steht.
+const isTerminalLink=(()=>{
+ const p=new URLSearchParams(location.search);
+ return !!(p.get("vehicle")||p.get("neighbor")||p.get("caller"));
+})();
 let currentScenarioId=localStorage.getItem("dlrg-jet-scenario");
-if(!currentScenarioId||!SCENARIOS[currentScenarioId]){
+if(!isTerminalLink && (!currentScenarioId||!SCENARIOS[currentScenarioId])){
  document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:40px auto">
   <h2>Szenario wählen</h2>
   <p class="muted">Wähle, mit welchem Übungsszenario die Leitstelle starten soll. Jedes Szenario speichert seinen Fortschritt getrennt und kann jederzeit über den Link oben links gewechselt werden.</p>
   ${Object.entries(SCENARIOS).map(([id,s])=>`<button class="primary" style="width:100%;margin-top:10px;text-align:left;padding:16px" onclick="chooseScenario('${id}')">${s.label}</button>`).join("")}
  </div>`;
  throw new Error("Warte auf Szenario-Auswahl");
+}
+if(!currentScenarioId||!SCENARIOS[currentScenarioId])currentScenarioId="fri-whv";
+// Geräteauswahl (📱 Handy / 📲 iPad): steuert per data-device-Attribut das Layout (feste
+// Seitenleiste + feste Funkrufgruppen-Leiste für iPad vs. schlankes, einspaltiges Layout ohne
+// feste Elemente für Handy). Wird einmalig ganz am Anfang abgefragt, danach in localStorage
+// gemerkt (pro Gerät, nicht pro Szenario) und über "📱⇄📲 Ansicht wechseln" oben jederzeit
+// änderbar.
+function chooseDeviceMode(mode){
+ localStorage.setItem("dlrg-jet-device",mode);
+ location.reload();
+}
+let deviceMode=localStorage.getItem("dlrg-jet-device");
+if(!isTerminalLink && (deviceMode!=="handy" && deviceMode!=="ipad")){
+ document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:40px auto">
+  <h2>Wie zeigst du die Leitstelle an?</h2>
+  <p class="muted">Legt das Layout fest (feste Seitenleiste/Funkleiste für iPad, schlankes einspaltiges Layout für Handy). Kann jederzeit oben über „📱⇄📲 Ansicht wechseln“ geändert werden.</p>
+  <button class="primary" style="width:100%;margin-top:10px;text-align:left;padding:16px" onclick="chooseDeviceMode('handy')">📱 Handy</button>
+  <button class="primary" style="width:100%;margin-top:10px;text-align:left;padding:16px" onclick="chooseDeviceMode('ipad')">📲 iPad / Tablet</button>
+ </div>`;
+ throw new Error("Warte auf Geräteauswahl");
+}
+if(!isTerminalLink)document.documentElement.setAttribute("data-device",deviceMode);
+else{
+ // Terminal-Links (Fahrzeug/Nachbar/Anrufer) zeigen weder Szenario- noch Geräte-Umschalter an.
+ document.getElementById("deviceSwitchLink")?.remove();
+ document.querySelector('a[onclick*="dlrg-jet-scenario"]')?.remove();
 }
 const defaults=SCENARIOS[currentScenarioId].defaults;
 const KEY=SCENARIOS[currentScenarioId].storageKey;
@@ -1569,7 +1618,11 @@ function dashboard(){
  </div>
  <div id="funkSpacer" style="height:170px"></div>`;
 }
+function isHandyMode(){return document.documentElement.getAttribute("data-device")==="handy"}
 function alignFunkBar(){
+ // In der Handy-Ansicht steht die Funkrufgruppen-Leiste ganz normal im Textfluss (siehe CSS
+ // [data-device="handy"] #funkBar), daher keine feste Positionierung per JS berechnen.
+ if(isHandyMode())return;
  const bar=document.getElementById("funkBar");
  const sidebar=document.querySelector(".bereiche-card");
  const main=document.querySelector("main");

@@ -325,3 +325,19 @@ Version 3.86:
 - JavaScript-Syntax geprüft, Playwright-Regressionstest über den vollständigen
   Reanimation-Einsatzablauf (Notruf → AAO → Alarmierung → Rettungsmittel bearbeiten →
   automatische Statusfortschaltung → Anrufer-QR) durchgeführt.
+
+Version 3.87:
+- Ganz am Anfang (nach der Szenarioauswahl) wird jetzt einmalig pro Gerät gefragt: "📱 Handy"
+  oder "📲 iPad / Tablet". Die Wahl wird lokal gespeichert und steuert das Layout; über den
+  neuen Link "📱⇄📲 Ansicht wechseln" oben (neben "🔀 Szenario wechseln") jederzeit änderbar.
+- Neue eigene Handy-Ansicht: schlankes, einspaltiges Layout ohne die feste, für iPad optimierte
+  Seitenleiste und ohne die am unteren Bildschirmrand fixierte Funkrufgruppen-Leiste – beides
+  steht stattdessen ganz normal im Textfluss untereinander, die Bereiche-Leiste wird zu einer
+  horizontal scrollbaren Reihe. Dadurch kein Verdecken von Inhalten mehr auf schmalen
+  Handybildschirmen.
+- Fahrzeug-, Nachbar- und Anrufer-Terminal-Links (per QR auf einem fremden Gerät geöffnet)
+  überspringen sowohl die Szenario- als auch die neue Geräteauswahl automatisch, auch wenn auf
+  diesem Gerät noch nie eine Szenario-/Geräte-Wahl getroffen wurde (frisches Handy ohne
+  lokalen Speicher) – vorher wären sie dort ohne Weiterleitung hängen geblieben.
+- JavaScript-Syntax geprüft, Playwright-Test für Handy-Ansicht, iPad-Ansicht, Ansicht-wechseln-
+  Link sowie Fahrzeug-Terminal auf frischem Gerät durchgeführt.
