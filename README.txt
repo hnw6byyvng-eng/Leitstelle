@@ -362,3 +362,49 @@ Version 3.89:
   Anrufer-Eintrag löschen.
 - JavaScript-Syntax geprüft, Playwright-Test für Anlegen/Zuordnen/QR-Anzeige/Entfernen von
   Anrufer-Einträgen durchgeführt.
+
+Version 3.90:
+- NEU: Anrufer-Terminal kann jetzt selbst "112" wählen. Das Anrufer-Terminal (QR-Code/Link
+  oben in der Rettungsmittelliste, Bereich "📞 Anrufer") zeigt jetzt zuerst eine Wähl-Ansicht
+  mit der Nummer 112 und einem grünen Hörer-Button. Ist der Anrufer noch keinem Einsatz
+  zugeordnet, öffnet der Link diese Wähl-Ansicht automatisch; ist er bereits zugeordnet, zeigt
+  der Link wie bisher die laienverständliche Statusanzeige.
+- Drückt der Anrufer den grünen Hörer, wird (bei erlaubtem GPS-Zugriff) sein Standort erfasst
+  und an die Leitstelle gemeldet; das Anrufer-Terminal zeigt währenddessen "Notruf wird
+  verbunden …".
+- In der Leitstelle erscheint dafür ganz oben ein rotes Notruf-Banner mit "✅ Annehmen".
+  Annehmen legt direkt einen neuen Notruf an, wählt automatisch "112" als Rufnummer (die
+  entsprechende Frage entfällt dadurch) und ordnet den Anrufer-Eintrag automatisch diesem
+  neuen Einsatz zu.
+- Wurde vom Anrufer ein GPS-Standort übermittelt, fragt die Leitstelle danach einmal kurz
+  "📍 Standort übernehmen?". Bei "Ja" wird die Position per Reverse-Geocoding in eine Adresse
+  umgewandelt und automatisch als Notfallort übernommen (inkl. Koordinaten für die Kartenan-
+  sicht); bei "Nein" bzw. ohne übermittelten Standort läuft die Ortseingabe wie gewohnt manuell
+  über Kartensuche/Markersetzen oder Texteingabe weiter.
+- Technischer Hinweis: Der Anrufer-Link ist jetzt fest an den Anrufer-Eintrag (nicht mehr an
+  einen bestehenden Einsatz) gebunden, damit er schon vor Annahme des Notrufs existieren kann.
+  Bereits vor v3.90 erzeugte Anrufer-Links funktionieren dadurch nicht mehr für abgeschlossene
+  Einsätze – bitte für neue Übungen einfach einen neuen Anrufer-Eintrag/QR-Code anlegen.
+- IVENA-Kliniken überarbeitet und fachlich geprüft: Die hinterlegten Fachabteilungen der
+  bestehenden Kliniken wurden anhand öffentlich einsehbarer Klinik-/Abteilungsübersichten
+  (u. a. deutsches-krankenhaus-verzeichnis.de, Klinik-Websites, Wikipedia) kontrolliert und
+  korrigiert:
+   • Nordwest-Krankenhaus Sanderbusch: nicht real vorhandene HNO-Abteilung entfernt.
+   • Klinikum Wilhelmshaven: fehlende Pädiatrie ergänzt.
+   • Klinikum Oldenburg: fehlende Urologie, Schockraum und HNO ergänzt.
+   • Ammerland-Klinik Westerstede: nicht real vorhandene Augenheilkunde entfernt.
+   • Evangelisches Krankenhaus Oldenburg: fehlende HNO ergänzt.
+   • Pius-Hospital Oldenburg und Kreiskrankenhaus Wittmund: unverändert, Bestand war bereits
+     korrekt.
+  Bereits laufende Installationen erhalten diesen Abgleich automatisch und einmalig; von der
+  Übungsleitung selbst zusätzlich angelegte Kliniken werden dabei nicht angefasst.
+- NEU in IVENA: "Helios Klinik Wesermarsch" in Nordenham aufgenommen (Hinweis: der von dir
+  genannte Name "Helios Klinikum Nordenham" ist der frühere Name dieses Hauses – die Klinik
+  heißt inzwischen offiziell "Helios Klinik Wesermarsch"; das wurde im Eintrag transparent
+  vermerkt).
+- NEU in IVENA: "St. Johannes-Hospital Varel" aufgenommen – wie gewünscht ausschließlich mit
+  einer Fachabteilung Gynäkologie/Geburtshilfe.
+- JavaScript-Syntax geprüft; Playwright-Tests für: Anrufer-Terminal-Wählansicht ohne Live-
+  Verbindung, Notruf annehmen mit automatisch vorbelegtem "112", "Standort übernehmen?"-
+  Dialog inkl. Annehmen/Ablehnen (mit und ohne GPS-Koordinaten), sowie unveränderte
+  Zuordnungs-/QR-Funktionen der Anrufer-Liste durchgeführt.

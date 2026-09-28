@@ -98,11 +98,12 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.89</span>
+ <span id="versionTag">v3.90</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="deviceSwitchLink" href="#" onclick="localStorage.removeItem('dlrg-jet-device');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">📱⇄📲 Ansicht wechseln</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600">🔀 Szenario wechseln</a>
 </div>
+<div id="callerRequestBanner"></div>
 <main id="app"></main><div id="toast" class="toast"></div>
 <script>
 const DEFAULTS_FRI_WHV={
@@ -234,14 +235,24 @@ const DEFAULTS_FRI_WHV={
  ],
  calls:[],
  currentCall:null,
+ // Fachabteilungen 2026 anhand der öffentlichen Kliniken-/Abteilungsübersichten der jeweiligen
+ // Häuser geprüft und korrigiert (u. a. deutsches-krankenhaus-verzeichnis.de, Klinik-Websites,
+ // Wikipedia) – nicht mehr real vorhandene Abteilungen entfernt (z. B. HNO bei Sanderbusch,
+ // Augenheilkunde bei der Ammerland-Klinik), fehlende reale Abteilungen ergänzt (u. a. Pädiatrie
+ // bei Klinikum Wilhelmshaven, Urologie/Schockraum bei Klinikum Oldenburg, HNO beim
+ // Evangelischen Krankenhaus Oldenburg). Neu aufgenommen: Helios Klinik Wesermarsch (der
+ // offizielle heutige Name des früheren "Helios Klinikum Nordenham") und das St. Johannes-
+ // Hospital Varel (auf ausdrücklichen Wunsch nur mit seiner Gynäkologie/Geburtshilfe-Abteilung).
  ivena:[
-  {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
-  {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","Psychiatrie","HNO","Augenheilkunde","Intensivmedizin","Schockraum"]},
-  {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Kardiologie / Chest Pain Unit","Intensivmedizin","HNO"]},
+  {id:1,name:"Nordwest-Krankenhaus Sanderbusch",place:"Sande",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin"]},
+  {id:2,name:"Klinikum Wilhelmshaven",place:"Wilhelmshaven",area:"Wilhelmshaven",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Pädiatrie","Urologie","Psychiatrie","HNO","Augenheilkunde","Intensivmedizin","Schockraum"]},
+  {id:3,name:"Klinikum Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Kardiologie / Chest Pain Unit","Urologie","Intensivmedizin","Schockraum","HNO"]},
   {id:4,name:"Pius-Hospital Oldenburg",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Kardiologie / Chest Pain Unit","Intensivmedizin","Augenheilkunde","Gynäkologie/Geburtshilfe"]},
   {id:5,name:"Kreiskrankenhaus Wittmund",place:"Wittmund",area:"Wittmund",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","HNO","Gynäkologie/Geburtshilfe","Intensivmedizin"]},
-  {id:6,name:"Ammerland-Klinik Westerstede",place:"Westerstede",area:"Ammerland",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","HNO","Augenheilkunde","Intensivmedizin"]},
-  {id:7,name:"Evangelisches Krankenhaus Oldenburg (EV Oldenburg)",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Gynäkologie/Geburtshilfe","Intensivmedizin","Schockraum"]}
+  {id:6,name:"Ammerland-Klinik Westerstede",place:"Westerstede",area:"Ammerland",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Gynäkologie/Geburtshilfe","Urologie","HNO","Intensivmedizin"]},
+  {id:7,name:"Evangelisches Krankenhaus Oldenburg (EV Oldenburg)",place:"Oldenburg",area:"Oldenburg",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Neurologie / Stroke Unit","Gynäkologie/Geburtshilfe","HNO","Intensivmedizin","Schockraum"]},
+  {id:8,name:"Helios Klinik Wesermarsch (früher „Helios Klinikum Nordenham“)",place:"Nordenham",area:"Wesermarsch",status:"grün",note:"Übungsstatus – manuell pflegen",closures:[],fachrichtungen:["Chirurgie","Innere Medizin","Urologie","Intensivmedizin"]},
+  {id:9,name:"St. Johannes-Hospital Varel",place:"Varel",area:"Friesland",status:"grün",note:"Übungsstatus – manuell pflegen – auf Wunsch nur mit Gynäkologie/Geburtshilfe hinterlegt",closures:[],fachrichtungen:["Gynäkologie/Geburtshilfe"]}
  ],
  // Rettungsmittel der Nachbarlandkreise, rein zur Übersicht/Anfrage im Reiter "Nachbar LKs".
  // Getrennt von db.units gehalten, damit sie nie für lokale Friesland-Alarmierungen/AAO/Karte
@@ -369,6 +380,7 @@ const KEY=SCENARIOS[currentScenarioId].storageKey;
 let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
 if(!Array.isArray(db.units))db.units=[];
 if(!Array.isArray(db.callers))db.callers=[];
+if(!Array.isArray(db.pendingCallerRequests))db.pendingCallerRequests=[];
 // Fahrzeuge, die in früheren Versionen mit erfundener OPTA-Nummer ausgeliefert wurden
 // und inzwischen bewusst zurückgezogen wurden – bei bereits laufenden Installationen
 // automatisch entfernen, damit sie nicht dauerhaft in der lokal gespeicherten Flotte hängen.
@@ -419,6 +431,18 @@ db.ivena.forEach(h=>{
  defaults.ivena.forEach(h=>{
    if(!existingHospitalNames.has(h.name))db.ivena.push({...h});
  });
+}
+// Einmaliger Fachabteilungs-Abgleich (Stand 2026): bei bereits laufenden Installationen die
+// Fachabteilungen der mitgelieferten Standardkliniken auf den recherchierten, real geprüften
+// Stand bringen (u. a. nicht real vorhandene Abteilungen entfernt/ergänzt, siehe Kommentar bei
+// DEFAULTS_FRI_WHV.ivena). Betrifft nur Kliniken, deren Name exakt einem Standard-Eintrag
+// entspricht – von der Übungsleitung selbst angelegte, zusätzliche Kliniken bleiben unberührt.
+if(!db.ivenaFachrichtungenSyncV389){
+ db.ivena.forEach(h=>{
+   const def=defaults.ivena.find(d=>d.name===h.name);
+   if(def)h.fachrichtungen=[...def.fachrichtungen];
+ });
+ db.ivenaFachrichtungenSyncV389=true;
 }
 if(!Array.isArray(db.ivenaAreaFilter))db.ivenaAreaFilter=["Wilhelmshaven","Oldenburg","Wittmund","Ammerland"];
 {
@@ -493,6 +517,7 @@ function render(page="leitstelle"){
    app.innerHTML=`<div class="grid outer-grid"><section>${inner}</section><aside style="position:sticky;top:41px;align-self:start"><div class="card bereiche-card" style="border-radius:14px 14px 14px 0;border-left:none">${navHTML(page)}</div></aside></div>`;
  }
  if(page==="leitstelle")alignFunkBar();
+ renderCallerBanner();
 }
 
 let leafletMap=null, incidentMarker=null, selectedMapLocation=null;
@@ -1713,7 +1738,7 @@ function notruf(){
   <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div>
   <div class="card"><h2>🚑 Nächste verfügbare Mittel</h2>${nearest.length?nearest.map(u=>`<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.type||"—")}</b><br><small class="muted">${esc(u.opta||u.name||"—")}${geographicRank(u)<999?` · ~${geographicRank(u).toFixed(1)} km · ca. ${estimatedEtaMinutes(u)} min`:``}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join(""):`<span class="muted">Keine verfügbaren Mittel</span>`}</div>
  </aside></div>`;
- if(q && q[0]==="location") setTimeout(initNotrufMap,0);
+ if(q && q[0]==="location" && !c.callerGpsPending) setTimeout(initNotrufMap,0);
 }
 function isManv(c=db.currentCall){
  return Number(c?.answers?.count)>3;
@@ -1780,6 +1805,17 @@ function questionHTML(q){
  if(id==="e_exposure" && !needsXABCDE(c))
    return skip("nicht erhoben");
 
+ if(id==="location" && c.callerGpsPending){
+   return `<label>${label}</label>
+    <div class="suggest" style="background:#eef7ff;border-color:#2f7fd1">
+     <h2>📍 Standort übernehmen?</h2>
+     <p>Der Anrufer hat über sein Anrufer-Terminal einen GPS-Standort übermittelt. Soll dieser als Notfallort übernommen werden?</p>
+     <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="acceptCallerLocation()">✅ Ja, übernehmen</button>
+      <button onclick="declineCallerLocation()">✏️ Nein, manuell eingeben</button>
+     </div>
+    </div>`;
+ }
  if(id==="location"){
    return `<label>${label}</label>
     <div class="mapSearch" style="margin-bottom:8px">
@@ -1972,6 +2008,28 @@ async function reverseGeocodeForNotruf(lat,lng){
  }catch(e){}
  const input=document.getElementById("ans");
  if(input)input.value=address;
+}
+async function acceptCallerLocation(){
+ const c=db.currentCall; if(!c)return;
+ c.callerGpsPending=false;
+ const gps=c.callerGps;
+ if(!gps||gps.lat==null||gps.lng==null){save();notruf();return}
+ let address=`${Number(gps.lat).toFixed(6)}, ${Number(gps.lng).toFixed(6)}`;
+ try{
+   const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${gps.lat}&lon=${gps.lng}`,{headers:{"Accept":"application/json"}});
+   const r=await res.json();
+   if(r?.display_name)address=r.display_name;
+   c.locationIsWater=nominatimLooksLikeWater(r,gps.lat,gps.lng);
+   c.outOfJurisdiction=isOutOfJurisdiction(r);
+ }catch(e){}
+ notrufSelected={lat:Number(gps.lat),lng:Number(gps.lng)};
+ await answer("location",address);
+}
+function declineCallerLocation(){
+ const c=db.currentCall; if(!c)return;
+ c.callerGpsPending=false;
+ save();
+ notruf();
 }
 async function searchNotrufMap(){
  const q=document.getElementById("notrufMapQuery")?.value?.trim();
@@ -2503,12 +2561,70 @@ async function pollCloudUnits(){
      }
    }
  }
+ const remoteCallRequests=await cloudRequest("callRequests");
+ db.pendingCallerRequests=db.pendingCallerRequests||[];
+ const stillRinging=[];
+ if(remoteCallRequests){
+   for(const [callerId,r] of Object.entries(remoteCallRequests)){
+     if(!r||r.status!=="ringing")continue;
+     stillRinging.push({callerId,lat:r.lat??null,lng:r.lng??null,time:r.time||null});
+   }
+ }
+ const knownIds=new Set((db.pendingCallerRequests||[]).map(r=>String(r.callerId)));
+ const newIds=stillRinging.filter(r=>!knownIds.has(String(r.callerId)));
+ if(newIds.length){
+   changed=true;
+   try{playAlarmTone();vibrateAlarm();}catch(e){}
+   toast("📞 Neuer Notruf über Anrufer-Terminal eingegangen");
+ }
+ if(stillRinging.length!==db.pendingCallerRequests.length || newIds.length)changed=true;
+ db.pendingCallerRequests=stillRinging;
+ renderCallerBanner();
  if(changed){
    save();
    // Only auto-refresh screens that display live status, so we don't interrupt
    // someone mid-typing on the Notruf or Karte tabs.
    if(["leitstelle","mittel","ivenaZuweisungen","karte"].includes(currentPage))render(currentPage);
  }
+}
+function renderCallerBanner(){
+ const el=document.getElementById("callerRequestBanner");
+ if(!el)return;
+ const reqs=db.pendingCallerRequests||[];
+ if(!reqs.length){el.innerHTML="";return}
+ el.innerHTML=reqs.map(r=>{
+   const slot=(db.callers||[]).find(x=>String(x.id)===String(r.callerId));
+   const idx=(db.callers||[]).indexOf(slot);
+   const label=slot?`Anrufer ${idx+1}`:`Anrufer-Terminal ${esc(String(r.callerId))}`;
+   return `<div class="card" style="background:#e30613;color:#fff;border:none;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+     <div class="row" style="gap:10px"><span style="font-size:26px">📞</span><div><b>Notruf – ${esc(label)}</b><br><span style="opacity:.9">${r.lat!=null&&r.lng!=null?"GPS-Standort verfügbar":"Kein GPS-Standort übermittelt"}</span></div></div>
+     <button class="primary" style="background:#fff;color:#e30613" onclick="acceptCallerRequest('${esc(String(r.callerId))}')">✅ Annehmen</button>
+   </div>`;
+ }).join("");
+}
+async function acceptCallerRequest(callerId){
+ const idx=(db.pendingCallerRequests||[]).findIndex(r=>String(r.callerId)===String(callerId));
+ const req=idx>=0?db.pendingCallerRequests[idx]:null;
+ if(db.currentCall)parkCurrentCall();
+ notrufDetailsVisible=false;
+ const stamp=Date.now().toString();
+ db.currentCall={id:stamp.slice(-6),location:"",count:"",answers:{callType:"112"},history:[{q:"☎️ Über welche Nummer ist der Anruf eingegangen?",a:"🚨 112 – Feuerwehr/Rettungsdienst-Notruf"}],keyword:"",suggestion:"",createdAt:new Date().toISOString()};
+ if(req&&req.lat!=null&&req.lng!=null){
+   db.currentCall.callerGps={lat:req.lat,lng:req.lng};
+   db.currentCall.callerGpsPending=true;
+ }
+ db.callers=db.callers||[];
+ let slot=db.callers.find(x=>String(x.id)===String(callerId));
+ if(!slot){slot={id:isNaN(Number(callerId))?callerId:Number(callerId),callId:null};db.callers.push(slot);}
+ slot.callId=db.currentCall.id;
+ if(idx>=0)db.pendingCallerRequests.splice(idx,1);
+ save();
+ if(db.cloud?.enabled){
+   cloudRequest(`callRequests/${encodeURIComponent(String(callerId))}`,"PUT",{status:"accepted",callId:db.currentCall.id,lat:req?.lat??null,lng:req?.lng??null,time:new Date().toISOString()});
+   cloudRequest(`callerSlots/${encodeURIComponent(String(callerId))}`,"PUT",{id:slot.id,callId:db.currentCall.id,updatedAt:new Date().toISOString()});
+ }
+ renderCallerBanner();
+ render("notruf");
 }
 async function pushAllUnitsCloud(){
  if(!db.cloud?.enabled)return;
@@ -2639,29 +2755,29 @@ function showNeighborQR(id){
    target.innerHTML='<div class="card"><b>QR-Code konnte nicht geladen werden.</b><br><span class="muted">Der Link darunter kann trotzdem kopiert werden.</span></div>';
  }
 }
-function callerURL(c){
+function callerURL(callerId){
  const base=location.origin+location.pathname;
  const q=new URLSearchParams();
- q.set("caller",String(c.id));
+ q.set("caller",String(callerId));
  q.set("sid",db.cloud?.sessionId||"");
  if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
  return `${base}?${q.toString()}`;
 }
 function showCallerQR(id){
- const c=allOpenCalls().find(x=>String(x.id)===String(id));
- if(!c){toast("Einsatz nicht gefunden");return}
- if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
- const url=callerURL(c);
+ const slot=(db.callers||[]).find(x=>String(x.id)===String(id));
+ if(!slot){toast("Anrufer-Eintrag nicht gefunden");return}
+ if(db.cloud?.enabled)setTimeout(()=>cloudRequest(`callerSlots/${encodeURIComponent(String(slot.id))}`,"PUT",{id:slot.id,callId:slot.callId,updatedAt:new Date().toISOString()}),0);
+ const url=callerURL(slot.id);
  document.getElementById("app").innerHTML=`<div class="card">
-  <h2>📱 QR-Code für den Anrufer – Einsatz #${esc(c.id)}</h2>
-  <p class="muted">${db.cloud?.enabled?"Dieser Link ist für den Anrufer gedacht (z. B. zweites Gerät in der Übung) und zeigt eine laienverständliche Statusanzeige zu seinem Notruf – ohne interne Einsatzdetails.":"QR-Link ist erzeugt; für eine Live-Anzeige bitte zuerst die Cloud-Verbindung aktivieren."}</p>
+  <h2>📱 Anrufer-Terminal${slot.callId?` – Einsatz #${esc(slot.callId)}`:""}</h2>
+  <p class="muted">${db.cloud?.enabled?"Dieser Link ist für den Anrufer gedacht (z. B. zweites Gerät in der Übung). Er kann darüber selbst 112 „wählen“ – hier erscheint dann oben ein Notruf-Banner zum Annehmen. Ist der Anrufer bereits einem Einsatz zugeordnet, zeigt der Link stattdessen eine laienverständliche Statusanzeige – ohne interne Einsatzdetails.":"QR-Link ist erzeugt; für eine Live-Anzeige bitte zuerst die Cloud-Verbindung aktivieren."}</p>
   <div style="display:flex;justify-content:center;margin:18px"><div id="qrCanvas"></div></div>
   <label>Anrufer-Link</label>
   <textarea id="callerLink" rows="4" readonly>${esc(url)}</textarea>
   <div class="row" style="margin-top:12px">
    <button onclick="copyCallerLink()">📋 Link kopieren</button>
    <button onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">👁️ Öffnen</button>
-   <button onclick="render('leitstelle')">Zurück</button>
+   <button onclick="render('mittel')">Zurück</button>
   </div>
  </div>`;
  const target=document.getElementById("qrCanvas");
@@ -2675,7 +2791,79 @@ async function copyCallerLink(){
  const val=document.getElementById("callerLink")?.value||"";
  try{await navigator.clipboard.writeText(val);toast("Anrufer-Link kopiert")}catch(e){toast("Link markieren und kopieren")}
 }
-async function renderCallerTerminal(callId,dburl,sid){
+async function renderCallerTerminal(callerId,dburl,sid){
+ document.querySelector("nav")?.remove();
+ let painted="";
+ async function refresh(){
+   if(!dburl||!sid){
+     if(painted!=="offline"){
+       document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto;text-align:center">
+         <h2>⚠️ Keine Verbindung</h2>
+         <p class="muted">Dieser Link wurde ohne eingerichtete Live-Verbindung erzeugt.</p>
+       </div>`;
+       painted="offline";
+     }
+     return;
+   }
+   const [req,slot]=await Promise.all([
+     vehicleFetch(dburl,sid,`callRequests/${encodeURIComponent(callerId)}`),
+     vehicleFetch(dburl,sid,`callerSlots/${encodeURIComponent(callerId)}`)
+   ]);
+   const linkedCallId=(req&&req.status==="accepted"&&req.callId)?String(req.callId):(slot&&slot.callId?String(slot.callId):null);
+   if(linkedCallId){
+     clearInterval(vehiclePollTimer);
+     renderCallerStatus(callerId,linkedCallId,dburl,sid);
+     return;
+   }
+   if(req&&req.status==="ringing"){
+     if(painted!=="ringing"){
+       document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto;text-align:center">
+         <h2>📞 Notruf wird verbunden …</h2>
+         <div style="font-size:54px;margin:14px 0">🔔</div>
+         <div class="muted">Bitte warten, die Leitstelle nimmt den Anruf entgegen.</div>
+         <p class="muted" style="margin-top:24px;font-size:12px">Diese Anzeige dient nur der Übung/Ausbildung und ersetzt keine echte Rückmeldung im Notfall.</p>
+       </div>`;
+       painted="ringing";
+     }
+     return;
+   }
+   if(painted!=="dial"){
+     document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto;text-align:center">
+       <h2>📞 Anrufer-Terminal</h2>
+       <p class="muted">Notruf absetzen: 112 wählen.</p>
+       <div style="font-size:30px;font-weight:800;letter-spacing:4px;margin:14px 0">112</div>
+       <div style="display:flex;justify-content:center;margin:18px">
+        <button onclick="dial112('${esc(String(callerId))}','${esc(dburl)}','${esc(sid)}')" style="width:78px;height:78px;border-radius:50%;background:#2ecc71;border:none;color:#fff;font-size:32px;box-shadow:0 4px 14px rgba(0,0,0,.25)" title="Anrufen">📞</button>
+       </div>
+       <p class="muted" style="margin-top:24px;font-size:12px">Diese Anzeige dient nur der Übung/Ausbildung und ersetzt keine echte Rückmeldung im Notfall.</p>
+     </div>`;
+     painted="dial";
+   }
+ }
+ await refresh();
+ clearInterval(vehiclePollTimer);
+ vehiclePollTimer=setInterval(refresh,3000);
+}
+async function dial112(callerId,dburl,sid){
+ if(!dburl||!sid){toast("Keine Verbindung");return}
+ try{playAlarmTone();}catch(e){}
+ let lat=null,lng=null;
+ try{
+   const pos=await new Promise((res,rej)=>{
+     if(!navigator.geolocation){rej(new Error("no geo"));return}
+     navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:8000});
+   });
+   lat=pos.coords.latitude; lng=pos.coords.longitude;
+ }catch(e){}
+ await vehicleFetch(dburl,sid,`callRequests/${encodeURIComponent(callerId)}`,"PUT",{status:"ringing",lat,lng,time:new Date().toISOString()});
+ document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto;text-align:center">
+   <h2>📞 Notruf wird verbunden …</h2>
+   <div style="font-size:54px;margin:14px 0">🔔</div>
+   <div class="muted">Bitte warten, die Leitstelle nimmt den Anruf entgegen.</div>
+   <p class="muted" style="margin-top:24px;font-size:12px">Diese Anzeige dient nur der Übung/Ausbildung und ersetzt keine echte Rückmeldung im Notfall.</p>
+ </div>`;
+}
+async function renderCallerStatus(callerId,callId,dburl,sid){
  document.querySelector("nav")?.remove();
  document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:30px auto;text-align:center">
    <h2>📞 Ihr Notruf</h2>
@@ -3284,10 +3472,9 @@ function callerBlock(){
  const open=allOpenCalls();
  const keys=[{id:"",label:"–"},...open.map(o=>({id:String(o.id),label:"#"+o.id}))];
  const rows=(db.callers||[]).map((c,i)=>{
-   const linked=open.find(x=>String(x.id)===String(c.callId));
    return `<tr>
     <td><b>📞 Anrufer ${i+1}</b></td>
-    <td><div class="row"><button ${linked?"":"disabled"} onclick="showCallerQR('${linked?esc(String(linked.id)):""}')">📱 Link / QR</button><button onclick="deleteCallerSlot('${esc(String(c.id))}')" title="Anrufer-Eintrag löschen">🗑️</button></div></td>
+    <td><div class="row"><button onclick="showCallerQR('${esc(String(c.id))}')">📱 Link / QR</button><button onclick="deleteCallerSlot('${esc(String(c.id))}')" title="Anrufer-Eintrag löschen">🗑️</button></div></td>
     <td>${keys.map(k=>`<button class="radio-key-mini${String(c.callId||"")===k.id?" current":""}" onclick="linkCallerToCall('${esc(String(c.id))}','${esc(k.id)}')" title="${k.id?`Diesem Einsatz zuordnen: #${esc(k.id)}`:"Keinem Einsatz zugeordnet"}">${esc(k.label)}</button>`).join("")}</td>
    </tr>`;
  }).join("");
@@ -3295,7 +3482,7 @@ function callerBlock(){
    <div class="row between">
      <div>
        <h2>📞 Anrufer</h2>
-       <p class="muted">Eigener QR-Code/Link je Anrufer – laienverständliche Statusanzeige zum Notruf, ohne interne Einsatzdetails. Kein eigener Status wie bei Rettungsmitteln, nur die Zuordnung zu einem Einsatz.</p>
+       <p class="muted">Eigener QR-Code/Link je Anrufer – der Anrufer kann darüber selbst 112 „wählen“ (grüner Hörer), woraufhin hier oben ein Notruf-Banner zum Annehmen erscheint. Danach nur eine laienverständliche Statusanzeige, ohne interne Einsatzdetails. Kein eigener Status wie bei Rettungsmitteln, nur die Zuordnung zu einem Einsatz.</p>
      </div>
      <button class="primary" onclick="addCallerSlot()">＋ Anrufer</button>
    </div>
@@ -3307,8 +3494,10 @@ function callerBlock(){
 }
 function addCallerSlot(){
  db.callers=db.callers||[];
- db.callers.push({id:Date.now(),callId:null});
+ const slot={id:Date.now(),callId:null};
+ db.callers.push(slot);
  save();
+ if(db.cloud?.enabled)cloudRequest(`callerSlots/${encodeURIComponent(String(slot.id))}`,"PUT",{id:slot.id,callId:null,updatedAt:new Date().toISOString()});
  render("mittel");
 }
 function linkCallerToCall(callerId,callId){
@@ -3316,12 +3505,22 @@ function linkCallerToCall(callerId,callId){
  if(!c)return;
  c.callId=callId?String(callId):null;
  save();
+ if(db.cloud?.enabled){
+   cloudRequest(`callerSlots/${encodeURIComponent(String(c.id))}`,"PUT",{id:c.id,callId:c.callId,updatedAt:new Date().toISOString()});
+   if(!c.callId)cloudRequest(`callRequests/${encodeURIComponent(String(c.id))}`,"DELETE");
+ }
  render("mittel");
 }
 function deleteCallerSlot(id){
  if(!confirm("Anrufer-Eintrag wirklich entfernen?"))return;
  db.callers=(db.callers||[]).filter(x=>String(x.id)!==String(id));
+ db.pendingCallerRequests=(db.pendingCallerRequests||[]).filter(r=>String(r.callerId)!==String(id));
  save();
+ if(db.cloud?.enabled){
+   cloudRequest(`callerSlots/${encodeURIComponent(String(id))}`,"DELETE");
+   cloudRequest(`callRequests/${encodeURIComponent(String(id))}`,"DELETE");
+ }
+ renderCallerBanner();
  render("mittel");
 }
 
