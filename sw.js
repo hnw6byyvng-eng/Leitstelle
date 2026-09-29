@@ -3,7 +3,7 @@
 // Offline-Toleranz. Karten (Leaflet), Adresssuche (Nominatim) und die Live-Verbindung
 // (Firebase) brauchen weiterhin eine echte Internetverbindung – die laufen bewusst NICHT
 // über den Cache, sondern immer direkt über das Netz.
-const CACHE_NAME = "dlrg-jet-shell-v1";
+const CACHE_NAME = "dlrg-jet-shell-v2";
 const APP_SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {

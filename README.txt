@@ -419,3 +419,58 @@ Version 3.91:
   die Anzeige aus – Status, Alarmierung und AAO-Logik sind davon unabhängig.
 - JavaScript-Syntax geprüft; Playwright-Test für Filtern nach einzelner Organisation und
   Zurücksetzen auf "Alle" durchgeführt.
+
+Version 3.92:
+- NEU: Zusätzliche Monitore per QR-Code. Oben in der Leiste gibt es "🖥️ Monitor hinzufügen".
+  Der QR-Code bzw. Link wird mit einem weiteren Gerät (iPad, Laptop, Handy, Browser am
+  Fernseher) geöffnet – ohne Kabel, nur über die bestehende Live-Verbindung (Firebase).
+- Auf dem neuen Monitor wird zuerst die Ansicht gewählt (Leitstelle, Notruf, Karte,
+  Rettungsmittel, AAO, IVENA, IVENA-Zuweisungen, Nachbar LKs) plus Layout (iPad/Handy).
+  Über "Ansicht wechseln" kommt man jederzeit zurück zu dieser Auswahl; die Seitenleiste
+  funktioniert ebenfalls.
+- Echtzeit-Abgleich: Der komplette Leitstellenzustand (Einsätze, laufender Notruf, Fahrzeug-
+  status, IVENA, Zuweisungen, AAO, Anrufer …) wird über Firebase-Streaming an alle Monitore
+  verteilt, Änderungen kommen in ca. 0,2–0,5 s an. Auf jedem Monitor kann auch gearbeitet
+  werden; Änderungen laufen in beide Richtungen. Fahrzeuge und Einsätze werden einzeln
+  abgeglichen, damit gleichzeitige Änderungen an verschiedenen Fahrzeugen nicht verloren gehen.
+  Wird an zwei Geräten gleichzeitig dasselbe Fahrzeug geändert, gilt die zuletzt gesendete
+  Änderung.
+- Anzeige oben: "● Live" / "● verbinde …" / "● warte auf Hauptplatz" / "● Sync-Fehler".
+- Beim Tippen in ein Eingabefeld wird die Seite nicht durch Live-Updates neu aufgebaut (erst
+  nach Verlassen des Feldes). Kartenausschnitt und Scrollposition bleiben beim Aktualisieren
+  erhalten. QR-/Einrichtungsseiten werden nicht mehr durch Live-Updates überschrieben.
+- Der Hauptplatz (normal geöffnete Leitstelle) ist maßgeblich: Nur dort laufen die Fahrzeug-
+  Automatik (Dienstzeiten, Rückkehr zur Wache, Statusfortschritt), das Abholen von Fahrzeug-/
+  Anrufer-Terminal-Meldungen und das Zurücksetzen der Fahrzeuge beim Start. Er sollte während
+  der Übung geöffnet bleiben. Beim Start eines Monitors werden die Fahrzeuge NICHT zurückgesetzt.
+- Monitore speichern getrennt und verändern weder die eigenen Leitstellen-Daten noch die Cloud-
+  Einstellungen des Geräts, auf dem sie geöffnet werden.
+- Gerätebezogene Anzeigeeinstellungen (Organisations-Filter, IVENA-Bereichsfilter/-Ansicht)
+  bleiben pro Gerät.
+- NEU: AAOs bearbeiten statt löschen. In der AAO-Liste hat jeder Eintrag "✏️ Bearbeiten":
+  Name, Meldestichwort und Alarmierung (Anzahl, Fahrzeugtyp, Organisation) sind änderbar,
+  Fahrzeuge können ergänzt/entfernt werden. Standard-AAOs lassen sich per "↺ Standard
+  wiederherstellen" zurücksetzen, aber nicht mehr löschen.
+- WICHTIG/Korrektur: Bis v3.91 war die AAO-Tabelle nur Anzeige – die Disposition lief fest
+  programmiert, Änderungen an der AAO hatten keine Wirkung, und die Tabelle wich teils vom
+  tatsächlichen Verhalten ab (z. B. "Person im Wasser" ohne HLF/RTW). Ab v3.92 steuert die AAO-
+  Tabelle den Alarmvorschlag tatsächlich. Die Standard-AAOs wurden einmalig so angepasst, dass
+  sie exakt dem bisherigen Verhalten entsprechen; ergänzt wurden die bisher fehlenden Einträge
+  "Boot in Notlage", "VU ohne eingeklemmte Person" und "Technische Hilfeleistung".
+  Die Bedingungen der Standard-AAOs sind fest mit der Notrufabfrage verknüpft und nicht änderbar.
+  Sonderlogiken bleiben erhalten: NKTW als First Responder bei Reanimation, NKTW→RTW-Ersatz bei
+  R0, MANV-RTW-Anzahl mind. 1 je 3 Verletzte, keine doppelten RTW/NEF bei Reanimation.
+- Eigene AAOs: frei wählbare Bedingungen auf die Notrufabfrage (Ereignis, Anzahl z. B. ">3",
+  Wasserzustand, eingeklemmt, XABCDE …) und Aktiv-Schalter. Passen alle Bedingungen, werden
+  ihre Fahrzeuge zusätzlich alarmiert und ihr Stichwort angehängt. Früher angelegte eigene AAOs
+  (die nie eine Wirkung hatten) starten deaktiviert, damit sie nicht ungeprüft mitalarmieren.
+- Fehler behoben: Beim allerersten Start (leerer Speicher) waren Standardwerte und laufende Daten
+  dasselbe Objekt – Änderungen konnten die mitgelieferten Standards verändern.
+- Service-Worker-Cache erneuert (v2), damit die neue Version sicher geladen wird.
+- JavaScript-Syntax geprüft; Playwright-Tests mit lokalem Firebase-Nachbau (inkl. Streaming):
+  Monitor per Link öffnen + Ansichtswahl, Abgleich Hauptplatz→Monitor und Monitor→Hauptplatz,
+  gleichzeitige Änderungen an zwei Fahrzeugen, Notruf auf dem Monitor starten, Eingabeschutz
+  beim Tippen, Neuladen des Hauptplatzes, AAO bearbeiten/zurücksetzen/anlegen/deaktivieren/
+  löschen inkl. Wirkung auf den Alarmvorschlag und Sync, Standard-Stichworte unverändert,
+  Fahrzeugterminal-Link unverändert. Nicht gegen die echte Firebase-Datenbank getestet (aus der
+  Testumgebung nicht erreichbar).

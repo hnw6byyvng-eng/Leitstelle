@@ -98,9 +98,11 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.91</span>
+ <span id="versionTag">v3.92</span>
+ <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
- <a id="deviceSwitchLink" href="#" onclick="localStorage.removeItem('dlrg-jet-device');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">📱⇄📲 Ansicht wechseln</a>
+ <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
+ <a id="deviceSwitchLink" href="#" onclick="switchViewLink();return false" style="color:#64748b;text-decoration:underline;font-weight:600">📱⇄📲 Ansicht wechseln</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600">🔀 Szenario wechseln</a>
 </div>
 <div id="callerRequestBanner"></div>
@@ -214,24 +216,31 @@ const DEFAULTS_FRI_WHV={
 
  ],
  aao:[
-  {id:1,name:"DLRG Wasser 1 – Person im Wasser, mit Lebenszeichen",rules:{water:"ja",waterState:"Lebenszeichen"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1}]},
-  {id:2,name:"DLRG Wasser 2 – Person im Wasser, vermisst",rules:{water:"ja",waterState:"Vermisst"},units:[{type:"RTB",n:1},{type:"GW Wasserrettung",n:1},{type:"GW Taucher",n:1},{type:"GW Drohne",n:1},{type:"RTH",n:1}]},
-  {id:3,name:"DLRG Wasser 3 – Person im Wasser, Bergung",rules:{water:"ja",waterState:"Bergung"},units:[{type:"RTB",n:1},{type:"GW Taucher",n:1}]},
-  {id:18,name:"DLRG Drohne 1 – Vermisste Person (Personensuche an Land)",rules:{event:"Vermisste Person"},units:[{type:"GW Drohne",n:1},{type:"MTW",n:1},{type:"HLF",n:1}]},
-  {id:4,name:"Rettungsdienst 1 – Medizinischer Notfall",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1}]},
-  {id:5,name:"Rettungsdienst 2 – Reanimation",rules:{event:"Reanimation"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
-  {id:6,name:"Feuerwehr 1 – Feuer/Rauch",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1},{type:"LF",n:1}]},
-  {id:7,name:"Feuerwehr 2 – Feuer mit Personengefährdung",rules:{event:"Feuer / Rauchentwicklung",firePeople:"ja"},units:[{type:"HLF",n:1},{type:"LF",n:1},{type:"DLK",n:1},{type:"RTW",n:1}]},
-  {id:8,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall mit eingeklemmter Person",rules:{event:"Verkehrsunfall",trapped:"ja"},units:[{type:"HLF",n:1},{type:"RTW",n:1},{type:"RW",n:1}]},
-  {id:9,name:"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)",rules:{count:">3"},units:[{type:"RTW",n:2},{type:"NEF",n:1},{type:"OrgL/LNA",n:1},{type:"ELW",n:1}]},
-  {id:10,name:"Rettungsdienst – RD_X kritische Blutung",rules:{x_massive:"Ja"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
-  {id:11,name:"Rettungsdienst – RD_B Atemstillstand",rules:{b_breath:"Keine normale Atmung"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
-  {id:12,name:"Rettungsdienst – RD_C relevante Blutung",rules:{c_circ:"Relevante Blutung"},units:[{type:"RTW",n:1},{type:"NEF",n:1}]},
-  {id:13,name:"Rettungsdienst – RD_C Schockzeichen",rules:{c_circ:"Auffällig / Schockzeichen"},units:[{type:"NEF",n:1}]},
-  {id:14,name:"Rettungsdienst – RD_A Atemweg gefährdet",rules:{a_airway:"Gefährdet / verlegt"},units:[{type:"NEF",n:1}]},
-  {id:15,name:"Rettungsdienst – RD_D Bewusstlos",rules:{d_disability:"Bewusstlos"},units:[{type:"NEF",n:1}]},
-  {id:16,name:"Rettungsdienst – RD_D Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1}]},
-  {id:17,name:"Rettungsdienst – Med. Hilfeleistung leicht (R0, unauffälliges XABCDE)",rules:{x_massive:"Nein",a_airway:"Frei",b_breath:"Normal",c_circ:"Unauffällig",d_disability:"Wach / orientiert",e_exposure:"unauffällig/leer"},units:[{type:"NKTW",n:1}]}
+  // AAO-Einträge sind über ihre ID fest mit der Abfragelogik in evaluate() verknüpft (Bedingungen
+  // = fest programmierte Abfragezweige). Bearbeitbar sind Name, Meldestichwort und die Alarmierung
+  // (Fahrzeugtyp, Anzahl, Organisation). Die Standard-Alarmierung entspricht exakt dem bis v3.91
+  // fest programmierten Verhalten.
+  {id:1,name:"DLRG Wasser 1 – Person im Wasser, mit Lebenszeichen",keyword:"H_Person im Wasser R1",rules:{event:"Person im Wasser",waterState:"Lebenszeichen"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Wasserrettung",n:1,org:"DLRG"},{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
+  {id:2,name:"DLRG Wasser 2 – Person im Wasser, vermisst",keyword:"H_Person im Wasser – Vermisst R1",rules:{event:"Person im Wasser",waterState:"Vermisst"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Wasserrettung",n:1,org:"DLRG"},{type:"GW Taucher",n:1,org:"DLRG"},{type:"GW Drohne",n:1,org:"DLRG"},{type:"RTH",n:1,org:"Luftrettung"},{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
+  {id:3,name:"DLRG Wasser 3 – Person im Wasser, Bergung",keyword:"H_Person im Wasser – Bergung",rules:{event:"Person im Wasser",waterState:"Bergung"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Taucher",n:1,org:"DLRG"}]},
+  {id:19,name:"DLRG Wasser 4 – Boot in Notlage (Unfallort auf dem Wasser)",keyword:"H_Boot im Wasser",rules:{event:"Verkehrsunfall",locationIsWater:"ja"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Wasserrettung",n:1,org:"DLRG"},{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
+  {id:18,name:"DLRG Drohne 1 – Vermisste Person (Personensuche an Land)",keyword:"H_Vermisste Person – Suche",rules:{event:"Vermisste Person"},units:[{type:"GW Drohne",n:1,org:"DLRG"},{type:"MTW",n:1,org:"DLRG"},{type:"HLF",n:1,org:"Feuerwehr"}]},
+  {id:4,name:"Rettungsdienst 1 – Medizinischer Notfall",keyword:"MEDIZINISCHER NOTFALL R1",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1,org:"Rettungsdienst"}]},
+  {id:5,name:"Rettungsdienst 2 – Reanimation",keyword:"REANIMATION R1N1",rules:{event:"Reanimation"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:6,name:"Feuerwehr 1 – Feuer/Rauch",keyword:"F_2",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"LF",n:1,org:"Feuerwehr"}]},
+  {id:7,name:"Feuerwehr 2 – Feuer mit Personengefährdung",keyword:"F_2_Y",rules:{event:"Feuer / Rauchentwicklung",firePeople:"ja"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"LF",n:1,org:"Feuerwehr"},{type:"DLK",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
+  {id:8,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall mit eingeklemmter Person",keyword:"H_Eingeklemmt_2 R1",rules:{event:"Verkehrsunfall",trapped:"ja"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"},{type:"RW",n:1,org:"Feuerwehr"}]},
+  {id:20,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall ohne eingeklemmte Person",keyword:"H_VU R1",rules:{event:"Verkehrsunfall",trapped:"nein/unbekannt"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
+  {id:21,name:"Feuerwehr – Technische Hilfeleistung",keyword:"TH",rules:{event:"Technische Hilfeleistung"},units:[{type:"HLF",n:1,org:"Feuerwehr"}]},
+  {id:9,name:"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)",rules:{count:">3"},units:[{type:"RTW",n:2,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"},{type:"OrgL/LNA",n:1,org:"Rettungsdienst"},{type:"ELW",n:1,org:"Feuerwehr"}]},
+  {id:10,name:"Rettungsdienst – RD_X kritische Blutung",keyword:"RD_X – Kritische Blutung (Schockraum voranmelden)",rules:{x_massive:"Ja"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:11,name:"Rettungsdienst – RD_B Atemstillstand",keyword:"RD_B – Atemstillstand / reanimationspflichtig",rules:{b_breath:"Keine normale Atmung"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:12,name:"Rettungsdienst – RD_C relevante Blutung",keyword:"RD_C – Relevante Blutung (Schockraum voranmelden)",rules:{c_circ:"Relevante Blutung"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:13,name:"Rettungsdienst – RD_C Schockzeichen",keyword:"RD_C – Schockzeichen",rules:{c_circ:"Auffällig / Schockzeichen"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:14,name:"Rettungsdienst – RD_A Atemweg gefährdet",keyword:"RD_A – Atemweg gefährdet",rules:{a_airway:"Gefährdet / verlegt"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:15,name:"Rettungsdienst – RD_D Bewusstlos",keyword:"RD_D – Bewusstlos",rules:{d_disability:"Bewusstlos"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:16,name:"Rettungsdienst – RD_D Krampfanfall",keyword:"RD_D – Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
+  {id:17,name:"Rettungsdienst – Med. Hilfeleistung leicht (R0, unauffälliges XABCDE)",keyword:"Med. Hilfeleistung leicht (R0)",rules:{x_massive:"Nein",a_airway:"Frei",b_breath:"Normal",c_circ:"Unauffällig",d_disability:"Wach / orientiert",e_exposure:"unauffällig/leer"},units:[{type:"NKTW",n:1,org:"Rettungsdienst"}]}
  ],
  calls:[],
  currentCall:null,
@@ -340,8 +349,25 @@ const isTerminalLink=(()=>{
  const p=new URLSearchParams(location.search);
  return !!(p.get("vehicle")||p.get("neighbor")||p.get("caller"));
 })();
-let currentScenarioId=localStorage.getItem("dlrg-jet-scenario");
-if(!isTerminalLink && (!currentScenarioId||!SCENARIOS[currentScenarioId])){
+const NAV_PAGES_ALL=[
+ ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"],["nachbarLks","🚑 Nachbar LKs"]
+];
+// Zusatz-Monitor (per QR vom Hauptplatz geöffnet): vollwertige Leitstellen-Oberfläche, die ihren
+// kompletten Zustand in Echtzeit mit dem Hauptplatz und allen anderen Monitoren teilt.
+const MONITOR_PARAMS=(()=>{
+ const p=new URLSearchParams(location.search);
+ if(!p.get("monitor"))return null;
+ return {sid:p.get("sid")||"",db:p.get("db")||"",scenario:p.get("scenario")||""};
+})();
+const IS_MONITOR=!!MONITOR_PARAMS && !isTerminalLink;
+const MONITOR_VIEW_KEY="dlrg-jet-monitor-view";
+function switchViewLink(){
+ if(IS_MONITOR){try{sessionStorage.removeItem(MONITOR_VIEW_KEY)}catch(e){}}
+ else localStorage.removeItem("dlrg-jet-device");
+ location.reload();
+}
+let currentScenarioId=IS_MONITOR&&SCENARIOS[MONITOR_PARAMS.scenario]?MONITOR_PARAMS.scenario:localStorage.getItem("dlrg-jet-scenario");
+if(!isTerminalLink && !IS_MONITOR && (!currentScenarioId||!SCENARIOS[currentScenarioId])){
  document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:40px auto">
   <h2>Szenario wählen</h2>
   <p class="muted">Wähle, mit welchem Übungsszenario die Leitstelle starten soll. Jedes Szenario speichert seinen Fortschritt getrennt und kann jederzeit über den Link oben links gewechselt werden.</p>
@@ -360,6 +386,34 @@ function chooseDeviceMode(mode){
  location.reload();
 }
 let deviceMode=localStorage.getItem("dlrg-jet-device");
+let monitorStartPage=null;
+if(IS_MONITOR){
+ try{monitorStartPage=sessionStorage.getItem(MONITOR_VIEW_KEY)}catch(e){}
+ const pages=NAV_PAGES_ALL.filter(x=>currentScenarioId==="fri-whv"||x[0]!=="nachbarLks");
+ if(!monitorStartPage||!pages.some(x=>x[0]===monitorStartPage)){
+   const dm=deviceMode==="handy"?"handy":"ipad";
+   document.getElementById("app").innerHTML=`<div class="card" style="max-width:560px;margin:40px auto">
+    <h2>🖥️ Zusatz-Monitor</h2>
+    <p class="muted">Dieser Bildschirm ist live mit der Leitstelle ${esc(MONITOR_PARAMS.sid)} verbunden (${esc(SCENARIOS[currentScenarioId].label)}). Alle Änderungen erscheinen hier und auf allen anderen Monitoren in Echtzeit. Welche Ansicht soll dieser Monitor zeigen?</p>
+    <label>Layout</label>
+    <div class="row">
+     <button id="mLayoutipad" class="${dm==="ipad"?"primary":""}" onclick="monitorPickLayout('ipad')">📲 iPad / Bildschirm</button>
+     <button id="mLayouthandy" class="${dm==="handy"?"primary":""}" onclick="monitorPickLayout('handy')">📱 Handy</button>
+    </div>
+    <label style="margin-top:14px">Ansicht</label>
+    <div class="answer">${pages.map(x=>`<button style="padding:16px" onclick="monitorPickView('${x[0]}')">${esc(x[1])}</button>`).join("")}</div>
+    <p class="muted" style="margin-top:12px">Die Ansicht lässt sich jederzeit über die Seitenleiste oder oben über „Ansicht wechseln“ ändern.</p>
+   </div>`;
+   document.getElementById("monitorLink")?.remove();
+   document.querySelector('a[onclick*="dlrg-jet-scenario"]')?.remove();
+   document.getElementById("deviceSwitchLink")?.remove();
+   window.monitorPickLayout=m=>{localStorage.setItem("dlrg-jet-device",m);["ipad","handy"].forEach(x=>document.getElementById("mLayout"+x).className=x===m?"primary":"")};
+   if(deviceMode!=="handy"&&deviceMode!=="ipad")localStorage.setItem("dlrg-jet-device",dm);
+   window.monitorPickView=v=>{try{sessionStorage.setItem(MONITOR_VIEW_KEY,v)}catch(e){};location.reload()};
+   throw new Error("Warte auf Monitor-Ansicht");
+ }
+ deviceMode=localStorage.getItem("dlrg-jet-device")==="handy"?"handy":"ipad";
+}
 if(!isTerminalLink && (deviceMode!=="handy" && deviceMode!=="ipad")){
  document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:40px auto">
   <h2>Wie zeigst du die Leitstelle an?</h2>
@@ -373,11 +427,19 @@ if(!isTerminalLink)document.documentElement.setAttribute("data-device",deviceMod
 else{
  // Terminal-Links (Fahrzeug/Nachbar/Anrufer) zeigen weder Szenario- noch Geräte-Umschalter an.
  document.getElementById("deviceSwitchLink")?.remove();
+ document.getElementById("monitorLink")?.remove();
  document.querySelector('a[onclick*="dlrg-jet-scenario"]')?.remove();
 }
+if(IS_MONITOR){
+ document.querySelector('a[onclick*="dlrg-jet-scenario"]')?.remove();
+ document.getElementById("monitorLink")?.remove();
+}
 const defaults=SCENARIOS[currentScenarioId].defaults;
-const KEY=SCENARIOS[currentScenarioId].storageKey;
-let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
+// Monitore speichern getrennt, damit ein als Monitor genutztes Gerät nicht seine eigenen
+// Leitstellen-Daten überschreibt.
+const KEY=SCENARIOS[currentScenarioId].storageKey+(IS_MONITOR?"-monitor":"");
+// Tiefe Kopie, damit Änderungen (z. B. an AAOs) nie die mitgelieferten Standardwerte verändern.
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||JSON.parse(JSON.stringify(defaults));
 if(!Array.isArray(db.units))db.units=[];
 if(!Array.isArray(db.callers))db.callers=[];
 if(!Array.isArray(db.pendingCallerRequests))db.pendingCallerRequests=[];
@@ -400,10 +462,27 @@ db.units=db.units.filter(u=>!RETIRED_UNIT_OPTAS.includes(u.opta));
  });
 }
 if(!Array.isArray(db.aao))db.aao=[];
+// Einmaliger AAO-Abgleich (v3.92): bis v3.91 war die AAO-Tabelle reine Anzeige, die Disposition
+// lief fest programmiert. Ab v3.92 steuert die AAO-Tabelle die Alarmierung. Deshalb werden die
+// Standard-AAOs einmalig auf den Stand gebracht, der exakt dem bisherigen Verhalten entspricht
+// (inkl. Organisation je Fahrzeug). Selbst angelegte AAOs bleiben unverändert.
+if(!db.aaoSyncV392){
+ const byId=new Map(defaults.aao.map(a=>[a.id,a]));
+ db.aao=db.aao.map(a=>{
+   if(byId.has(a.id))return JSON.parse(JSON.stringify(byId.get(a.id)));
+   // Früher per Eingabedialog angelegte, eigene AAOs hatten nie eine Wirkung. Damit sie jetzt
+   // nicht ungeprüft plötzlich mitalarmieren, starten sie deaktiviert.
+   return {...a,active:false};
+ });
+ db.aaoSyncV392=true;
+}
 {
- const existingAaoNames=new Set(db.aao.map(a=>a.name));
+ // Fehlende Standard-AAOs nachziehen – über die ID, damit umbenannte Einträge nicht doppelt
+ // wieder auftauchen.
+ const existingIds=new Set(db.aao.map(a=>a.id));
+ const existingNames=new Set(db.aao.map(a=>a.name));
  defaults.aao.forEach(a=>{
-   if(!existingAaoNames.has(a.name))db.aao.push({...a});
+   if(!existingIds.has(a.id)&&!existingNames.has(a.name))db.aao.push(JSON.parse(JSON.stringify(a)));
  });
 }
 if(!Array.isArray(db.activeCalls))db.activeCalls=[];
@@ -412,9 +491,10 @@ if(!Array.isArray(db.activeCalls))db.activeCalls=[];
 // damit alle drei Szenarien (Friesland/WHV, Übung Bremen, Übung 2) über dieselbe Cloud-Sitzung
 // laufen, ohne für jedes Szenario separat eingerichtet werden zu müssen.
 const CLOUD_KEY="dlrg-jet-cloud-shared";
-function saveCloudConfig(){localStorage.setItem(CLOUD_KEY,JSON.stringify(db.cloud))}
+function saveCloudConfig(){if(IS_MONITOR)return;localStorage.setItem(CLOUD_KEY,JSON.stringify(db.cloud))}
 db.cloud=JSON.parse(localStorage.getItem(CLOUD_KEY)||"null")||{enabled:true,databaseURL:"https://dlrg-lst-default-rtdb.europe-west1.firebasedatabase.app",sessionId:"JET-"+Math.random().toString(36).slice(2,8).toUpperCase()};
 if(!db.cloud.sessionId)db.cloud.sessionId="JET-"+Math.random().toString(36).slice(2,8).toUpperCase();
+if(IS_MONITOR)db.cloud={enabled:!!(MONITOR_PARAMS.db&&MONITOR_PARAMS.sid),databaseURL:String(MONITOR_PARAMS.db).trim().replace(/\/+$/,""),sessionId:MONITOR_PARAMS.sid};
 if(!Array.isArray(db.logs))db.logs=[];
 if(!Array.isArray(db.ivena))db.ivena=defaults.ivena.map(h=>({...h,closures:[],fachrichtungen:[...h.fachrichtungen]}));
 db.ivena.forEach(h=>{
@@ -468,7 +548,7 @@ if(!Array.isArray(db.neighborUnits))db.neighborUnits=defaults.neighborUnits.map(
 // Keine Funktion, nur Optik – Standard: F Fri 1, K Fri 1, R Fri 1.
 if(!db.funkChannels)db.funkChannels={F:"F Fri 1",K:"K Fri 1",R:"R Fri 1"};
 const IVENA_FACHRICHTUNGEN=["Chirurgie","Innere Medizin","Pädiatrie","Gynäkologie/Geburtshilfe","Neurologie / Stroke Unit","Kardiologie / Chest Pain Unit","Intensivmedizin","Schockraum","Psychiatrie","HNO","Augenheilkunde","Urologie"];
-function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));if(typeof scheduleStateSync==="function")scheduleStateSync()}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
 function statusName(s){return {0:"Priorisierter Sprechwunsch",1:"Frei über Funk",2:"Frei auf Wache",3:"Einsatz übernommen",4:"Am Einsatzort",5:"Sprechwunsch",6:"Nicht einsatzbereit",7:"Patient aufgenommen",8:"bed. Verfügbar"}[s]||s}
@@ -488,9 +568,7 @@ function statusOptionsFor(u){
  if(u?.type==="OrgL/LNA")opts=opts.filter(s=>!["6","7","8"].includes(s));
  return opts;
 }
-const NAV_PAGES=[
- ["leitstelle","🖥️ Leitstelle"],["notruf","📞 Notruf"],["karte","🗺️ Karte"],["mittel","🚤 Rettungsmittel"],["aao","🧠 AAO"],["ivena","🏥 IVENA"],["ivenaZuweisungen","📋 IVENA-Zuweisungen"],["nachbarLks","🚑 Nachbar LKs"]
-];
+const NAV_PAGES=NAV_PAGES_ALL;
 function navHTML(active){
  const pages=currentScenarioId==="fri-whv"?NAV_PAGES:NAV_PAGES.filter(x=>x[0]!=="nachbarLks");
  return `<nav style="position:static;padding:0;background:transparent;display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-between;align-items:center">${pages.map(x=>{
@@ -500,8 +578,10 @@ function navHTML(active){
  }).join("")}</nav>`;
 }
 let currentPage="leitstelle";
+var uiLocked=false; // true, solange eine Unterseite (QR, Setup) offen ist, die kein Live-Neuzeichnen verträgt
 function render(page="leitstelle"){
  currentPage=page;
+ uiLocked=false;
  const hl=document.getElementById("homeLink");
  if(hl)hl.classList.toggle("hidden",page==="leitstelle");
  if(page==="leitstelle") dashboard();
@@ -2088,62 +2168,59 @@ function evaluate(){
  let req=[], keyword="Noch unklar", sr=true;
 
  const add=(type,n=1,org=null)=>{for(let i=0;i<n;i++)req.push({type,org})};
+ // Alarmierung aus der (bearbeitbaren) AAO-Tabelle; Fallback auf den Standard, falls ein
+ // Eintrag fehlt.
+ const addAao=(id,nOverride)=>{for(const x of aaoUnits(id))add(x.type,nOverride?nOverride(x):(Number(x.n)||1),x.org||null)};
+ const kw=(id,fallback)=>aaoKeyword(id,fallback);
 
  if(e==="Reanimation" || (a.b_breath==="Keine normale Atmung" && a.d_disability==="Bewusstlos")){
-   keyword="REANIMATION R1N1";
-   add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst");
+   keyword=kw(5,"REANIMATION R1N1");
+   addAao(5);
    const nktw=availableUnits("NKTW","Rettungsdienst")[0];
    if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
  } else if(e==="Vermisste Person"){
    // Allgemeine Personensuche an Land: Drohne zur Luftbild-/Wärmebildsuche, Mannschaftstransport
    // für den Suchtrupp, Feuerwehr zur Unterstützung bei größerer Fläche.
-   keyword="H_Vermisste Person – Suche";
-   add("GW Drohne",1,"DLRG"); add("MTW",1,"DLRG");
-   add("HLF",1,"Feuerwehr");
+   keyword=kw(18,"H_Vermisste Person – Suche");
+   addAao(18);
  } else if(e==="Person im Wasser"){
    const ws=a.waterState;
    if(ws==="Bergung"){
      // Bergung: Person ist verstorben, kein Rettungsversuch mehr nötig – Boot + Taucher,
      // keine Sonderrechte.
-     keyword="H_Person im Wasser – Bergung";
-     add("RTB",1,"DLRG"); add("GW Taucher",1,"DLRG");
+     keyword=kw(3,"H_Person im Wasser – Bergung");
+     addAao(3);
      sr=false;
    } else if(ws==="Vermisst"){
      // Vermisst: volle Suchkapazität – Boot, Hubschrauber (Luftbild/Wärmebild), Drohne,
      // Strömungsretter (GW Wasserrettung) und Taucher.
-     keyword="H_Person im Wasser – Vermisst R1";
-     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG"); add("GW Taucher",1,"DLRG"); add("GW Drohne",1,"DLRG");
-     add("RTH",1,"Luftrettung");
-     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+     keyword=kw(2,"H_Person im Wasser – Vermisst R1");
+     addAao(2);
    } else {
      // Mit Lebenszeichen (Standard-/Vorgabewert, auch falls waterState noch offen ist):
      // Boot und/oder Strömungsretter (GW Wasserrettung).
-     keyword="H_Person im Wasser R1";
-     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG");
-     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+     keyword=kw(1,"H_Person im Wasser R1");
+     addAao(1);
    }
  } else if(e==="Feuer / Rauchentwicklung"){
-   keyword=a.firePeople==="ja"?"F_2_Y":"F_2";
-   add("HLF",1,"Feuerwehr"); add("LF",1,"Feuerwehr");
-   if(a.firePeople==="ja"){add("DLK",1,"Feuerwehr");add("RTW",1,"Rettungsdienst")}
+   if(a.firePeople==="ja"){keyword=kw(7,"F_2_Y");addAao(7)}
+   else{keyword=kw(6,"F_2");addAao(6)}
  } else if(e==="Verkehrsunfall"){
    if(c.locationIsWater){
      // Einsatzort liegt laut Karten-/Adressdaten auf dem Wasser (z. B. Boot in Notlage) – kein
      // klassischer VU mehr, sondern Wasserrettungslage mit Booten statt Rüstwagen an Land.
-     keyword="H_Boot im Wasser";
-     add("RTB",1,"DLRG"); add("GW Wasserrettung",1,"DLRG");
-     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
+     keyword=kw(19,"H_Boot im Wasser");
+     addAao(19);
    } else {
-     keyword=a.trapped==="ja"?"H_Eingeklemmt_2 R1":"H_VU R1";
-     add("HLF",1,"Feuerwehr"); add("RTW",1,"Rettungsdienst");
-     if(a.trapped==="ja")add("RW",1,"Feuerwehr");
+     if(a.trapped==="ja"){keyword=kw(8,"H_Eingeklemmt_2 R1");addAao(8)}
+     else{keyword=kw(20,"H_VU R1");addAao(20)}
    }
  } else if(e==="Technische Hilfeleistung"){
-   keyword="TH";
-   add("HLF",1,"Feuerwehr");
+   keyword=kw(21,"TH");
+   addAao(21);
  } else if(e==="Medizinischer Notfall"){
-   keyword="MEDIZINISCHER NOTFALL R1";
-   add("RTW",1,"Rettungsdienst");
+   keyword=kw(4,"MEDIZINISCHER NOTFALL R1");
+   addAao(4);
  } else if(e==="Sonstiger Notfall"){
    keyword="NOTFALL – Disponentenentscheidung";
    sr=false;
@@ -2160,26 +2237,26 @@ function evaluate(){
    const reaAlready=(e==="Reanimation");
    let xLabel=null;
    if(a.x_massive==="Ja"){
-     if(!reaAlready){add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst")}
-     xLabel="RD_X – Kritische Blutung (Schockraum voranmelden)";
+     if(!reaAlready)addAao(10);
+     xLabel=kw(10,"RD_X – Kritische Blutung (Schockraum voranmelden)");
    } else if(a.b_breath==="Keine normale Atmung"){
-     if(!reaAlready){add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst")}
-     xLabel="RD_B – Atemstillstand / reanimationspflichtig";
+     if(!reaAlready)addAao(11);
+     xLabel=kw(11,"RD_B – Atemstillstand / reanimationspflichtig");
    } else if(a.c_circ==="Relevante Blutung"){
-     if(!reaAlready){add("RTW",1,"Rettungsdienst"); add("NEF",1,"Rettungsdienst")}
-     xLabel="RD_C – Relevante Blutung (Schockraum voranmelden)";
+     if(!reaAlready)addAao(12);
+     xLabel=kw(12,"RD_C – Relevante Blutung (Schockraum voranmelden)");
    } else if(a.c_circ==="Auffällig / Schockzeichen"){
-     if(!reaAlready)add("NEF",1,"Rettungsdienst");
-     xLabel="RD_C – Schockzeichen";
+     if(!reaAlready)addAao(13);
+     xLabel=kw(13,"RD_C – Schockzeichen");
    } else if(a.a_airway==="Gefährdet / verlegt"){
-     if(!reaAlready)add("NEF",1,"Rettungsdienst");
-     xLabel="RD_A – Atemweg gefährdet";
+     if(!reaAlready)addAao(14);
+     xLabel=kw(14,"RD_A – Atemweg gefährdet");
    } else if(a.d_disability==="Bewusstlos"){
-     if(!reaAlready)add("NEF",1,"Rettungsdienst");
-     xLabel="RD_D – Bewusstlos";
+     if(!reaAlready)addAao(15);
+     xLabel=kw(15,"RD_D – Bewusstlos");
    } else if(a.d_disability==="Krampfanfall / neurologisch auffällig"){
-     if(!reaAlready)add("NEF",1,"Rettungsdienst");
-     xLabel="RD_D – Krampfanfall";
+     if(!reaAlready)addAao(16);
+     xLabel=kw(16,"RD_D – Krampfanfall");
    } else if(a.b_breath==="Auffällig"){
      xLabel="RD_B – Atmung auffällig";
    } else if(a.d_disability==="Bewusstseinsgetrübt"){
@@ -2195,10 +2272,18 @@ function evaluate(){
       && a.c_circ==="Unauffällig" && a.d_disability==="Wach / orientiert"
       && isBenignExposureText(a.e_exposure)){
      req=req.filter(r=>!["RTW","NEF"].includes(r.type));
-     const nktw=availableUnits("NKTW","Rettungsdienst")[0];
-     if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst"});
-     else add("RTW",1,"Rettungsdienst");
-     keyword="Med. Hilfeleistung leicht (R0)";
+     for(const x of aaoUnits(17)){
+       const n=Number(x.n)||1;
+       if(x.type==="NKTW"){
+         // Kein freier NKTW → wie bisher ersatzweise RTW
+         const free=availableUnits("NKTW",x.org||"Rettungsdienst");
+         for(let i=0;i<n;i++){
+           if(free[i])req.push({exact:free[i].id,type:"NKTW",org:x.org||"Rettungsdienst"});
+           else add("RTW",1,"Rettungsdienst");
+         }
+       }else add(x.type,n,x.org||null);
+     }
+     keyword=kw(17,"Med. Hilfeleistung leicht (R0)");
      sr=false;
      c.rZero=true;
    }else{
@@ -2208,11 +2293,14 @@ function evaluate(){
 
  const cnt=Number(a.count)||0;
  if(cnt>3){
-   add("RTW",Math.max(1,Math.ceil(cnt/3)),"Rettungsdienst");
-   add("NEF",1,"Rettungsdienst");
-   add("OrgL/LNA",1,"Rettungsdienst");
-   add("ELW",1,"Feuerwehr");
+   // RTW-Anzahl skaliert weiterhin mit der Verletztenzahl (mind. 1 RTW je 3 Verletzte).
+   addAao(9,x=>x.type==="RTW"?Math.max(Number(x.n)||1,Math.ceil(cnt/3)):(Number(x.n)||1));
    keyword=`MANV – ${keyword} – ${cnt} Verletzte`;
+ }
+ // Eigene (selbst angelegte, aktive) AAOs: greifen zusätzlich, wenn alle Bedingungen passen.
+ for(const ca of customAaoMatches(c)){
+   for(const x of (ca.units||[]))add(x.type,Number(x.n)||1,x.org||null);
+   keyword=`${keyword} · ${ca.keyword||ca.name}`;
  }
 
  let selected=[], used=new Set();
@@ -2461,6 +2549,303 @@ async function cloudRequest(path,method="GET",data=null){
    return null;
  }
 }
+// ─── Live-Sync mehrerer Leitstellen-Monitore ─────────────────────────────────────────────────
+// Der komplette Leitstellenzustand (Einsätze, Fahrzeuge, IVENA, AAO …) liegt zusätzlich unter
+// sessions/<Sitzung>/lst/<Szenario> in der Firebase Realtime Database. Jedes Gerät (Hauptplatz +
+// beliebig viele Monitore) schreibt nur die Teile, die sich bei ihm geändert haben, und empfängt
+// Änderungen der anderen per Server-Sent-Events (Firebase-Streaming) – also ohne Abfrage-Intervall.
+// Listen mit eindeutiger "id" (z. B. Fahrzeuge, Einsätze) werden pro Eintrag synchronisiert,
+// damit gleichzeitige Änderungen an verschiedenen Fahrzeugen sich nicht gegenseitig überschreiben.
+// Werte werden als JSON-Text gespeichert ("<Geräte-ID>|<JSON>"), damit Firebase weder Schlüssel-
+// Sonderzeichen noch Arrays verfälscht und jedes Gerät seine eigenen Echos erkennt.
+const SYNC_CLIENT_ID=Math.random().toString(36).slice(2,10);
+// Rein gerätebezogene Anzeige-Einstellungen bleiben lokal.
+const SYNC_EXCLUDE=new Set(["cloud","mittelOrgFilter","ivenaAreaFilter","ivenaViewMode"]);
+var syncShadow=new Map();   // Slot-Pfad → zuletzt bekannter, synchroner JSON-Stand
+var syncRemote=null;        // Spiegel des entfernten Baums
+var syncSource=null, syncReady=false, syncPushTimer=null, syncPushing=false, syncPushAgain=false;
+var syncState="off", syncLastEvent=0, syncPollTimer=null, syncPendingRender=false;
+var syncInFlight=new Set(); // Slots, deren eigener Schreibvorgang gerade unterwegs ist
+function syncBase(){const b=cloudBase();return b?`${b}/lst/${encodeURIComponent(currentScenarioId)}`:""}
+function syncEncId(id){return encodeURIComponent(String(id)).replace(/\./g,"%2E")}
+function syncIsIdArray(v){
+ if(!Array.isArray(v)||!v.length)return false;
+ const seen=new Set();
+ for(const x of v){
+   if(!x||typeof x!=="object"||Array.isArray(x))return false;
+   if(typeof x.id!=="string"&&typeof x.id!=="number")return false;
+   const k=syncEncId(x.id); if(seen.has(k))return false; seen.add(k);
+ }
+ return true;
+}
+function syncLocalSlots(){
+ const out=new Map();
+ for(const k of Object.keys(db)){
+   if(SYNC_EXCLUDE.has(k)||db[k]===undefined)continue;
+   const v=db[k];
+   if(syncIsIdArray(v)){
+     out.set(`${k}/o`,JSON.stringify(v.map(x=>x.id)));
+     for(const x of v)out.set(`${k}/i/${syncEncId(x.id)}`,JSON.stringify(x));
+   }else out.set(`${k}/v`,JSON.stringify(v));
+ }
+ return out;
+}
+function syncSplit(str){
+ if(typeof str!=="string")return null;
+ const i=str.indexOf("|"); if(i<0)return null;
+ return {cid:str.slice(0,i),json:str.slice(i+1)};
+}
+function syncRemoteSlots(tree,prefix="",out=new Map()){
+ if(tree==null)return out;
+ if(typeof tree==="string"){out.set(prefix,tree);return out}
+ if(typeof tree!=="object")return out;
+ for(const [k,v] of Object.entries(tree))syncRemoteSlots(v,prefix?`${prefix}/${k}`:k,out);
+ return out;
+}
+function syncSetState(st){
+ syncState=st;
+ const el=document.getElementById("syncState"); if(!el)return;
+ const map={live:["#16a34a","● Live"],connecting:["#d97706","● verbinde …"],waiting:["#d97706","● warte auf Hauptplatz"],error:["#dc2626","● Sync-Fehler"],off:["",""]};
+ const [col,txt]=map[st]||map.off;
+ el.innerHTML=txt?`<span style="color:${col}">${IS_MONITOR?"🖥️ Monitor ":""}${txt}</span>`:"";
+}
+function scheduleStateSync(){
+ if(!syncReady)return;
+ clearTimeout(syncPushTimer);
+ syncPushTimer=setTimeout(syncPush,150);
+}
+async function syncPush(){
+ if(!syncReady||!db.cloud?.enabled)return;
+ if(syncPushing){syncPushAgain=true;return}
+ const base=syncBase(); if(!base)return;
+ const local=syncLocalSlots(), upd={}, prev=new Map();
+ for(const [p,j] of local){
+   if(syncShadow.get(p)!==j){upd[p]=`${SYNC_CLIENT_ID}|${j}`;prev.set(p,syncShadow.get(p));syncShadow.set(p,j)}
+ }
+ for(const p of [...syncShadow.keys()]){
+   if(!local.has(p) && !SYNC_EXCLUDE.has(p.split("/")[0])){upd[p]=null;prev.set(p,syncShadow.get(p));syncShadow.delete(p)}
+ }
+ if(!Object.keys(upd).length)return;
+ syncPushing=true;
+ const flight=Object.keys(upd); flight.forEach(p=>syncInFlight.add(p));
+ try{
+   const r=await fetch(`${base}.json`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(upd)});
+   if(!r.ok)throw new Error("HTTP "+r.status);
+   if(syncState==="error")syncSetState("live");
+ }catch(e){
+   console.warn("State-Sync",e);
+   // Schatten zurücksetzen, damit der nächste Versuch dieselben Änderungen erneut sendet.
+   for(const [p,v] of prev){if(v===undefined)syncShadow.delete(p);else syncShadow.set(p,v)}
+   syncSetState("error");
+   setTimeout(scheduleStateSync,3000);
+ }finally{
+   flight.forEach(p=>syncInFlight.delete(p));
+   syncPushing=false;
+   if(syncPushAgain){syncPushAgain=false;scheduleStateSync()}
+ }
+}
+function syncTreeSet(path,data){
+ const segs=String(path||"/").split("/").filter(Boolean);
+ if(!segs.length){syncRemote=(data&&typeof data==="object")?data:null;return}
+ if(!syncRemote||typeof syncRemote!=="object")syncRemote={};
+ let node=syncRemote;
+ for(let i=0;i<segs.length-1;i++){
+   if(!node[segs[i]]||typeof node[segs[i]]!=="object")node[segs[i]]={};
+   node=node[segs[i]];
+ }
+ if(data===null)delete node[segs[segs.length-1]];
+ else node[segs[segs.length-1]]=data;
+}
+function syncHandleEvent(type,msg){
+ if(!msg)return;
+ syncLastEvent=Date.now();
+ const path=msg.path||"/";
+ const touched=new Set();
+ const written=[]; // tatsächlich geänderte Pfade (ohne führenden "/")
+ const norm=p=>String(p).split("/").filter(Boolean).join("/");
+ const first=p=>String(p).split("/").filter(Boolean)[0];
+ const isFull=type==="put"&&(path==="/"||path==="");
+ if(type==="put"){
+   syncTreeSet(path,msg.data);
+   written.push(norm(path));
+   if(isFull)Object.keys(msg.data||{}).forEach(k=>touched.add(k));
+   else touched.add(first(path));
+ }else if(type==="patch"){
+   for(const [k,v] of Object.entries(msg.data||{})){
+     const full=(path==="/"?"":path.replace(/\/+$/,""))+"/"+k;
+     syncTreeSet(full,v);
+     written.push(norm(full));
+     touched.add(first(full));
+   }
+ }else return;
+ if(isFull && !syncReady){
+   // Erster Stand nach dem Verbinden.
+   if(!IS_MONITOR){
+     // Hauptplatz ist maßgeblich: entfernten Stand nur als Vergleichsbasis übernehmen und danach
+     // die eigenen Abweichungen hochladen.
+     syncShadow=new Map();
+     for(const [p,str] of syncRemoteSlots(syncRemote)){const x=syncSplit(str);if(x)syncShadow.set(p,x.json)}
+     syncReady=true; syncSetState("live"); syncPush();
+     return;
+   }
+   if(!syncRemote||!Object.keys(syncRemote).length){syncSetState("waiting");return}
+   syncApplyRemote(null,true);
+   syncReady=true; syncSetState("live");
+   return;
+ }
+ if(IS_MONITOR && !syncReady){
+   if(syncRemote&&Object.keys(syncRemote).length){syncApplyRemote(null,true);syncReady=true;syncSetState("live")}
+   return;
+ }
+ if(syncState!=="live")syncSetState("live");
+ syncApplyRemote([...touched].filter(Boolean),false,written);
+}
+// Übernimmt entfernte Änderungen fremder Geräte in db. full=true: kompletter Austausch (Monitor-Start).
+function syncApplyRemote(keys,full,written){
+ const tree=syncRemote||{};
+ keys=keys||Object.keys(tree);
+ let changed=false;
+ for(const k of keys){
+   if(SYNC_EXCLUDE.has(k))continue;
+   const node=tree[k];
+   if(!node||typeof node!=="object")continue;
+   const slots=syncRemoteSlots(node,k);
+   const foreign=new Map();
+   for(const [p,str] of slots){
+     // Nur Slots betrachten, die dieses Ereignis wirklich geändert hat – sonst würden eigene,
+     // gerade noch unterwegs befindliche Änderungen fälschlich als "fremd" zurückgedreht.
+     if(written&&!written.some(w=>w===""||p===w||p.startsWith(w+"/")))continue;
+     const x=syncSplit(str); if(!x)continue;
+     if(x.cid===SYNC_CLIENT_ID){syncShadow.set(p,x.json);continue} // eigenes Echo
+     if(!full&&syncInFlight.has(p))continue;
+     if(full||syncShadow.get(p)!==x.json)foreign.set(p,x.json);
+   }
+   if(!foreign.size)continue;
+   try{
+     if(typeof node.o==="string"){
+       const order=JSON.parse(syncSplit(node.o)?.json||"[]");
+       const items=node.i||{};
+       const parseItem=id=>{const x=syncSplit(items[syncEncId(id)]);return x?JSON.parse(x.json):null};
+       if(full||!Array.isArray(db[k])){
+         db[k]=order.map(parseItem).filter(Boolean);
+       }else{
+         const byId=new Map(db[k].filter(x=>x&&x.id!=null).map(x=>[syncEncId(x.id),x]));
+         for(const p of foreign.keys()){
+           const m=p.match(/^[^/]+\/i\/(.+)$/); if(!m)continue;
+           const it=items[m[1]]; const x=syncSplit(it);
+           if(x)byId.set(m[1],JSON.parse(x.json));
+         }
+         if(foreign.has(`${k}/o`)){
+           const oldOrder=new Set(JSON.parse(syncShadow.get(`${k}/o`)||"[]").map(syncEncId));
+           const remoteSet=new Set(order.map(syncEncId));
+           const arr=order.map(id=>byId.get(syncEncId(id))||parseItem(id)).filter(Boolean);
+           // Lokal neu angelegte, noch nicht hochgeladene Einträge behalten.
+           for(const x of db[k])if(x&&x.id!=null&&!remoteSet.has(syncEncId(x.id))&&!oldOrder.has(syncEncId(x.id)))arr.push(x);
+           db[k]=arr;
+         }else{
+           db[k]=db[k].map(x=>x&&x.id!=null?(byId.get(syncEncId(x.id))||x):x);
+         }
+       }
+     }else if(typeof node.v==="string"){
+       const x=syncSplit(node.v); if(x)db[k]=JSON.parse(x.json);
+     }else continue;
+   }catch(e){console.warn("State-Sync: Eintrag nicht lesbar",k,e);continue}
+   for(const [p,j] of foreign)syncShadow.set(p,j);
+   if(full){for(const [p,str] of slots){const x=syncSplit(str);if(x)syncShadow.set(p,x.json)}}
+   changed=true;
+ }
+ if(!changed)return;
+ localStorage.setItem(KEY,JSON.stringify(db));
+ // Lokale Änderungen, die zwischenzeitlich entstanden sind, trotzdem hochladen.
+ scheduleStateSync();
+ syncRequestRender();
+}
+function syncUserIsTyping(){
+ const ae=document.activeElement;
+ return !!(ae&&ae.closest&&ae.closest("#app")&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&ae.type!=="button");
+}
+function syncRequestRender(){
+ renderCallerBanner();
+ if(uiLocked||syncUserIsTyping()){syncPendingRender=true;return}
+ syncPendingRender=false;
+ // Kartenausschnitt beim Neuzeichnen beibehalten
+ const keep=[];
+ if(document.getElementById("map")&&typeof leafletMap!=="undefined"&&leafletMap)try{keep.push(["leafletMap",leafletMap.getCenter(),leafletMap.getZoom()])}catch(e){}
+ if(document.getElementById("notrufMap")&&typeof notrufLeafletMap!=="undefined"&&notrufLeafletMap)try{keep.push(["notrufLeafletMap",notrufLeafletMap.getCenter(),notrufLeafletMap.getZoom()])}catch(e){}
+ const y=window.scrollY;
+ render(currentPage);
+ window.scrollTo(0,y);
+ if(keep.length)setTimeout(()=>{for(const [name,c,z] of keep){try{const m=name==="leafletMap"?leafletMap:notrufLeafletMap;if(m)m.setView(c,z,{animate:false})}catch(e){}}},60);
+}
+document.addEventListener("focusout",()=>setTimeout(()=>{if(syncPendingRender&&!syncUserIsTyping()&&!uiLocked)syncRequestRender()},250));
+function startStateSync(){
+ if(!db.cloud?.enabled||!db.cloud?.databaseURL||!db.cloud?.sessionId){syncSetState("off");return}
+ const base=syncBase(); if(!base)return;
+ stopStateSync();
+ syncReady=false; syncRemote=null;
+ syncSetState("connecting");
+ if(typeof EventSource!=="undefined"){
+   const es=new EventSource(`${base}.json`);
+   syncSource=es;
+   const on=t=>es.addEventListener(t,ev=>{try{syncHandleEvent(t,JSON.parse(ev.data))}catch(e){console.warn("State-Sync",e)}});
+   on("put"); on("patch");
+   es.addEventListener("keep-alive",()=>{syncLastEvent=Date.now()});
+   es.addEventListener("cancel",()=>syncSetState("error"));
+   es.onerror=()=>{if(es.readyState!==1)syncSetState(syncReady?"connecting":"connecting")};
+ }
+ // Rückfall ohne EventSource bzw. falls der Stream hängt: alle 5 s kompletten Stand abgleichen.
+ syncPollTimer=setInterval(async()=>{
+   if(syncSource&&syncSource.readyState===1&&Date.now()-syncLastEvent<45000)return;
+   try{
+     const r=await fetch(`${base}.json`); if(!r.ok)throw new Error("HTTP "+r.status);
+     const data=await r.json();
+     syncHandleEvent("put",{path:"/",data});
+   }catch(e){syncSetState("error")}
+ },5000);
+}
+function stopStateSync(){
+ try{syncSource?.close()}catch(e){}
+ syncSource=null;
+ clearInterval(syncPollTimer); syncPollTimer=null;
+ clearTimeout(syncPushTimer);
+}
+function monitorURL(){
+ const q=new URLSearchParams();
+ q.set("monitor","1");
+ q.set("scenario",currentScenarioId);
+ q.set("sid",db.cloud?.sessionId||"");
+ if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
+ return `${location.origin}${location.pathname}?${q.toString()}`;
+}
+function showMonitorQR(){
+ const url=monitorURL();
+ const ok=db.cloud?.enabled&&db.cloud?.databaseURL;
+ render(currentPage); // Seitenleiste behalten
+ document.querySelector("#app section").innerHTML=`<div class="card">
+  <h2>🖥️ Weiteren Monitor hinzufügen</h2>
+  <p class="muted">${ok?"QR-Code mit einem weiteren Gerät (iPad, Laptop, Handy, Fernseher-Browser) scannen. Dort wählst du zuerst die gewünschte Ansicht – danach laufen alle Änderungen auf allen Monitoren in Echtzeit, ganz ohne Kabel. Auf jedem Monitor kann auch gearbeitet werden (Notruf, Alarmierung, Status …).":"Für Monitore bitte zuerst unter Rettungsmittel → Live-Verbindung die Cloud-Verbindung aktivieren."}</p>
+  ${ok?`<div style="display:flex;justify-content:center;margin:18px"><div id="qrCanvas"></div></div>
+  <label>Monitor-Link</label>
+  <textarea id="monitorLinkText" rows="3" readonly>${esc(url)}</textarea>
+  <div class="row" style="margin-top:12px">
+   <button onclick="copyMonitorLink()">📋 Link kopieren</button>
+   <button onclick="window.open(document.getElementById('monitorLinkText').value,'_blank')">👁️ In neuem Fenster öffnen</button>
+   <button onclick="render('leitstelle')">Zurück</button>
+  </div>
+  <p class="muted" style="margin-top:10px">Sitzung ${esc(db.cloud.sessionId)} · Szenario ${esc(SCENARIOS[currentScenarioId].label)} · Die Fahrzeug-Automatik läuft nur an diesem Hauptplatz – bitte ihn während der Übung geöffnet lassen.</p>`
+  :`<div class="row"><button class="primary" onclick="openCloudSetup()">☁️ Live-Verbindung einrichten</button><button onclick="render('leitstelle')">Zurück</button></div>`}
+ </div>`;
+ uiLocked=true;
+ const target=document.getElementById("qrCanvas");
+ if(ok&&target){
+   if(window.QRCode)new QRCode(target,{text:url,width:280,height:280,correctLevel:QRCode.CorrectLevel.M});
+   else target.innerHTML='<div class="card"><b>QR-Code konnte nicht geladen werden.</b><br><span class="muted">Der Link darunter kann trotzdem kopiert werden.</span></div>';
+ }
+}
+async function copyMonitorLink(){
+ const val=document.getElementById("monitorLinkText")?.value||"";
+ try{await navigator.clipboard.writeText(val);toast("Monitor-Link kopiert")}catch(e){toast("Link markieren und kopieren")}
+}
 async function pushUnitCloud(u){
  if(!u || !db.cloud?.enabled)return;
  await cloudRequest(`units/${encodeURIComponent(String(u.id))}`,"PUT",{
@@ -2585,7 +2970,7 @@ async function pollCloudUnits(){
    save();
    // Only auto-refresh screens that display live status, so we don't interrupt
    // someone mid-typing on the Notruf or Karte tabs.
-   if(["leitstelle","mittel","ivenaZuweisungen","karte"].includes(currentPage))render(currentPage);
+   if(["leitstelle","mittel","ivenaZuweisungen","karte"].includes(currentPage)&&!uiLocked)render(currentPage);
  }
 }
 function renderCallerBanner(){
@@ -2636,6 +3021,7 @@ async function pushIvenaCloud(){
  await cloudRequest("ivena","PUT",db.ivena);
 }
 function openCloudSetup(){
+ uiLocked=true;
  document.getElementById("app").innerHTML=`<div class="card">
   <h2>☁️ Live-Verbindung für Fahrzeugterminals</h2>
   <p>Für echte Synchronisation zwischen Leitstellen-iPad und Fahrzeug-Handys wird eine Firebase Realtime Database verwendet.</p>
@@ -2660,16 +3046,18 @@ function saveCloudSetup(enable){
  save();
  saveCloudConfig();
  if(db.cloud.enabled){
-   startCloudPolling();
+   if(!IS_MONITOR)startCloudPolling();
    pushAllUnitsCloud();
    pushIvenaCloud();
+   startStateSync();
  }else{
    stopCloudPolling();
+   stopStateSync(); syncSetState("off");
  }
  toast(db.cloud.enabled?"Live-Verbindung aktiviert":"Cloud-Einstellungen gespeichert");
  render("mittel");
 }
-function disableCloud(){db.cloud.enabled=false;save();saveCloudConfig();stopCloudPolling();toast("Live-Verbindung deaktiviert");render("mittel")}
+function disableCloud(){db.cloud.enabled=false;save();saveCloudConfig();stopCloudPolling();stopStateSync();syncSetState("off");toast("Live-Verbindung deaktiviert");render("mittel")}
 function vehicleURL(u){
  if(!u)return location.href;
  const base=location.origin+location.pathname;
@@ -2680,6 +3068,7 @@ function vehicleURL(u){
  return `${base}?${q.toString()}`;
 }
 function showVehicleQR(id){
+ uiLocked=true;
  const u=db.units.find(x=>String(x.id)===String(id)); if(!u)return;
  u.phoneAssigned=true;
  save();
@@ -2735,6 +3124,7 @@ function neighborTerminalURL(nu){
  return `${base}?${q.toString()}`;
 }
 function showNeighborQR(id){
+ uiLocked=true;
  const nu=db.neighborUnits.find(x=>String(x.id)===String(id)); if(!nu)return;
  const url=neighborTerminalURL(nu);
  document.getElementById("app").innerHTML=`<div class="card">
@@ -2765,6 +3155,7 @@ function callerURL(callerId){
  return `${base}?${q.toString()}`;
 }
 function showCallerQR(id){
+ uiLocked=true;
  const slot=(db.callers||[]).find(x=>String(x.id)===String(id));
  if(!slot){toast("Anrufer-Eintrag nicht gefunden");return}
  if(db.cloud?.enabled)setTimeout(()=>cloudRequest(`callerSlots/${encodeURIComponent(String(slot.id))}`,"PUT",{id:slot.id,callId:slot.callId,updatedAt:new Date().toISOString()}),0);
@@ -3542,12 +3933,145 @@ function setStatusFromSelect(id,status){
  setUnitStatus(u,String(status));save();render("mittel");
 }
 
-function aao(){
- document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Regeln werden von oben nach unten geprüft; der spezifischste Treffer gewinnt.</p></div><button class="primary" onclick="addAAO()">＋ AAO anlegen</button></div>
- <table><thead><tr><th>Stichwort</th><th>Regeln</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td>${Object.entries(a.rules).map(([k,v])=>`${k}=${v}`).join(" · ")}</td><td>${a.units.map(x=>x.n+"× "+x.type).join(", ")}</td><td><button onclick="deleteAAO(${a.id})">Löschen</button></td></tr>`).join("")}</tbody></table></div>`;
+// ─── AAO (bearbeitbar) ────────────────────────────────────────────────────────────────────
+// Standard-AAOs (IDs aus den Szenario-Defaults) sind über ihre ID fest mit den Abfragezweigen in
+// evaluate() verknüpft: Name, Meldestichwort und Alarmierung sind frei bearbeitbar, die
+// Bedingungen nicht (die ergeben sich aus der Abfragelogik). Eigene AAOs haben frei wählbare
+// Bedingungen auf die Notrufabfrage und alarmieren ZUSÄTZLICH, wenn alle Bedingungen passen.
+const AAO_RULE_FIELDS={
+ event:{label:"Was ist passiert?",values:["Medizinischer Notfall","Reanimation","Feuer / Rauchentwicklung","Verkehrsunfall","Technische Hilfeleistung","Person im Wasser","Vermisste Person","Sonstiger Notfall"]},
+ count:{label:"Anzahl Betroffene",free:true,placeholder:"z. B. >3, 2, <=5"},
+ waterState:{label:"Person im Wasser – Zustand",values:["Lebenszeichen","Vermisst","Bergung"]},
+ trapped:{label:"Eingeklemmt/eingeschlossen",values:["ja","nein","unbekannt"]},
+ firePeople:{label:"Menschen durch Feuer gefährdet",values:["ja","nein","unbekannt"]},
+ personDanger:{label:"Person verletzt/gefährdet",values:["ja","nein","unbekannt"]},
+ danger:{label:"Weitere Gefahren",values:["ja","nein","unbekannt"]},
+ x_massive:{label:"X – kritische Blutung",values:["Nein","Ja","Unklar"]},
+ a_airway:{label:"A – Atemweg",values:["Frei","Gefährdet / verlegt","Unklar"]},
+ b_breath:{label:"B – Atmung",values:["Normal","Auffällig","Keine normale Atmung","Unklar"]},
+ c_circ:{label:"C – Kreislauf",values:["Unauffällig","Auffällig / Schockzeichen","Relevante Blutung","Unklar"]},
+ d_disability:{label:"D – Bewusstsein",values:["Wach / orientiert","Bewusstseinsgetrübt","Bewusstlos","Krampfanfall / neurologisch auffällig","Unklar"]}
+};
+function isBuiltinAao(id){return (defaults.aao||[]).some(d=>String(d.id)===String(id))}
+function aaoEntry(id){return (db.aao||[]).find(a=>String(a.id)===String(id))||(defaults.aao||[]).find(a=>String(a.id)===String(id))||null}
+function aaoUnits(id){return (aaoEntry(id)?.units||[]).filter(x=>x&&String(x.type||"").trim())}
+function aaoKeyword(id,fallback){const k=String(aaoEntry(id)?.keyword||"").trim();return k||fallback}
+function aaoRuleMatches(val,rule){
+ if(val==null||String(val).trim()==="")return false;
+ const r=String(rule).trim();
+ const m=r.match(/^(>=|<=|>|<|=)?\s*(\d+)$/);
+ if(m&&!isNaN(Number(val))){
+   const v=Number(val),n=Number(m[2]);
+   return ({">":v>n,"<":v<n,">=":v>=n,"<=":v<=n}[m[1]])??(v===n);
+ }
+ return String(val).trim().toLowerCase()===r.toLowerCase();
 }
-function addAAO(){const name=prompt("Name des Einsatzstichworts");if(!name)return;const water=prompt("Bedingung Wasser? (ja/nein/leer)","ja");const conscious=prompt("Bedingung Bewusstsein? (ja/nein/leer)","");const breathing=prompt("Bedingung Atmung? (ja/nein/leer)","");const types=prompt("Alarmierung, z.B. RTB:1,WR-Trupp:1,RTW:1","RTB:1,WR-Trupp:1");let rules={};if(water)rules.water=water;if(conscious)rules.conscious=conscious;if(breathing)rules.breathing=breathing;let units=types.split(",").map(s=>{let [type,n]=s.trim().split(":");return{type,n:Number(n)||1}});db.aao.push({id:Date.now(),name,rules,units});save();render("aao")}
-function deleteAAO(id){if(confirm("AAO wirklich löschen?")){db.aao=db.aao.filter(x=>x.id!==id);save();render("aao")}}
+function customAaoMatches(c){
+ const a={...(c?.answers||{}),count:c?.answers?.count??c?.count};
+ return (db.aao||[]).filter(x=>!isBuiltinAao(x.id)&&x.active!==false&&x.rules&&Object.keys(x.rules).length
+   &&Object.entries(x.rules).every(([k,v])=>aaoRuleMatches(a[k],v)));
+}
+function aaoRulesText(a){
+ const r=Object.entries(a.rules||{});
+ if(!r.length)return `<span class="muted">—</span>`;
+ return r.map(([k,v])=>`${esc(AAO_RULE_FIELDS[k]?.label||k)} = ${esc(v)}`).join(" · ");
+}
+let aaoDraft=null;
+function aao(){
+ if(aaoDraft)return aaoEditor();
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Die AAO steuert den Alarmvorschlag. Standard-AAOs sind fest mit der Notrufabfrage verknüpft – Stichwort und Alarmierung sind bearbeitbar. Eigene AAOs alarmieren zusätzlich, wenn alle Bedingungen passen.</p></div><button class="primary" onclick="editAAO(null)">＋ AAO anlegen</button></div>
+ <table><thead><tr><th>Stichwort</th><th>Bedingungen</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>{
+   const builtin=isBuiltinAao(a.id);
+   return `<tr style="${a.active===false?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.keyword?`<br><small class="muted">${esc(a.keyword)}</small>`:""}${builtin?"":`<br><span class="pill">${a.active===false?"eigene · inaktiv":"eigene"}</span>`}</td><td>${aaoRulesText(a)}</td><td>${(a.units||[]).map(x=>`${Number(x.n)||1}× ${esc(x.type)}${x.org?` <small class="muted">(${esc(x.org)})</small>`:""}`).join(", ")||`<span class="muted">keine</span>`}</td><td style="white-space:nowrap"><button onclick="editAAO(${JSON.stringify(a.id)})">✏️ Bearbeiten</button>${builtin?"":` <button onclick="deleteAAO(${JSON.stringify(a.id)})">Löschen</button>`}</td></tr>`;
+ }).join("")}</tbody></table></div>`;
+}
+function editAAO(id){
+ const src=id==null?null:db.aao.find(x=>String(x.id)===String(id));
+ aaoDraft=src?JSON.parse(JSON.stringify(src)):{id:null,name:"",keyword:"",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1,org:"Rettungsdienst"}],active:true};
+ aaoDraft.units=(aaoDraft.units||[]).map(x=>({type:x.type||"",n:Number(x.n)||1,org:x.org||""}));
+ aaoDraft._rules=Object.entries(aaoDraft.rules||{}).map(([k,v])=>({k,v:String(v)}));
+ render("aao");
+}
+function aaoEditor(){
+ const d=aaoDraft, builtin=d.id!=null&&isBuiltinAao(d.id), manv=String(d.id)==="9";
+ const types=[...new Set([...(db.units||[]),...(db.neighborUnits||[])].map(u=>u.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"de"));
+ const orgs=[...new Set((db.units||[]).map(u=>u.org).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"de"));
+ const ruleRow=(r,i)=>{
+   const f=AAO_RULE_FIELDS[r.k];
+   const valInput=!f||f.free
+     ?`<input value="${esc(r.v)}" placeholder="${esc(f?.placeholder||"Wert")}" oninput="aaoDraft._rules[${i}].v=this.value">`
+     :`<select onchange="aaoDraft._rules[${i}].v=this.value">${f.values.map(v=>`<option ${v===r.v?"selected":""}>${esc(v)}</option>`).join("")}${f.values.includes(r.v)?"":`<option selected>${esc(r.v)}</option>`}</select>`;
+   return `<div class="row" style="flex-wrap:nowrap;margin-bottom:6px"><select style="flex:1" onchange="aaoSetRuleKey(${i},this.value)">${Object.entries(AAO_RULE_FIELDS).map(([k,x])=>`<option value="${k}" ${k===r.k?"selected":""}>${esc(x.label)}</option>`).join("")}${AAO_RULE_FIELDS[r.k]?"":`<option selected value="${esc(r.k)}">${esc(r.k)}</option>`}</select><div style="flex:1">${valInput}</div><button title="Bedingung entfernen" onclick="aaoDraft._rules.splice(${i},1);render('aao')">✕</button></div>`;
+ };
+ const unitRow=(u,i)=>`<div class="row" style="flex-wrap:nowrap;margin-bottom:6px">
+   <input style="width:64px;flex:0 0 64px" type="number" min="1" value="${esc(u.n)}" oninput="aaoDraft.units[${i}].n=Number(this.value)||1" title="Anzahl">
+   <input style="flex:1" list="aaoTypeList" value="${esc(u.type)}" placeholder="Fahrzeugtyp" oninput="aaoDraft.units[${i}].type=this.value">
+   <select style="flex:1" onchange="aaoDraft.units[${i}].org=this.value"><option value="">beliebige Organisation</option>${[...new Set([...orgs,u.org].filter(Boolean))].map(o=>`<option ${o===u.org?"selected":""}>${esc(o)}</option>`).join("")}</select>
+   <button title="Fahrzeug entfernen" onclick="aaoDraft.units.splice(${i},1);render('aao')">✕</button></div>`;
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>✏️ ${d.id==null?"AAO anlegen":"AAO bearbeiten"}</h2>
+  <label>Name</label><input id="aaoName" value="${esc(d.name)}" oninput="aaoDraft.name=this.value">
+  ${manv?`<p class="muted" style="margin-top:8px">Meldestichwort wird bei MANV automatisch gebildet („MANV – … – n Verletzte“). Die RTW-Anzahl steigt automatisch auf mindestens 1 RTW je 3 Verletzte.</p>`:`<label>Meldestichwort ${builtin?"":"(wird an das Stichwort angehängt)"}</label><input value="${esc(d.keyword||"")}" placeholder="${builtin?"leer = Standard":"leer = Name"}" oninput="aaoDraft.keyword=this.value">`}
+  <label>Bedingungen</label>
+  ${builtin?`<div class="suggest-compact">${aaoRulesText(d)}<br><span class="muted">Fest mit der Notrufabfrage verknüpft – nicht änderbar.</span></div>`
+   :`${d._rules.map(ruleRow).join("")}<button onclick="aaoDraft._rules.push({k:'event',v:'Medizinischer Notfall'});render('aao')">＋ Bedingung</button>
+     <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" style="width:auto" ${d.active!==false?"checked":""} onchange="aaoDraft.active=this.checked"> Aktiv (wird bei der Disposition berücksichtigt)</label>`}
+  <label>Alarmierung</label>
+  <datalist id="aaoTypeList">${types.map(t=>`<option value="${esc(t)}">`).join("")}</datalist>
+  ${d.units.map(unitRow).join("")||`<p class="muted">Keine Fahrzeuge.</p>`}
+  <button onclick="aaoDraft.units.push({type:'',n:1,org:''});render('aao')">＋ Fahrzeug</button>
+  <hr>
+  <div class="row">
+   <button class="primary" onclick="saveAAO()">💾 Speichern</button>
+   <button onclick="aaoDraft=null;render('aao')">Abbrechen</button>
+   ${builtin?`<button onclick="resetAAO()">↺ Standard wiederherstellen</button>`:""}
+  </div>
+ </div>`;
+}
+function aaoSetRuleKey(i,k){
+ const f=AAO_RULE_FIELDS[k];
+ aaoDraft._rules[i]={k,v:f&&!f.free?f.values[0]:""};
+ render("aao");
+}
+function saveAAO(){
+ const d=aaoDraft; if(!d)return;
+ const name=String(d.name||"").trim();
+ if(!name){toast("Bitte einen Namen eingeben");return}
+ const units=d.units.map(u=>({type:String(u.type||"").trim(),n:Math.max(1,Number(u.n)||1),...(u.org?{org:u.org}:{})})).filter(u=>u.type);
+ const builtin=d.id!=null&&isBuiltinAao(d.id);
+ let rules=d.rules||{};
+ if(!builtin){
+   rules={};
+   for(const r of d._rules){const v=String(r.v||"").trim();if(r.k&&v)rules[r.k]=v}
+   if(!Object.keys(rules).length){toast("Mindestens eine Bedingung angeben");return}
+ }
+ const entry={id:d.id??Date.now(),name,rules,units};
+ if(String(d.keyword||"").trim())entry.keyword=String(d.keyword).trim();
+ if(!builtin)entry.active=d.active!==false;
+ const idx=db.aao.findIndex(x=>String(x.id)===String(entry.id));
+ if(idx>=0)db.aao[idx]=entry; else db.aao.push(entry);
+ aaoDraft=null;
+ save();
+ toast("AAO gespeichert");
+ render("aao");
+}
+function resetAAO(){
+ const d=aaoDraft; if(!d)return;
+ const def=(defaults.aao||[]).find(x=>String(x.id)===String(d.id)); if(!def)return;
+ if(!confirm("Diese AAO auf den Standard zurücksetzen?"))return;
+ const idx=db.aao.findIndex(x=>String(x.id)===String(d.id));
+ const copy=JSON.parse(JSON.stringify(def));
+ if(idx>=0)db.aao[idx]=copy; else db.aao.push(copy);
+ aaoDraft=null;
+ save();
+ toast("AAO zurückgesetzt");
+ render("aao");
+}
+function deleteAAO(id){
+ if(isBuiltinAao(id)){toast("Standard-AAOs können nur bearbeitet oder zurückgesetzt werden");return}
+ if(confirm("AAO wirklich löschen?")){db.aao=db.aao.filter(x=>String(x.id)!==String(id));save();render("aao")}
+}
+
 
 function ivenaStatusClass(s){return s==="grün"?"s2":s==="gelb"?"s3":"s6"}
 function setIvenaStatus(id,status){
@@ -3911,7 +4435,10 @@ function nachbarLks(){
  <div class="card" style="background:#f8fafc"><b>Hinweis:</b> Die Fahrzeugbezeichnungen und Wachadressen stammen aus öffentlich zugänglichen Quellen (bos-fahrzeuge.info) und stellen jeweils eine Auswahl dar, keine vollständigen Fuhrparks der Nachbarlandkreise.</div>`;
 }
 
-setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");applyDutySchedule();autoReturnToStation();autoAdvanceEnRoute()},1000);
+// Die Automatik (Dienstzeiten, Rückkehr zur Wache, Statusfortschritt) läuft nur am Hauptplatz –
+// Monitore bekommen die Ergebnisse per Live-Sync, sonst würden mehrere Geräte gleichzeitig
+// dieselben Fahrzeuge weiterschalten.
+setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");if(IS_MONITOR)return;applyDutySchedule();autoReturnToStation();autoAdvanceEnRoute()},1000);
 if(!initVehicleMode()){
  // Bei jedem (Neu-)Start der Leitstelle gehen alle eigenen Fahrzeuge auf Status 2 (Frei auf
  // Wache) zurück – außer solche, die gerade auf Status 6 (Nicht einsatzbereit) stehen, die
@@ -3920,13 +4447,16 @@ if(!initVehicleMode()){
  // Leitstellen-Seite setzt dann auch Fahrzeuge zurück, deren Besatzung selbst gerade unterwegs
  // ist – das ist bewusst so gewünscht, sollte aber während einer laufenden Übung mit mehreren
  // Geräten beachtet werden.
- let resetChanged=false;
- db.units.forEach(u=>{
-   if(!["6","2"].includes(String(u.status))){ setUnitStatus(u,"2"); resetChanged=true; }
- });
- if(resetChanged)save();
- render("leitstelle");
- if(db.cloud?.enabled) startCloudPolling();
+ if(!IS_MONITOR){
+   let resetChanged=false;
+   db.units.forEach(u=>{
+     if(!["6","2"].includes(String(u.status))){ setUnitStatus(u,"2"); resetChanged=true; }
+   });
+   if(resetChanged)save();
+ }
+ render(IS_MONITOR?monitorStartPage:"leitstelle");
+ if(db.cloud?.enabled && !IS_MONITOR) startCloudPolling();
+ startStateSync();
 }
 </script>
 <script>
