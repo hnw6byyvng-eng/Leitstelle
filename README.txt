@@ -457,7 +457,10 @@ Version 3.92:
   Tabelle den Alarmvorschlag tatsächlich. Die Standard-AAOs wurden einmalig so angepasst, dass
   sie exakt dem bisherigen Verhalten entsprechen; ergänzt wurden die bisher fehlenden Einträge
   "Boot in Notlage", "VU ohne eingeklemmte Person" und "Technische Hilfeleistung".
-  Die Bedingungen der Standard-AAOs sind fest mit der Notrufabfrage verknüpft und nicht änderbar.
+  Auch die Bedingungen der Standard-AAOs sind änderbar ("✏️ Bedingungen ändern"). Danach
+  greift diese AAO wie eine eigene AAO nur noch über ihre neuen Bedingungen (Fahrzeuge werden
+  zusätzlich alarmiert, Stichwort angehängt); der feste Abfragezweig alarmiert dafür nichts mehr.
+  "↺ Standard wiederherstellen" stellt den Ursprungszustand wieder her.
   Sonderlogiken bleiben erhalten: NKTW als First Responder bei Reanimation, NKTW→RTW-Ersatz bei
   R0, MANV-RTW-Anzahl mind. 1 je 3 Verletzte, keine doppelten RTW/NEF bei Reanimation.
 - Eigene AAOs: frei wählbare Bedingungen auf die Notrufabfrage (Ereignis, Anzahl z. B. ">3",
