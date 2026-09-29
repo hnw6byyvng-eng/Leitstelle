@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.95</span>
+ <span id="versionTag">v3.96</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -2343,8 +2343,24 @@ function evaluate(){
    for(const [k,n] of groups)if(n>=best){best=n;win=k}
    c.aaoMatches=[...groups.keys()].filter(k=>k!=="base").map(k=>(aaoEntry(k)?.name)||k);
    if(win!==null){
+     const all=req;
      req=req.filter(r=>String(r.src)===win||r.src==="r0mod");
      if(kwMap[win])keyword=kwMap[win];
+     // Rettungsdienst nach XABCDE (RD_X/A/B/C/D) kommt immer dazu – aufgefüllt, nicht doppelt.
+     const XABCDE_AAO=["10","11","12","13","14","15","16"];
+     for(const xid of XABCDE_AAO){
+       if(xid===win)continue;
+       const xs=all.filter(r=>String(r.src)===xid); if(!xs.length)continue;
+       const need={};
+       for(const r of xs)need[r.type]=(need[r.type]||0)+1;
+       let added=false;
+       for(const [t,n] of Object.entries(need)){
+         const have=req.filter(r=>r.type===t).length;
+         const extra=xs.filter(r=>r.type===t).slice(0,Math.max(0,n-have));
+         if(extra.length){req.push(...extra);added=true}
+       }
+       if(added&&kwMap[xid])keyword=`${keyword} · ${kwMap[xid]}`;
+     }
      c.aaoWinner=(aaoEntry(win)?.name)||null;
    }else c.aaoWinner=null;
  }
@@ -4039,7 +4055,7 @@ function aaoRulesText(a){
 let aaoDraft=null;
 function aao(){
  if(aaoDraft)return aaoEditor();
- document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Die AAO steuert den Alarmvorschlag. Passen mehrere AAOs, wird nur die höchste alarmiert (die mit den meisten Fahrzeugen; bei Gleichstand die spezifischere).</p></div><button class="primary" onclick="editAAO(null)">＋ AAO anlegen</button></div>
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Die AAO steuert den Alarmvorschlag. Passen mehrere AAOs, wird nur die höchste alarmiert (die mit den meisten Fahrzeugen; bei Gleichstand die spezifischere). Rettungsdienst aus XABCDE (RD_X…RD_D) kommt immer dazu.</p></div><button class="primary" onclick="editAAO(null)">＋ AAO anlegen</button></div>
  <table><thead><tr><th>Stichwort</th><th>Bedingungen</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>{
    const builtin=isBuiltinAao(a.id);
    return `<tr style="${a.active===false?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.keyword?`<br><small class="muted">${esc(a.keyword)}</small>`:""}${builtin&&!a.rulesEdited?"":`<br><span class="pill">${builtin?"Bedingungen geändert":"eigene"}${a.active===false?" · inaktiv":""}</span>`}</td><td>${aaoRulesText(a)}</td><td>${(a.units||[]).map(x=>`${Number(x.n)||1}× ${esc(x.type)}${x.org?` <small class="muted">(${esc(x.org)})</small>`:""}`).join(", ")||`<span class="muted">keine</span>`}</td><td style="white-space:nowrap"><button onclick="editAAO(${JSON.stringify(a.id)})">✏️ Bearbeiten</button>${builtin?"":` <button onclick="deleteAAO(${JSON.stringify(a.id)})">Löschen</button>`}</td></tr>`;

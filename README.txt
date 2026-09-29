@@ -507,3 +507,8 @@ Version 3.95:
   Reanimation, ELW/DRK-Zusatzlogik.
 - Folge: Ergänzungen aus kleineren AAOs entfallen, z. B. kein NEF bei "Person im Wasser" +
   Atemstillstand, kein HLF bei MANV nach Verkehrsunfall.
+
+Version 3.96:
+- Ausnahme zu "nur die höchste AAO": RTW/NEF aus den XABCDE-AAOs (RD_X, RD_A, RD_B, RD_C,
+  RD_D) kommen immer dazu, aufgefüllt statt doppelt (ist schon ein RTW im Vorschlag, kommt nur
+  der NEF). Das XABCDE-Stichwort wird dann angehängt.
