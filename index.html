@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.94</span>
+ <span id="versionTag">v3.95</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -1829,7 +1829,7 @@ function notruf(){
   <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div>
  </section>
  <aside>
-  <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div><p>${c.suggestion||"Antworten fehlen noch."}</p></div>
+  <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div>${c.aaoWinner?`<div class="muted" style="font-size:12px;margin-top:4px">AAO: ${esc(c.aaoWinner)}${(c.aaoMatches||[]).length>1?` · ebenfalls passend (nicht alarmiert): ${esc(c.aaoMatches.filter(n=>n!==c.aaoWinner).join(", "))}`:""}</div>`:""}<p>${c.suggestion||"Antworten fehlen noch."}</p></div>
   <div class="card"><h2>🚑 Nächste verfügbare Mittel</h2>${nearest.length?nearest.map(u=>`<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.type||"—")}</b><br><small class="muted">${esc(u.opta||u.name||"—")}${geographicRank(u)<999?` · ~${geographicRank(u).toFixed(1)} km · ca. ${estimatedEtaMinutes(u)} min`:``}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join(""):`<span class="muted">Keine verfügbaren Mittel</span>`}</div>
  </aside></div>`;
  if(q && q[0]==="location" && !c.callerGpsPending) setTimeout(initNotrufMap,0);
@@ -2180,27 +2180,33 @@ function evaluate(){
 
  let req=[], keyword="Noch unklar", sr=true;
 
- const add=(type,n=1,org=null)=>{for(let i=0;i<n;i++)req.push({type,org})};
+ // Jede Anforderung merkt sich, aus welcher AAO sie stammt (src). Passen mehrere AAOs, wird am
+ // Ende nur die "höchste" (meiste Fahrzeuge; bei Gleichstand die spezifischere, später geprüfte)
+ // alarmiert.
+ let src="base"; const kwMap={};
+ const add=(type,n=1,org=null)=>{for(let i=0;i<n;i++)req.push({type,org,src})};
  // Alarmierung aus der (bearbeitbaren) AAO-Tabelle; Fallback auf den Standard, falls ein
  // Eintrag fehlt.
- const addAao=(id,nOverride)=>{for(const x of aaoUnits(id))add(x.type,nOverride?nOverride(x):(Number(x.n)||1),x.org||null)};
- const kw=(id,fallback)=>aaoKeyword(id,fallback);
+ const addAao=(id,nOverride)=>{const prev=src;src=id;for(const x of aaoUnits(id))add(x.type,nOverride?nOverride(x):(Number(x.n)||1),x.org||null);src=prev};
+ const kw=(id,fallback)=>{const k=aaoKeyword(id,fallback);kwMap[id]=k;return k};
 
  if(e==="Reanimation" || (a.b_breath==="Keine normale Atmung" && a.d_disability==="Bewusstlos")){
    keyword=kw(5,"REANIMATION R1N1");
+   src=5;
    // NKTW als First Responder – außer die AAO enthält bereits einen NKTW (dann nicht doppelt).
    const reaHasNktw=aaoUnits(5).some(x=>x.type==="NKTW");
    if(reaHasNktw){
      const free=availableUnits("NKTW","Rettungsdienst");
      for(const x of aaoUnits(5)){
-       if(x.type==="NKTW"){for(let i=0;i<(Number(x.n)||1);i++){if(free[i])req.push({exact:free[i].id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});else add("NKTW",1,x.org||"Rettungsdienst")}}
+       if(x.type==="NKTW"){for(let i=0;i<(Number(x.n)||1);i++){if(free[i])req.push({src,exact:free[i].id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});else add("NKTW",1,x.org||"Rettungsdienst")}}
        else add(x.type,Number(x.n)||1,x.org||null);
      }
    }else{
      addAao(5);
      const nktw=availableUnits("NKTW","Rettungsdienst")[0];
-     if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
+     if(nktw) req.push({src,exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
    }
+ src="base";
  } else if(e==="Vermisste Person"){
    // Allgemeine Personensuche an Land: Drohne zur Luftbild-/Wärmebildsuche, Mannschaftstransport
    // für den Suchtrupp, Feuerwehr zur Unterstützung bei größerer Fläche.
@@ -2295,17 +2301,19 @@ function evaluate(){
       && a.c_circ==="Unauffällig" && a.d_disability==="Wach / orientiert"
       && isBenignExposureText(a.e_exposure)){
      req=req.filter(r=>!["RTW","NEF"].includes(r.type));
+     src="r0mod";
      for(const x of aaoUnits(17)){
        const n=Number(x.n)||1;
        if(x.type==="NKTW"){
          // Kein freier NKTW → wie bisher ersatzweise RTW
          const free=availableUnits("NKTW",x.org||"Rettungsdienst");
          for(let i=0;i<n;i++){
-           if(free[i])req.push({exact:free[i].id,type:"NKTW",org:x.org||"Rettungsdienst"});
+           if(free[i])req.push({src,exact:free[i].id,type:"NKTW",org:x.org||"Rettungsdienst"});
            else add("RTW",1,"Rettungsdienst");
          }
        }else add(x.type,n,x.org||null);
      }
+     src="base";
      keyword=kw(17,"Med. Hilfeleistung leicht (R0)");
      sr=false;
      c.rZero=true;
@@ -2319,16 +2327,28 @@ function evaluate(){
    // RTW-Anzahl skaliert weiterhin mit der Verletztenzahl (mind. 1 RTW je 3 Verletzte).
    addAao(9,x=>x.type==="RTW"?Math.max(Number(x.n)||1,Math.ceil(cnt/3)):(Number(x.n)||1));
    keyword=`MANV – ${keyword} – ${cnt} Verletzte`;
+   kwMap[9]=keyword;
  }
  // Eigene (selbst angelegte, aktive) AAOs: greifen zusätzlich, wenn alle Bedingungen passen.
  for(const ca of customAaoMatches(c)){
-   // Nur auffüllen, was noch fehlt (kein zweiter RTW, wenn schon einer im Vorschlag ist).
-   for(const x of (ca.units||[])){
-     const have=req.filter(r=>r.type===x.type).length;
-     add(x.type,Math.max(0,(Number(x.n)||1)-have),x.org||null);
-   }
-   keyword=`${keyword} · ${ca.keyword||ca.name}`;
+   src=ca.id; kwMap[ca.id]=ca.keyword||ca.name;
+   for(const x of (ca.units||[]))add(x.type,Number(x.n)||1,x.org||null);
+   src="base";
  }
+ // Nur die höchste passende AAO alarmieren.
+ {
+   const groups=new Map();
+   for(const r of req){if(r.src==="r0mod")continue;const k=String(r.src);if(!groups.has(k))groups.set(k,0);groups.set(k,groups.get(k)+1)}
+   let win=null,best=-1;
+   for(const [k,n] of groups)if(n>=best){best=n;win=k}
+   c.aaoMatches=[...groups.keys()].filter(k=>k!=="base").map(k=>(aaoEntry(k)?.name)||k);
+   if(win!==null){
+     req=req.filter(r=>String(r.src)===win||r.src==="r0mod");
+     if(kwMap[win])keyword=kwMap[win];
+     c.aaoWinner=(aaoEntry(win)?.name)||null;
+   }else c.aaoWinner=null;
+ }
+
 
  let selected=[], used=new Set();
  for(const r of req){
@@ -4019,7 +4039,7 @@ function aaoRulesText(a){
 let aaoDraft=null;
 function aao(){
  if(aaoDraft)return aaoEditor();
- document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Die AAO steuert den Alarmvorschlag. Standard-AAOs sind fest mit der Notrufabfrage verknüpft – Stichwort und Alarmierung sind bearbeitbar. Eigene AAOs alarmieren zusätzlich, wenn alle Bedingungen passen.</p></div><button class="primary" onclick="editAAO(null)">＋ AAO anlegen</button></div>
+ document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Die AAO steuert den Alarmvorschlag. Passen mehrere AAOs, wird nur die höchste alarmiert (die mit den meisten Fahrzeugen; bei Gleichstand die spezifischere).</p></div><button class="primary" onclick="editAAO(null)">＋ AAO anlegen</button></div>
  <table><thead><tr><th>Stichwort</th><th>Bedingungen</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>{
    const builtin=isBuiltinAao(a.id);
    return `<tr style="${a.active===false?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.keyword?`<br><small class="muted">${esc(a.keyword)}</small>`:""}${builtin&&!a.rulesEdited?"":`<br><span class="pill">${builtin?"Bedingungen geändert":"eigene"}${a.active===false?" · inaktiv":""}</span>`}</td><td>${aaoRulesText(a)}</td><td>${(a.units||[]).map(x=>`${Number(x.n)||1}× ${esc(x.type)}${x.org?` <small class="muted">(${esc(x.org)})</small>`:""}`).join(", ")||`<span class="muted">keine</span>`}</td><td style="white-space:nowrap"><button onclick="editAAO(${JSON.stringify(a.id)})">✏️ Bearbeiten</button>${builtin?"":` <button onclick="deleteAAO(${JSON.stringify(a.id)})">Löschen</button>`}</td></tr>`;
@@ -4051,7 +4071,7 @@ function aaoEditor(){
  document.getElementById("app").innerHTML=`<div class="card">
   <h2>✏️ ${d.id==null?"AAO anlegen":"AAO bearbeiten"}</h2>
   <label>Name</label><input id="aaoName" value="${esc(d.name)}" oninput="aaoDraft.name=this.value">
-  ${manv?`<p class="muted" style="margin-top:8px">Meldestichwort wird bei MANV automatisch gebildet („MANV – … – n Verletzte“). Die RTW-Anzahl steigt automatisch auf mindestens 1 RTW je 3 Verletzte.</p>`:`<label>Meldestichwort ${builtin?"":"(wird an das Stichwort angehängt)"}</label><input value="${esc(d.keyword||"")}" placeholder="${builtin?"leer = Standard":"leer = Name"}" oninput="aaoDraft.keyword=this.value">`}
+  ${manv?`<p class="muted" style="margin-top:8px">Meldestichwort wird bei MANV automatisch gebildet („MANV – … – n Verletzte“). Die RTW-Anzahl steigt automatisch auf mindestens 1 RTW je 3 Verletzte.</p>`:`<label>Meldestichwort</label><input value="${esc(d.keyword||"")}" placeholder="${builtin?"leer = Standard":"leer = Name"}" oninput="aaoDraft.keyword=this.value">`}
   <label>Bedingungen</label>
   ${builtin?`<div class="suggest-compact">${aaoRulesText(d)}<br><span class="muted">Fest mit der Notrufabfrage verknüpft.</span></div>
      <button style="margin-top:6px" onclick="aaoDraft.rulesEdited=true;aaoDraft.active=aaoDraft.active!==false;render('aao')">✏️ Bedingungen ändern</button>`

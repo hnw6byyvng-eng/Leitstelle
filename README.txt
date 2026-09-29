@@ -497,3 +497,13 @@ Version 3.93:
 Version 3.94:
 - AAO "Feuer groß": Bedingung "Verkehrsunfall" entfernt – greift jetzt bei "Menschen durch
   Feuer gefährdet = ja" und mehr als 1 Betroffenen. Wird auf allen Geräten einmalig angepasst.
+
+Version 3.95:
+- Passen mehrere AAOs, wird nur noch die höchste alarmiert: die mit den meisten Fahrzeugen, bei
+  Gleichstand die spezifischere (später geprüfte, z. B. XABCDE vor Grundstichwort). Stichwort =
+  Stichwort dieser AAO. In der Live-Bewertung steht, welche AAO gewählt wurde und welche
+  ebenfalls gepasst hätten.
+- Unverändert als Zusatz: R0-Herabstufung (NKTW statt RTW/NEF), NKTW-First-Responder bei
+  Reanimation, ELW/DRK-Zusatzlogik.
+- Folge: Ergänzungen aus kleineren AAOs entfallen, z. B. kein NEF bei "Person im Wasser" +
+  Atemstillstand, kein HLF bei MANV nach Verkehrsunfall.
