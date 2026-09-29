@@ -512,3 +512,43 @@ Version 3.96:
 - Ausnahme zu "nur die höchste AAO": RTW/NEF aus den XABCDE-AAOs (RD_X, RD_A, RD_B, RD_C,
   RD_D) kommen immer dazu, aufgefüllt statt doppelt (ist schon ein RTW im Vorschlag, kommt nur
   der NEF). Das XABCDE-Stichwort wird dann angehängt.
+
+Version 3.97:
+- Technischer Hinweis: Dieser Stand wurde auf Basis des GitHub-Repos (hnw6byyvng-eng/Leitstelle,
+  Stand v3.96) weitergeführt, da parallel in einem anderen Chat bereits bis v3.96 gearbeitet und
+  direkt nach GitHub gepusht wurde (u. a. Monitor-Funktion, editierbare AAO-Tabelle, Freitext-
+  Frage). Die vorher hier (in diesem Chat) bis v3.93 entwickelten Punkte – Anrufer-112-Wahlflow
+  mit Standort-Übernahme und IVENA-Klinikdaten waren in v3.90/3.91 bereits identisch auf GitHub
+  gelandet; neu in v3.97 gegenüber v3.96 sind die folgenden drei Punkte:
+- NEU: Reanimations-Kurzabfrage. Sobald bei "Was ist passiert?" "❤️ Reanimation / bewusstlos"
+  ausgewählt wird – oder mitten in einer anderen Abfrage bei der Atmungsfrage "Keine normale
+  Atmung" angegeben wird – werden die einzelnen X-A-B-C-D-E-Fragen nicht mehr einzeln gestellt,
+  sondern automatisch mit plausiblen Standardwerten übersprungen (RTW+NEF sind über das
+  Stichwort "REANIMATION R1N1" ohnehin schon vorgeschlagen). Real weiter erfragt werden: Ort,
+  Anzahl Betroffener, weitere Gefahren, Alter/Name/Geschlecht der Person sowie der seit v3.93
+  vorhandene, eigene Freitext-Schritt.
+- NEU: In der Notrufabfrage kann jetzt mit "⬅️ Zurück" die letzte Antwort zurückgenommen
+  werden (auch mehrfach hintereinander). Automatisch übersprungene Fragen (z. B. "nicht
+  zutreffend" oder die neue Reanimations-Kurzabfrage) werden dabei automatisch mit
+  zurückgenommen, sodass man direkt wieder bei der zuletzt selbst beantworteten Frage landet.
+  Der Button erscheint nur, solange der Einsatz noch nicht alarmiert wurde.
+- Mögliche Ursache für "SDS kommt nicht an" / "Alarmton fehlt" / "Dienstplan-Automatik (07:00/
+  19:00) schaltet nicht zuverlässig" gefunden und entschärft: Läuft die Leitstelle (Hauptplatz)
+  oder ein Fahrzeug-/Nachbar-/Anrufer-Terminal in einem Hintergrund-Tab oder mit gesperrtem
+  Bildschirm, drosseln Browser (besonders mobil/iOS) die 1–3-Sekunden-Hintergrund-Timer stark
+  oder pausieren sie sogar ganz. Neue SDS-Nachrichten, Einsätze, Notrufe (und damit auch der
+  zugehörige Alarmton) sowie der automatische Dienstplanwechsel wurden dadurch teils erst mit
+  großer Verzögerung erkannt. Leitstelle und alle Terminals holen die Prüfung jetzt zusätzlich
+  sofort nach, sobald das Gerät wieder entsperrt/die Seite wieder sichtbar wird bzw. den Fokus
+  bekommt. Die neue Monitor-/Sync-Funktion (Live-Streaming) ist von dieser Drosselung übrigens
+  nicht betroffen – nur die älteren, weiterhin für Fahrzeug-/Anrufer-Terminals und die
+  Dienstplan-Automatik genutzten Poll-Intervalle.
+  Ehrlich gesagt: Ich konnte "SDS kommt nicht an"/"Alarmton fehlt" nicht an einer echten
+  Mehrgeräte-Firebase-Umgebung nachstellen; der Code dafür war beim Durchsehen unverändert/
+  korrekt. Das Hintergrund-Timer-Problem ist die plausibelste Erklärung, die sich im Code finden
+  ließ – bitte nach dem Testen kurz zurückmelden, ob es jetzt zuverlässiger läuft.
+- JavaScript-Syntax geprüft; Playwright-Tests: komplette Reanimations-Kurzabfrage bis zum
+  Freitext-Schritt (inkl. Prüfung auf exakt 1× RTW/NEF/NKTW über die AAO-Gewinner-Logik),
+  "Zurück" auch über die automatisch übersprungenen Fragen hinweg, sowie unverändertes
+  Verhalten von Anrufer-Flow, IVENA-Daten und Organisations-Filter nach der Zusammenführung
+  mit dem GitHub-Stand.

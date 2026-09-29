@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.96</span>
+ <span id="versionTag">v3.97</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -1819,7 +1819,10 @@ function notruf(){
      <div style="width:46px;height:46px;border-radius:50%;background:#e30613;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto">📞</div>
      <div><h2 style="margin-bottom:2px">Eingehender Notruf #${c.id}</h2><div class="muted">${isManv(c)?"🚨 MANV – Massenanfall von Verletzten":q?"„Notruf, DLRG-Leitstelle …“":"Abfrage abgeschlossen"}</div></div>
     </div>
-    <button onclick="render('leitstelle')">Zur Übersicht</button>
+    <div class="row">
+     ${(c.history.some(h=>!h.auto) && !c.alarmTime)?`<button onclick="goBackNotruf()" title="Letzte Antwort zurücknehmen">⬅️ Zurück</button>`:""}
+     <button onclick="render('leitstelle')">Zur Übersicht</button>
+    </div>
    </div>
    ${renderVehicleFeedbackBadges(c)}
    ${q?`<div class="muted" style="margin-top:10px">Frage ${answeredCount+1} von ${qs.length}</div>
@@ -1858,6 +1861,19 @@ function xabcdeComplete(c=db.currentCall){
  const a=c?.answers||{};
  return ["x_massive","a_airway","b_breath","c_circ","d_disability","e_exposure"].every(k=>k in a && String(a[k]).trim()!=="");
 }
+// Reanimation ist ein klinischer Sofortfall: sobald das Ereignis "Reanimation" ist oder mitten
+// in einer anderen XABCDE-Abfrage "Keine normale Atmung" (B) angegeben wird, bringt ein
+// vollständiges XABCDE-Einzelschema keinen zusätzlichen Erkenntnisgewinn mehr und kostet nur
+// wertvolle Zeit. In diesem Fall werden X/A/B/C/D/E automatisch mit plausiblen Standardwerten
+// übersprungen (RTW+NEF sind über das Stichwort "REANIMATION R1N1" ohnehin schon vorgeschlagen,
+// die eigentliche Erhärtung erfolgt klinisch vor Ort) – nur Ort, Anzahl, Gefahren, Patienten-
+// daten und der eigene Freitext (seit v3.93) werden noch real erfragt.
+function reaShortcutActive(c=db.currentCall){
+ if(!c)return false;
+ const a=c.answers||{};
+ return a.event==="Reanimation" || a.b_breath==="Keine normale Atmung";
+}
+const REA_SHORTCUT_DEFAULTS={x_massive:"Nein",a_airway:"Gefährdet / verlegt",b_breath:"Keine normale Atmung",c_circ:"Unklar",d_disability:"Bewusstlos",e_exposure:"Nicht einzeln erhoben – Reanimations-Kurzabfrage"};
 function questionHTML(q){
  const [id,label,type]=q;
  const c=db.currentCall, e=c?.answers?.event||"";
@@ -1866,7 +1882,7 @@ function questionHTML(q){
  const water=e==="Person im Wasser";
 
  const skip=(value)=>{
-   setTimeout(()=>answer(id,value),0);
+   setTimeout(()=>answer(id,value,true),0);
    return `<span class="muted">Nicht zutreffend – wird übersprungen …</span>`;
  };
 
@@ -1890,6 +1906,8 @@ function questionHTML(q){
    if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return skip("ja");
  }
 
+ if(["x_massive","a_airway","b_breath","c_circ","d_disability","e_exposure"].includes(id) && reaShortcutActive(c))
+   return skip(REA_SHORTCUT_DEFAULTS[id]);
  if(["xyn","xairway","xbreathing","xcirc","xdisability"].includes(type) && !needsXABCDE(c))
    return skip("nicht zutreffend");
  if(["patientName","patientAge","patientGender"].includes(id)){
@@ -2147,7 +2165,7 @@ function chooseNotrufMapResult(i){
  const box=document.getElementById("notrufMapResults");if(box)box.innerHTML="";
 }
 
-async function answer(k,v){
+async function answer(k,v,auto=false){
  const c=db.currentCall;
  c.answers[k]=v;
  if(k==="location"){
@@ -2161,7 +2179,29 @@ async function answer(k,v){
  }
  if(k==="count")c.count=v;
  const q=qs.find(x=>x[0]===k);
- c.history.push({q:q?q[1]:k,a:v});
+ c.history.push({id:k,q:q?q[1]:k,a:v,auto:!!auto});
+ evaluate();
+ save();
+ notruf();
+}
+// Setzt die letzte(n) Antwort(en) zurück: übersprungene/automatisch gesetzte Antworten (z. B.
+// durch die Reanimations-Kurzabfrage oder "nicht zutreffend") werden dabei mit zurückgenommen,
+// bis eine echte, vom Nutzer gegebene Antwort rückgängig gemacht wurde – so landet man beim
+// "Zurück" wieder bei der zuletzt tatsächlich gestellten Frage.
+function goBackNotruf(){
+ const c=db.currentCall;
+ if(!c||!c.history||!c.history.length){toast("Keine vorherige Frage vorhanden");return}
+ let undone=false;
+ while(c.history.length){
+   const last=c.history.pop();
+   if(last.id){
+     delete c.answers[last.id];
+     if(last.id==="location"){c.location="";delete c.lat;delete c.lng;delete c.geocodedAddress;delete c.locationIsWater;delete c.outOfJurisdiction;}
+     if(last.id==="count")c.count="";
+   }
+   if(!last.auto){undone=true;break}
+ }
+ if(!undone)toast("Zurück zum Anfang der Abfrage");
  evaluate();
  save();
  notruf();
@@ -3299,6 +3339,7 @@ async function renderCallerTerminal(callerId,dburl,sid){
  await refresh();
  clearInterval(vehiclePollTimer);
  vehiclePollTimer=setInterval(refresh,3000);
+ terminalRefreshFn=refresh;
 }
 async function dial112(callerId,dburl,sid){
  if(!dburl||!sid){toast("Keine Verbindung");return}
@@ -3364,6 +3405,7 @@ async function renderCallerStatus(callerId,callId,dburl,sid){
  await refresh();
  clearInterval(vehiclePollTimer);
  vehiclePollTimer=setInterval(refresh,3000);
+ terminalRefreshFn=refresh;
 }
 async function renderNeighborTerminal(id,dburl,sid){
  const nu=db.neighborUnits.find(x=>String(x.id)===String(id));
@@ -3402,6 +3444,7 @@ async function renderNeighborTerminal(id,dburl,sid){
  await refresh();
  clearInterval(vehiclePollTimer);
  vehiclePollTimer=setInterval(refresh,2000);
+ terminalRefreshFn=refresh;
 }
 function vehicleCloudURL(dburl,sid,path){
  return `${cleanDatabaseURL(dburl)}/sessions/${encodeURIComponent(sid)}/${path}.json`;
@@ -3417,6 +3460,13 @@ async function vehicleFetch(dburl,sid,path,method="GET",data=null){
  }catch(e){console.warn(e);return null}
 }
 let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null, vehicleKnownCallIds=null, vehicleKnownSdsIds=null;
+// Liegt ein Fahrzeug-/Nachbar-/Anrufer-Terminal mit gesperrtem Bildschirm oder im Hintergrund-Tab,
+// drosseln Browser (v. a. mobil) das 2–3-Sekunden-Poll-Intervall stark oder pausieren es ganz –
+// neue SDS-Nachrichten, Einsätze oder Notruf-Anfragen (und damit auch der Alarmton) werden dann
+// erst mit teils großer Verzögerung erkannt. terminalRefreshFn zeigt immer auf die aktuell aktive
+// Poll-Funktion des jeweiligen Terminals; sobald das Gerät wieder entsperrt/sichtbar wird, wird
+// sofort einmal nachgeholt, statt auf den nächsten (ggf. gedrosselten) Intervall-Tick zu warten.
+let terminalRefreshFn=null;
 let vehicleAudioCtx=null, vehicleGeoWatchId=null, vehicleGeoLastPush=0, vehicleAudioKeepAlive=null;
 function startAudioKeepAlive(){
  // iOS setzt einen ungenutzten AudioContext nach kurzer Zeit wieder auf "suspended" – ein
@@ -3730,6 +3780,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
  await refresh();
  clearInterval(vehiclePollTimer);
  vehiclePollTimer=setInterval(refresh,2000);
+ terminalRefreshFn=refresh;
 }
 function renderIvenaMini(hospitals){
  if(!hospitals.length)return"";
@@ -4517,6 +4568,20 @@ function nachbarLks(){
 // Monitore bekommen die Ergebnisse per Live-Sync, sonst würden mehrere Geräte gleichzeitig
 // dieselben Fahrzeuge weiterschalten.
 setInterval(()=>{const clock=document.getElementById("clock");if(clock)clock.textContent=new Date().toLocaleTimeString("de-DE");if(IS_MONITOR)return;applyDutySchedule();autoReturnToStation();autoAdvanceEnRoute()},1000);
+// Läuft der Hauptplatz in einem Hintergrund-Tab oder mit gesperrtem Bildschirm, drosseln Browser
+// (v. a. mobil/iOS) genau dieses 1-Sekunden-Intervall stark oder pausieren es ganz – der 07:00/
+// 19:00-Dienstplanwechsel (applyDutySchedule) wurde dann teils erst mit großer Verzögerung
+// nachgeholt. Zusätzlich zum Intervall wird er deshalb sofort beim Zurückkehren in den
+// Vordergrund (visibilitychange/focus) erneut ausgeführt.
+if(!isTerminalLink){
+ const catchUpDutySchedule=()=>{if(document.visibilityState==="visible"&&!IS_MONITOR){applyDutySchedule();if(["leitstelle","mittel"].includes(currentPage))render(currentPage)}};
+ document.addEventListener("visibilitychange",catchUpDutySchedule);
+ window.addEventListener("focus",catchUpDutySchedule);
+}else{
+ const catchUpTerminal=()=>{if(document.visibilityState==="visible"&&terminalRefreshFn)terminalRefreshFn()};
+ document.addEventListener("visibilitychange",catchUpTerminal);
+ window.addEventListener("focus",catchUpTerminal);
+}
 if(!initVehicleMode()){
  // Bei jedem (Neu-)Start der Leitstelle gehen alle eigenen Fahrzeuge auf Status 2 (Frei auf
  // Wache) zurück – außer solche, die gerade auf Status 6 (Nicht einsatzbereit) stehen, die
