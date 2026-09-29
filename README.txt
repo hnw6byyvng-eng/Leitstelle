@@ -477,3 +477,19 @@ Version 3.92:
   löschen inkl. Wirkung auf den Alarmvorschlag und Sync, Standard-Stichworte unverändert,
   Fahrzeugterminal-Link unverändert. Nicht gegen die echte Firebase-Datenbank getestet (aus der
   Testumgebung nicht erreichbar).
+
+Version 3.93:
+- NEU: Freitext in der Notrufabfrage. Als letzte Frage vor "Vorschlag alarmieren" kommt
+  "📝 Freitext – weitere Angaben des Anrufers" (mit Knopf "Keine weiteren Angaben"). Der Text
+  erscheint im Abfrageverlauf und als "Notruf-Freitext" im Meldetext.
+- NEU: AAO-Bedingung "Freitext enthält". Beispiel "zucker, diabet" greift, wenn eines der
+  Wörter im Freitext vorkommt (Groß-/Kleinschreibung egal).
+- Der in der Leitstelle gepflegte AAO-Stand (Sitzung JET-BKRCXA, 29.09.2026) ist jetzt der
+  Standard – inkl. der eigenen AAOs "Bewusstseinsstörung leicht" und "Feuer groß". Er wird auf
+  allen Geräten einmalig übernommen; "↺ Standard wiederherstellen" führt auf diesen Stand zurück.
+- Eigene AAOs füllen jetzt nur noch auf, was im Vorschlag fehlt, statt doppelt zu alarmieren
+  (vorher z. B. 2× RTW bei "Med. Notfall" + "Bewusstseinsstörung leicht").
+- Reanimation: Steht ein NKTW in der AAO, wird er als First Responder genutzt und nicht
+  zusätzlich ein zweiter NKTW vorgeschlagen.
+- JavaScript-Syntax geprüft; Playwright-Tests: Freitext-Schritt vor Alarmierung, Freitext-
+  Bedingung, Meldetext, neue Standard-AAOs, Reanimation, Monitor-Sync unverändert.

@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.92</span>
+ <span id="versionTag">v3.93</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -216,31 +216,31 @@ const DEFAULTS_FRI_WHV={
 
  ],
  aao:[
-  // AAO-Einträge sind über ihre ID fest mit der Abfragelogik in evaluate() verknüpft (Bedingungen
-  // = fest programmierte Abfragezweige). Bearbeitbar sind Name, Meldestichwort und die Alarmierung
-  // (Fahrzeugtyp, Anzahl, Organisation). Die Standard-Alarmierung entspricht exakt dem bis v3.91
-  // fest programmierten Verhalten.
-  {id:1,name:"DLRG Wasser 1 – Person im Wasser, mit Lebenszeichen",keyword:"H_Person im Wasser R1",rules:{event:"Person im Wasser",waterState:"Lebenszeichen"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Wasserrettung",n:1,org:"DLRG"},{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
-  {id:2,name:"DLRG Wasser 2 – Person im Wasser, vermisst",keyword:"H_Person im Wasser – Vermisst R1",rules:{event:"Person im Wasser",waterState:"Vermisst"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Wasserrettung",n:1,org:"DLRG"},{type:"GW Taucher",n:1,org:"DLRG"},{type:"GW Drohne",n:1,org:"DLRG"},{type:"RTH",n:1,org:"Luftrettung"},{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
-  {id:3,name:"DLRG Wasser 3 – Person im Wasser, Bergung",keyword:"H_Person im Wasser – Bergung",rules:{event:"Person im Wasser",waterState:"Bergung"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Taucher",n:1,org:"DLRG"}]},
-  {id:19,name:"DLRG Wasser 4 – Boot in Notlage (Unfallort auf dem Wasser)",keyword:"H_Boot im Wasser",rules:{event:"Verkehrsunfall",locationIsWater:"ja"},units:[{type:"RTB",n:1,org:"DLRG"},{type:"GW Wasserrettung",n:1,org:"DLRG"},{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
-  {id:18,name:"DLRG Drohne 1 – Vermisste Person (Personensuche an Land)",keyword:"H_Vermisste Person – Suche",rules:{event:"Vermisste Person"},units:[{type:"GW Drohne",n:1,org:"DLRG"},{type:"MTW",n:1,org:"DLRG"},{type:"HLF",n:1,org:"Feuerwehr"}]},
-  {id:4,name:"Rettungsdienst 1 – Medizinischer Notfall",keyword:"MEDIZINISCHER NOTFALL R1",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1,org:"Rettungsdienst"}]},
-  {id:5,name:"Rettungsdienst 2 – Reanimation",keyword:"REANIMATION R1N1",rules:{event:"Reanimation"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:6,name:"Feuerwehr 1 – Feuer/Rauch",keyword:"F_2",rules:{event:"Feuer / Rauchentwicklung"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"LF",n:1,org:"Feuerwehr"}]},
-  {id:7,name:"Feuerwehr 2 – Feuer mit Personengefährdung",keyword:"F_2_Y",rules:{event:"Feuer / Rauchentwicklung",firePeople:"ja"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"LF",n:1,org:"Feuerwehr"},{type:"DLK",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
-  {id:8,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall mit eingeklemmter Person",keyword:"H_Eingeklemmt_2 R1",rules:{event:"Verkehrsunfall",trapped:"ja"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"},{type:"RW",n:1,org:"Feuerwehr"}]},
-  {id:20,name:"Feuerwehr/Rettungsdienst – Verkehrsunfall ohne eingeklemmte Person",keyword:"H_VU R1",rules:{event:"Verkehrsunfall",trapped:"nein/unbekannt"},units:[{type:"HLF",n:1,org:"Feuerwehr"},{type:"RTW",n:1,org:"Rettungsdienst"}]},
-  {id:21,name:"Feuerwehr – Technische Hilfeleistung",keyword:"TH",rules:{event:"Technische Hilfeleistung"},units:[{type:"HLF",n:1,org:"Feuerwehr"}]},
-  {id:9,name:"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)",rules:{count:">3"},units:[{type:"RTW",n:2,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"},{type:"OrgL/LNA",n:1,org:"Rettungsdienst"},{type:"ELW",n:1,org:"Feuerwehr"}]},
-  {id:10,name:"Rettungsdienst – RD_X kritische Blutung",keyword:"RD_X – Kritische Blutung (Schockraum voranmelden)",rules:{x_massive:"Ja"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:11,name:"Rettungsdienst – RD_B Atemstillstand",keyword:"RD_B – Atemstillstand / reanimationspflichtig",rules:{b_breath:"Keine normale Atmung"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:12,name:"Rettungsdienst – RD_C relevante Blutung",keyword:"RD_C – Relevante Blutung (Schockraum voranmelden)",rules:{c_circ:"Relevante Blutung"},units:[{type:"RTW",n:1,org:"Rettungsdienst"},{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:13,name:"Rettungsdienst – RD_C Schockzeichen",keyword:"RD_C – Schockzeichen",rules:{c_circ:"Auffällig / Schockzeichen"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:14,name:"Rettungsdienst – RD_A Atemweg gefährdet",keyword:"RD_A – Atemweg gefährdet",rules:{a_airway:"Gefährdet / verlegt"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:15,name:"Rettungsdienst – RD_D Bewusstlos",keyword:"RD_D – Bewusstlos",rules:{d_disability:"Bewusstlos"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:16,name:"Rettungsdienst – RD_D Krampfanfall",keyword:"RD_D – Krampfanfall",rules:{d_disability:"Krampfanfall / neurologisch auffällig"},units:[{type:"NEF",n:1,org:"Rettungsdienst"}]},
-  {id:17,name:"Rettungsdienst – Med. Hilfeleistung leicht (R0, unauffälliges XABCDE)",keyword:"Med. Hilfeleistung leicht (R0)",rules:{x_massive:"Nein",a_airway:"Frei",b_breath:"Normal",c_circ:"Unauffällig",d_disability:"Wach / orientiert",e_exposure:"unauffällig/leer"},units:[{type:"NKTW",n:1,org:"Rettungsdienst"}]}
+  // Standard-AAO = von der Übungsleitung am 29.09.2026 in der Leitstelle gepflegter Stand (v3.93).
+  // IDs 1–21 sind fest mit den Abfragezweigen in evaluate() verknüpft; weitere IDs sind eigene AAOs.
+  {"id":1,"name":"DLRG Wasser 1 – Person im Wasser, mit Lebenszeichen","keyword":"H_Pers. im Wasser","rules":{"event":"Person im Wasser","waterState":"Lebenszeichen"},"units":[{"type":"RTB","n":1,"org":"DLRG"},{"type":"GW Wasserrettung","n":1,"org":"DLRG"},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"GW Drohne","n":1,"org":"DLRG"},{"type":"MTW","n":1,"org":"DLRG"}]},
+  {"id":2,"name":"DLRG Wasser 2 – Person im Wasser, vermisst","keyword":"H_Pers. im Wasser","rules":{"event":"Person im Wasser","waterState":"Vermisst"},"units":[{"type":"RTB","n":1,"org":"DLRG"},{"type":"GW Wasserrettung","n":1,"org":"DLRG"},{"type":"GW Taucher","n":1,"org":"DLRG"},{"type":"GW Drohne","n":1,"org":"DLRG"},{"type":"RTH","n":1,"org":"Luftrettung"},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"ELW","n":1},{"type":"MTW","n":1,"org":"DLRG"}]},
+  {"id":3,"name":"DLRG Wasser 3 – Person im Wasser, Bergung","keyword":"H_Pers. im Wasser","rules":{"event":"Person im Wasser","waterState":"Bergung"},"units":[{"type":"RTB","n":1,"org":"DLRG"},{"type":"GW Taucher","n":1,"org":"DLRG"},{"type":"GW Drohne","n":1,"org":"DLRG"},{"type":"GW Wasserrettung","n":1,"org":"DLRG"},{"type":"ELW","n":1},{"type":"MTW","n":1,"org":"DLRG"}]},
+  {"id":18,"name":"DLRG Drohne 1 – Vermisste Person (Personensuche an Land)","keyword":"H_Suche","rules":{"event":"Vermisste Person"},"units":[{"type":"GW Drohne","n":1,"org":"DLRG"},{"type":"MTW","n":1},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"ELW","n":1,"org":"Feuerwehr"}]},
+  {"id":4,"name":"Rettungsdienst 1 – Medizinischer Notfall","keyword":"R1_Med. Notfall","rules":{"event":"Medizinischer Notfall"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":5,"name":"Rettungsdienst 2 – Reanimation","keyword":"R1N1_Reanimation","rules":{"event":"Reanimation"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"NEF","n":1,"org":"Rettungsdienst"},{"type":"NKTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":6,"name":"Feuerwehr 1 – Feuer/Rauch","keyword":"F_2","rules":{"event":"Feuer / Rauchentwicklung"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"LF","n":1,"org":"Feuerwehr"}]},
+  {"id":7,"name":"Feuerwehr 2 – Feuer mit Personengefährdung","keyword":"F_2_Y","rules":{"event":"Feuer / Rauchentwicklung","firePeople":"ja","count":"1"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"LF","n":1,"org":"Feuerwehr"},{"type":"DLK","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"}],"active":true,"rulesEdited":true},
+  {"id":8,"name":"Feuerwehr/Rettungsdienst – Verkehrsunfall mit eingeklemmter Person","keyword":"H_Eingeklemmt_YY","rules":{"event":"Verkehrsunfall","trapped":"ja"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"RW","n":1,"org":"Feuerwehr"}]},
+  {"id":9,"name":"MANV – Massenanfall von Verletzten (automatisch ab >3 Verletzten)","rules":{"count":">3"},"units":[{"type":"RTW","n":2,"org":"Rettungsdienst"},{"type":"NEF","n":1,"org":"Rettungsdienst"},{"type":"OrgL/LNA","n":1,"org":"Rettungsdienst"},{"type":"ELW","n":1,"org":"Feuerwehr"}]},
+  {"id":10,"name":"Rettungsdienst – RD_X kritische Blutung","keyword":"R1N1_Trauma schwer","rules":{"x_massive":"Ja"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"NEF","n":1,"org":"Rettungsdienst"}]},
+  {"id":11,"name":"Rettungsdienst – RD_B Atemstillstand","keyword":"R1N1_Reanimation","rules":{"b_breath":"Keine normale Atmung"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"NEF","n":1,"org":"Rettungsdienst"}]},
+  {"id":12,"name":"Rettungsdienst – RD_C relevante Blutung","keyword":"R1N1_Med. Notfall schwer","rules":{"c_circ":"Relevante Blutung"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"NEF","n":1,"org":"Rettungsdienst"}]},
+  {"id":13,"name":"Rettungsdienst – RD_C Schockzeichen","keyword":"R1N1_Kreislauf Schwer","rules":{"c_circ":"Auffällig / Schockzeichen"},"units":[{"type":"NEF","n":1,"org":"Rettungsdienst"},{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":14,"name":"Rettungsdienst – RD_A Atemweg gefährdet","keyword":"R1N1_Atemnot Schwer","rules":{"a_airway":"Gefährdet / verlegt"},"units":[{"type":"NEF","n":1,"org":"Rettungsdienst"},{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":15,"name":"Rettungsdienst – RD_D Bewusstlos","keyword":"R1N1_Bewusstseinsstörung Schwer","rules":{"d_disability":"Bewusstlos"},"units":[{"type":"NEF","n":1,"org":"Rettungsdienst"},{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":16,"name":"Rettungsdienst – RD_D Krampfanfall","keyword":"R1_Krampfanfall","rules":{"d_disability":"Krampfanfall / neurologisch auffällig"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":17,"name":"Rettungsdienst – Med. Hilfeleistung leicht (R0, unauffälliges XABCDE)","keyword":"R0_Med. Hilfeleistung leicht","rules":{"x_massive":"Nein","a_airway":"Frei","b_breath":"Normal","c_circ":"Unauffällig","d_disability":"Wach / orientiert","e_exposure":"unauffällig/leer"},"units":[{"type":"NKTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":19,"name":"DLRG Wasser 4 – Boot in Notlage (Unfallort auf dem Wasser)","keyword":"H_Boot","rules":{"event":"Verkehrsunfall","locationIsWater":"ja"},"units":[{"type":"RTB","n":1,"org":"DLRG"},{"type":"GW Wasserrettung","n":1,"org":"DLRG"},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"GW Drohne","n":1,"org":"DLRG"},{"type":"MTW","n":1,"org":"DLRG"},{"type":"ELW","n":1,"org":"Feuerwehr"}]},
+  {"id":20,"name":"Feuerwehr/Rettungsdienst – Verkehrsunfall ohne eingeklemmte Person","keyword":"R1_VU","rules":{"event":"Verkehrsunfall","trapped":"nein/unbekannt"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
+  {"id":21,"name":"Feuerwehr – Technische Hilfeleistung","keyword":"TH","rules":{"event":"Technische Hilfeleistung"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"}]},
+  {"id":1790688458338,"name":"Bewusstseinsstörung leicht","keyword":"R1_Bewusstseinsstörung leicht","rules":{"x_massive":"Nein","a_airway":"Frei","c_circ":"Unauffällig","d_disability":"Bewusstseinsgetrübt"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"}],"active":true},
+  {"id":1790688810963,"name":"Feuer groß","keyword":"F_2_YY","rules":{"event":"Verkehrsunfall","firePeople":"ja","count":">1"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"DLK","n":1,"org":"Feuerwehr"},{"type":"NEF","n":1},{"type":"ELW","n":1,"org":"Feuerwehr"},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"TLF","n":1,"org":"Feuerwehr"},{"type":"LF","n":1,"org":"Feuerwehr"}],"active":true}
  ],
  calls:[],
  currentCall:null,
@@ -475,6 +475,12 @@ if(!db.aaoSyncV392){
    return {...a,active:false};
  });
  db.aaoSyncV392=true;
+}
+// Einmalig (v3.93): gepflegten AAO-Stand als neuen Standard übernehmen.
+if(!db.aaoSyncV393){
+ const byId=new Map(defaults.aao.map(a=>[String(a.id),a]));
+ db.aao=db.aao.map(a=>byId.has(String(a.id))?JSON.parse(JSON.stringify(byId.get(String(a.id)))):a);
+ db.aaoSyncV393=true;
 }
 {
  // Fehlende Standard-AAOs nachziehen – über die ID, damit umbenannte Einträge nicht doppelt
@@ -1770,7 +1776,8 @@ const qs=[
  ["danger","⚠️ Bestehen weitere Gefahren am Einsatzort?","yn"],
  ["patientName","👤 Name der betroffenen Person (falls bekannt)","text"],
  ["patientAge","🎂 Alter der betroffenen Person","count"],
- ["patientGender","⚧ Geschlecht der betroffenen Person","gender"]
+ ["patientGender","⚧ Geschlecht der betroffenen Person","gender"],
+ ["freeText","📝 Freitext – weitere Angaben des Anrufers","textarea"]
 ];
 let notrufDetailsVisible=false;
 function toggleNotrufDetails(){notrufDetailsVisible=!notrufDetailsVisible;notruf();}
@@ -1914,7 +1921,7 @@ function questionHTML(q){
  }
  if(type==="textarea"){
    const ph=id==="freeText"?"Freie Schilderung des Anrufers, zusätzliche Angaben, Besonderheiten …":"z. B. Verletzungen, Schmerzen, Haut, Temperatur, Unfallmechanismus, Vergiftung …";
-   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${id==="e_exposure"?`<button onclick="answer('${id}','Unauffällig')">Unauffällig</button><button onclick="answer('${id}','unklar')">unklar</button>`:""}</div>`;
+   return `<label>${label}</label><textarea id="ans" rows="6" placeholder="${ph}" style="width:100%;box-sizing:border-box"></textarea><div class="row" style="margin-top:8px"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${id==="e_exposure"?`<button onclick="answer('${id}','Unauffällig')">Unauffällig</button><button onclick="answer('${id}','unklar')">unklar</button>`:""}${id==="freeText"?`<button onclick="answer('${id}','')">Keine weiteren Angaben</button>`:""}</div>`;
  }
  if(type==="waterState") return `<label>${label}</label><div class="answer">
    <button onclick="answer('${id}','Lebenszeichen')">🟢 Mit Lebenszeichen (sichtbar/ansprechbar)</button>
@@ -2175,9 +2182,19 @@ function evaluate(){
 
  if(e==="Reanimation" || (a.b_breath==="Keine normale Atmung" && a.d_disability==="Bewusstlos")){
    keyword=kw(5,"REANIMATION R1N1");
-   addAao(5);
-   const nktw=availableUnits("NKTW","Rettungsdienst")[0];
-   if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
+   // NKTW als First Responder – außer die AAO enthält bereits einen NKTW (dann nicht doppelt).
+   const reaHasNktw=aaoUnits(5).some(x=>x.type==="NKTW");
+   if(reaHasNktw){
+     const free=availableUnits("NKTW","Rettungsdienst");
+     for(const x of aaoUnits(5)){
+       if(x.type==="NKTW"){for(let i=0;i<(Number(x.n)||1);i++){if(free[i])req.push({exact:free[i].id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});else add("NKTW",1,x.org||"Rettungsdienst")}}
+       else add(x.type,Number(x.n)||1,x.org||null);
+     }
+   }else{
+     addAao(5);
+     const nktw=availableUnits("NKTW","Rettungsdienst")[0];
+     if(nktw) req.push({exact:nktw.id,type:"NKTW",org:"Rettungsdienst",firstResponder:true});
+   }
  } else if(e==="Vermisste Person"){
    // Allgemeine Personensuche an Land: Drohne zur Luftbild-/Wärmebildsuche, Mannschaftstransport
    // für den Suchtrupp, Feuerwehr zur Unterstützung bei größerer Fläche.
@@ -2299,7 +2316,11 @@ function evaluate(){
  }
  // Eigene (selbst angelegte, aktive) AAOs: greifen zusätzlich, wenn alle Bedingungen passen.
  for(const ca of customAaoMatches(c)){
-   for(const x of (ca.units||[]))add(x.type,Number(x.n)||1,x.org||null);
+   // Nur auffüllen, was noch fehlt (kein zweiter RTW, wenn schon einer im Vorschlag ist).
+   for(const x of (ca.units||[])){
+     const have=req.filter(r=>r.type===x.type).length;
+     add(x.type,Math.max(0,(Number(x.n)||1)-have),x.org||null);
+   }
    keyword=`${keyword} · ${ca.keyword||ca.name}`;
  }
 
@@ -2340,6 +2361,7 @@ function buildMeldertext(c, nafoReason=""){
     if(patient) txt+=`\nPatient: ${patient}`;
     txt+=`\nXABCDE: X ${a.x_massive}; A ${a.a_airway}; B ${a.b_breath}; C ${a.c_circ}; D ${a.d_disability}; E ${a.e_exposure}`;
   }
+  if(String(c.answers?.freeText||"").trim())txt+=`\nNotruf-Freitext: ${c.answers.freeText}`;
   if(c.alarmFreeText)txt+=`\nAlarmierungs-Freitext: ${c.alarmFreeText}`;
   if(mittel) txt+=`\nWeitere Rettungsmittel: ${mittel}`;
   txt+=`\nAnfahrt: entsprechend AAO`;
@@ -3952,16 +3974,23 @@ const AAO_RULE_FIELDS={
  c_circ:{label:"C – Kreislauf",values:["Unauffällig","Auffällig / Schockzeichen","Relevante Blutung","Unklar"]},
  d_disability:{label:"D – Bewusstsein",values:["Wach / orientiert","Bewusstseinsgetrübt","Bewusstlos","Krampfanfall / neurologisch auffällig","Unklar"]},
  e_exposure:{label:"E – weitere Befunde (Text)",free:true,placeholder:"exakter Text"},
- locationIsWater:{label:"Einsatzort auf dem Wasser",values:["ja","nein"]}
+ locationIsWater:{label:"Einsatzort auf dem Wasser",values:["ja","nein"]},
+ freeText:{label:"Freitext enthält",free:true,placeholder:"Stichwort(e), mehrere mit Komma = eins davon"}
 };
-function isBuiltinAao(id){return (defaults.aao||[]).some(d=>String(d.id)===String(id))}
+const LINKED_AAO_IDS=new Set(["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21"]);
+function isBuiltinAao(id){return LINKED_AAO_IDS.has(String(id))}
 function aaoEntry(id){return (db.aao||[]).find(a=>String(a.id)===String(id))||(defaults.aao||[]).find(a=>String(a.id)===String(id))||null}
 // Standard-AAO mit geänderten Bedingungen: der feste Abfragezweig alarmiert dafür nichts mehr,
 // stattdessen greift sie wie eine eigene AAO über ihre neuen Bedingungen.
 function aaoRulesEdited(id){return !!(db.aao||[]).find(a=>String(a.id)===String(id))?.rulesEdited}
 function aaoUnits(id){if(aaoRulesEdited(id))return [];return (aaoEntry(id)?.units||[]).filter(x=>x&&String(x.type||"").trim())}
 function aaoKeyword(id,fallback){if(aaoRulesEdited(id))return fallback;const k=String(aaoEntry(id)?.keyword||"").trim();return k||fallback}
-function aaoRuleMatches(val,rule){
+function aaoRuleMatches(val,rule,key){
+ if(key==="freeText"){
+   // Enthält-Suche, Groß-/Kleinschreibung egal; "a, b" = a ODER b
+   const t=String(val||"").toLowerCase();
+   return String(rule).split(",").map(x=>x.trim().toLowerCase()).filter(Boolean).some(w=>t.includes(w));
+ }
  if(val==null||String(val).trim()==="")return false;
  const r=String(rule).trim();
  const m=r.match(/^(>=|<=|>|<|=)?\s*(\d+)$/);
@@ -3974,7 +4003,7 @@ function aaoRuleMatches(val,rule){
 function customAaoMatches(c){
  const a={...(c?.answers||{}),count:c?.answers?.count??c?.count,locationIsWater:c?.locationIsWater?"ja":"nein"};
  return (db.aao||[]).filter(x=>(!isBuiltinAao(x.id)||x.rulesEdited)&&x.active!==false&&x.rules&&Object.keys(x.rules).length
-   &&Object.entries(x.rules).every(([k,v])=>aaoRuleMatches(a[k],v)));
+   &&Object.entries(x.rules).every(([k,v])=>aaoRuleMatches(a[k],v,k)));
 }
 function aaoRulesText(a){
  const r=Object.entries(a.rules||{});
