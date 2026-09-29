@@ -493,3 +493,7 @@ Version 3.93:
   zusätzlich ein zweiter NKTW vorgeschlagen.
 - JavaScript-Syntax geprüft; Playwright-Tests: Freitext-Schritt vor Alarmierung, Freitext-
   Bedingung, Meldetext, neue Standard-AAOs, Reanimation, Monitor-Sync unverändert.
+
+Version 3.94:
+- AAO "Feuer groß": Bedingung "Verkehrsunfall" entfernt – greift jetzt bei "Menschen durch
+  Feuer gefährdet = ja" und mehr als 1 Betroffenen. Wird auf allen Geräten einmalig angepasst.

@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.93</span>
+ <span id="versionTag">v3.94</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -240,7 +240,7 @@ const DEFAULTS_FRI_WHV={
   {"id":20,"name":"Feuerwehr/Rettungsdienst – Verkehrsunfall ohne eingeklemmte Person","keyword":"R1_VU","rules":{"event":"Verkehrsunfall","trapped":"nein/unbekannt"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"RTW","n":1,"org":"Rettungsdienst"}]},
   {"id":21,"name":"Feuerwehr – Technische Hilfeleistung","keyword":"TH","rules":{"event":"Technische Hilfeleistung"},"units":[{"type":"HLF","n":1,"org":"Feuerwehr"}]},
   {"id":1790688458338,"name":"Bewusstseinsstörung leicht","keyword":"R1_Bewusstseinsstörung leicht","rules":{"x_massive":"Nein","a_airway":"Frei","c_circ":"Unauffällig","d_disability":"Bewusstseinsgetrübt"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"}],"active":true},
-  {"id":1790688810963,"name":"Feuer groß","keyword":"F_2_YY","rules":{"event":"Verkehrsunfall","firePeople":"ja","count":">1"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"DLK","n":1,"org":"Feuerwehr"},{"type":"NEF","n":1},{"type":"ELW","n":1,"org":"Feuerwehr"},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"TLF","n":1,"org":"Feuerwehr"},{"type":"LF","n":1,"org":"Feuerwehr"}],"active":true}
+  {"id":1790688810963,"name":"Feuer groß","keyword":"F_2_YY","rules":{"firePeople":"ja","count":">1"},"units":[{"type":"RTW","n":1,"org":"Rettungsdienst"},{"type":"DLK","n":1,"org":"Feuerwehr"},{"type":"NEF","n":1},{"type":"ELW","n":1,"org":"Feuerwehr"},{"type":"HLF","n":1,"org":"Feuerwehr"},{"type":"TLF","n":1,"org":"Feuerwehr"},{"type":"LF","n":1,"org":"Feuerwehr"}],"active":true}
  ],
  calls:[],
  currentCall:null,
@@ -481,6 +481,12 @@ if(!db.aaoSyncV393){
  const byId=new Map(defaults.aao.map(a=>[String(a.id),a]));
  db.aao=db.aao.map(a=>byId.has(String(a.id))?JSON.parse(JSON.stringify(byId.get(String(a.id)))):a);
  db.aaoSyncV393=true;
+}
+// Einmalig (v3.94): bei "Feuer groß" die Bedingung "Verkehrsunfall" entfernen (griff so nie).
+if(!db.aaoSyncV394){
+ const fg=db.aao.find(a=>String(a.id)==="1790688810963");
+ if(fg&&fg.rules&&fg.rules.event==="Verkehrsunfall")delete fg.rules.event;
+ db.aaoSyncV394=true;
 }
 {
  // Fehlende Standard-AAOs nachziehen – über die ID, damit umbenannte Einträge nicht doppelt
