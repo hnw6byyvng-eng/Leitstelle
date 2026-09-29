@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.90</span>
+ <span id="versionTag">v3.91</span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="deviceSwitchLink" href="#" onclick="localStorage.removeItem('dlrg-jet-device');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">📱⇄📲 Ansicht wechseln</a>
  <a href="#" onclick="localStorage.removeItem('dlrg-jet-scenario');location.reload();return false" style="color:#64748b;text-decoration:underline;font-weight:600">🔀 Szenario wechseln</a>
@@ -381,6 +381,7 @@ let db=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
 if(!Array.isArray(db.units))db.units=[];
 if(!Array.isArray(db.callers))db.callers=[];
 if(!Array.isArray(db.pendingCallerRequests))db.pendingCallerRequests=[];
+if(typeof db.mittelOrgFilter==="undefined")db.mittelOrgFilter=null; // null = Alle Organisationen anzeigen
 // Fahrzeuge, die in früheren Versionen mit erfundener OPTA-Nummer ausgeliefert wurden
 // und inzwischen bewusst zurückgezogen wurden – bei bereits laufenden Installationen
 // automatisch entfernen, damit sie nicht dauerhaft in der lokal gespeicherten Flotte hängen.
@@ -3419,12 +3420,23 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
 
 const ORG_ORDER=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Polizei","Luftrettung"];
 const ORG_ICON={"DLRG":"🌊","Rettungsdienst":"🚑","Feuerwehr":"🚒","THW":"🛠️","Polizei":"👮","Luftrettung":"🚁"};
+function setMittelOrgFilter(org){
+ db.mittelOrgFilter=org||null;
+ save();
+ render("mittel");
+}
 function mittel(){
  const units=db.units||[];
- const orgs=[...new Set(units.map(u=>u.org||"Sonstige"))].sort((a,b)=>{
+ const allOrgs=[...new Set(units.map(u=>u.org||"Sonstige"))].sort((a,b)=>{
    const ia=ORG_ORDER.indexOf(a), ib=ORG_ORDER.indexOf(b);
    return (ia<0?99:ia)-(ib<0?99:ib);
  });
+ if(db.mittelOrgFilter && !allOrgs.includes(db.mittelOrgFilter))db.mittelOrgFilter=null;
+ const orgs=db.mittelOrgFilter?allOrgs.filter(o=>o===db.mittelOrgFilter):allOrgs;
+ const orgFilterBar=`<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">
+    <button class="${db.mittelOrgFilter?"":"primary"}" onclick="setMittelOrgFilter(null)">${db.mittelOrgFilter?"":"✅ "}📋 Alle</button>
+    ${allOrgs.map(org=>`<button class="${db.mittelOrgFilter===org?"primary":""}" onclick="setMittelOrgFilter('${org.replace(/'/g,"\\'")}')">${db.mittelOrgFilter===org?"✅ ":""}${ORG_ICON[org]||"🚗"} ${esc(org)}</button>`).join("")}
+  </div>`;
  const orgBlocks=orgs.map(org=>{
    const orgUnits=units.filter(u=>(u.org||"Sonstige")===org);
    const locs=[...new Set(orgUnits.map(u=>u.location||"Sonstige"))].sort((a,b)=>a.localeCompare(b,"de"));
@@ -3453,7 +3465,7 @@ function mittel(){
    <div class="row between">
      <div>
        <h2>🚤 Rettungsmittel</h2>
-       <p class="muted">Nach Organisation und Standort gruppiert, mit Status und Fahrzeugterminal.</p>
+       <p class="muted">Nach Organisation und Standort gruppiert, mit Status und Fahrzeugterminal. Über die Auswahl unten kann nach Organisation gefiltert werden.</p>
      </div>
      <div class="row">
        <button onclick="realisticMode()">🎲 Realistisch</button>
@@ -3461,12 +3473,13 @@ function mittel(){
        <button class="primary" onclick="addUnit()">＋ Einheit</button>
      </div>
    </div>
+   ${orgFilterBar}
    <div class="card" style="margin:12px 0;background:#f8fafc">
      <b>📱 Fahrzeugterminal:</b> Für jedes Fahrzeug kannst du einen eigenen Link bzw. QR-Code erzeugen.
      ${db.cloud?.enabled?`<span class="status s2">LIVE · ${esc(db.cloud.sessionId)}</span>`:`<span class="status s3">Nur lokale Vorschau – Cloud noch nicht eingerichtet</span>`}
    </div>
  </div>
- ${orgBlocks}`;
+ ${orgBlocks||`<div class="card" style="margin-top:16px"><p class="muted">Keine Rettungsmittel für diese Organisation vorhanden.</p></div>`}`;
 }
 function callerBlock(){
  const open=allOpenCalls();

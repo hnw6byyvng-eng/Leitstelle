@@ -408,3 +408,14 @@ Version 3.90:
   Verbindung, Notruf annehmen mit automatisch vorbelegtem "112", "Standort übernehmen?"-
   Dialog inkl. Annehmen/Ablehnen (mit und ohne GPS-Koordinaten), sowie unveränderte
   Zuordnungs-/QR-Funktionen der Anrufer-Liste durchgeführt.
+
+Version 3.91:
+- NEU: Rettungsmittel-Ansicht mit Organisations-Filter. Oben in der Rettungsmittelliste gibt
+  es jetzt eine Auswahl "📋 Alle" / "🌊 DLRG" / "🚗 DRK" / "🚑 Rettungsdienst" / "🚒 Feuerwehr" /
+  "🛠️ THW" / "🚁 Luftrettung" (nur Organisationen, die tatsächlich Fahrzeuge im Bestand haben,
+  werden angezeigt). Damit lässt sich die Liste gezielt auf eine einzelne Organisation
+  eingrenzen, statt immer alle Organisationen untereinander zu sehen.
+- Die Auswahl wird pro Gerät gemerkt (bleibt beim Neuladen erhalten) und wirkt sich nur auf
+  die Anzeige aus – Status, Alarmierung und AAO-Logik sind davon unabhängig.
+- JavaScript-Syntax geprüft; Playwright-Test für Filtern nach einzelner Organisation und
+  Zurücksetzen auf "Alle" durchgeführt.
