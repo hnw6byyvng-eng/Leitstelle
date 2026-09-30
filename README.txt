@@ -617,3 +617,11 @@ Version 4.03:
   Bremerhaven HERMANN RUDOLF MEYER (SRK), Cuxhaven ANNELIESE KRAMER (SRK); jeweils mit
   Rufzeichen. Liegeplatz-Koordinaten aus Wikipedia bzw. bos-fahrzeuge.info. Keine AAO schlägt
   DGzRS automatisch vor (real Alarmierung über MRCC Bremen) – manuell oder per AAO-Editor.
+
+Version 4.04:
+- Handy-Ansicht überarbeitet: Inhalte werden nicht mehr rechts abgeschnitten (Tabellen erscheinen
+  als untereinander stehende Karten), die Bereichs-Kacheln sind jetzt eine feste Leiste am
+  unteren Bildschirmrand statt einer langen Spalte am Seitenende, Eingabefelder lösen auf dem
+  iPhone kein automatisches Hineinzoomen mehr aus, Meldungen erscheinen oberhalb der Leiste.
+  Geprüft mit 390 px Breite auf allen Seiten inkl. Notruf, Rettungsmittel-/AAO-Formular und
+  Monitor-QR. iPad-/Monitor-Ansicht unverändert.
