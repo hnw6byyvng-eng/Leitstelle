@@ -552,3 +552,16 @@ Version 3.97:
   "Zurück" auch über die automatisch übersprungenen Fragen hinweg, sowie unverändertes
   Verhalten von Anrufer-Flow, IVENA-Daten und Organisations-Filter nach der Zusammenführung
   mit dem GitHub-Stand.
+
+Version 3.98:
+- NEU: Rettungswache Wangerooge (Siedlerstraße 43a, 26486 Wangerooge) mit
+  Rettung Friesland 88/83-01 (RTW), 88/82-01 (NEF) und 88/83-02 (Reserve-RTW, startet auf
+  Status 6). Quelle: bos-fahrzeuge.info, Wache 29077. OPTA-Bereich 8 = Wangerooge.
+  Kartenposition der Wache ist eine NÄHERUNG (aus mapcarta-Entfernungsangaben abgeleitet).
+- Inselregel: Bodengebundene Fahrzeuge vom Festland werden für Einsätze auf Wangerooge nicht
+  vorgeschlagen und die Inselfahrzeuge nicht für das Festland. Luftrettung und DLRG sind
+  ausgenommen. Feuerwehr Wangerooge ist noch nicht im Bestand – Feuer-/TH-Einsätze auf der
+  Insel zeigen deshalb "nicht verfügbar".
+- NEU: Ambulanz-/Krankentransporthubschrauber "Northern 06" (Northern Helicopter), Flugplatz
+  Norden-Norddeich, Fahrzeugtyp KTH, Tagbereitschaft 08–20 Uhr (Quelle: rth.info, Stand
+  08/2024). Besatzungsstärke nicht belegt, daher leer. Als Transportmittel in IVENA wählbar.

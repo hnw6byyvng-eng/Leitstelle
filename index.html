@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.97</span>
+ <span id="versionTag">v3.98</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -168,6 +168,11 @@ const DEFAULTS_FRI_WHV={
   {id:112,name:"87-83-02",opta:"Rettung Friesland 87/83-02",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",schedule:"day_only",verified:"BOS-Fahrzeuge"},
   {id:115,name:"87-83-01",opta:"Rettung Friesland 87/83-01",type:"RTW",org:"Rettungsdienst",location:"Bockhorn",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
   {id:116,name:"86-83-01",opta:"Rettung Friesland 86/83-01",type:"RTW",org:"Rettungsdienst",location:"Wangerland",status:"1",crew:"2",skills:"Notfallrettung",verified:"BOS-Fahrzeuge"},
+  // Rettungswache Wangerooge, Siedlerstraße 43a, 26486 Wangerooge (bos-fahrzeuge.info, Wache 29077).
+  // Inselwache: diese Fahrzeuge werden nur für Einsätze auf Wangerooge vorgeschlagen.
+  {id:117,name:"88-83-01",opta:"Rettung Friesland 88/83-01",type:"RTW",org:"Rettungsdienst",location:"Wangerooge",island:"Wangerooge",status:"1",crew:"2",skills:"Notfallrettung (Insel Wangerooge)",verified:"BOS-Fahrzeuge"},
+  {id:118,name:"88-82-01",opta:"Rettung Friesland 88/82-01",type:"NEF",org:"Rettungsdienst",location:"Wangerooge",island:"Wangerooge",status:"1",crew:"2",skills:"Notarzt (Insel Wangerooge)",verified:"BOS-Fahrzeuge"},
+  {id:119,name:"88-83-02",opta:"Rettung Friesland 88/83-02",type:"RTW",org:"Rettungsdienst",location:"Wangerooge",island:"Wangerooge",status:"6",crew:"2",skills:"Reserve-RTW (Insel Wangerooge)",verified:"BOS-Fahrzeuge"},
   {id:113,name:"OrgL/LNA Varel",opta:"Rettungsdienst Friesland – OrgL/LNA Varel",type:"OrgL/LNA",org:"Rettungsdienst",location:"Varel",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
   {id:114,name:"OrgL/LNA Sande",opta:"Rettungsdienst Friesland – OrgL/LNA Sande",type:"OrgL/LNA",org:"Rettungsdienst",location:"Sande",status:"1",crew:"1",skills:"Organisatorischer Leiter Rettungsdienst / Leitender Notarzt",verified:"Nutzerangabe"},
 
@@ -212,7 +217,11 @@ const DEFAULTS_FRI_WHV={
 
   {id:501,name:"Christoph 26",opta:"Christoph 26",type:"RTH",org:"Luftrettung",location:"Sanderbusch (Sande)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Windenrettung, Intensivtransport",verified:"ADAC Luftrettung",schedule:"24h"},
   {id:502,name:"Lifeliner 4",opta:"Lifeliner 4",type:"RTH",org:"Luftrettung",location:"Groningen (Eelde)",status:"1",crew:"3",skills:"Notarzt (MMT-Arzt), Luftrettung, Intensivtransport",verified:"ANWB Medical Air Assistance"},
-  {id:503,name:"Christoph 6",opta:"Christoph 6",type:"RTH",org:"Luftrettung",location:"Bremen (Klinikum Links der Weser)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Intensivtransport",verified:"ADAC Luftrettung"}
+  {id:503,name:"Christoph 6",opta:"Christoph 6",type:"RTH",org:"Luftrettung",location:"Bremen (Klinikum Links der Weser)",status:"1",crew:"3",skills:"Notarzt, Luftrettung, Intensivtransport",verified:"ADAC Luftrettung"},
+  // Ambulanz-/Krankentransporthubschrauber für die Ostfriesischen Inseln (Northern Helicopter),
+  // Flugplatz Norden-Norddeich (EDWS), früher "Rettung Wittmund 79/99-1" in Emden.
+  // Tagbereitschaft 08–20 Uhr (rth.info, Stand 08/2024). Besatzungsstärke nicht belegt.
+  {id:504,name:"Northern 06",opta:"Northern 06",type:"KTH",org:"Luftrettung",location:"Norden-Norddeich",status:"1",crew:"",skills:"Ambulanz-/Krankentransporthubschrauber Ostfriesische Inseln ↔ Festland, Rettungswinde",verified:"rth.info (Northern Helicopter)",schedule:"day_8_20"}
 
  ],
  aao:[
@@ -1063,6 +1072,7 @@ function applyDutySchedule(){
  set("82-93-01",day?"6":"1");
  set("84-93-01",day?"1":"6");
  set("87-83-02",day?"1":"6");
+ set("Northern 06",h>=8&&h<20?"1":"6"); // Tagbereitschaft 08–20 Uhr
 }
 
 const OPTA_AREA_ORDER={
@@ -1072,7 +1082,8 @@ const OPTA_AREA_ORDER={
  "4":"Sande",
  "5":"Schortens",
  "6":"Wangerland",
- "7":"Bockhorn"
+ "7":"Bockhorn",
+ "8":"Wangerooge"
 };
 function optaAreaDigit(u){
  const s=String(u.name||u.opta||"").replace(/[^\d]/g,"");
@@ -1111,7 +1122,8 @@ const AREA_CENTERS={
  "Oldenburg":[53.1435,8.2146],
  "Wittmund":[53.5747,7.7794],
  "Westerstede":[53.2554,7.9169],
- "Hohenkirchen":[53.6570,7.9200]
+ "Hohenkirchen":[53.6570,7.9200],
+ "Wangerooge":[53.7888,7.9105]
 };
 // Präzisere Einzeladressen für bestimmte Wachen, die genauer sind als die grobe Ortsmitte
 // aus AREA_CENTERS. Schlüssel: "Organisation__Standort" (wie in den Fahrzeugdaten hinterlegt).
@@ -1132,7 +1144,9 @@ const STATION_OVERRIDE={
  "DLRG__Bockhorn":[53.397,8.02], // Fachtrupp Technik/Logistik + Führungstrupp (Wasserrettungszug Friesland); OPTA-Bereich "71" würde sonst fälschlich als "Jever" interpretiert
  "DRK__Varel":[53.4009276,8.0969361], // DRK Bereitschaft Varel, Emil-Heeder-Straße 18, 26316 Varel
  "DRK__Jever":[53.5666342,7.8861984], // DRK Bereitschaft Jever, Schützenhofstraße 42a, 26441 Jever
- "Luftrettung__Groningen (Eelde)":[53.118056,6.575833], // Lifeliner 4, Groningen Airport Eelde (ANWB Medical Air Assistance)
+ "Luftrettung__Groningen (Eelde)":[53.118056,6.575833],
+ "Luftrettung__Norden-Norddeich":[53.63222,7.192321], // Northern 06, Flugplatz Norden-Norddeich (rth.info)
+ "Rettungsdienst__Wangerooge":[53.7888,7.9105], // RW Wangerooge, Siedlerstraße 43a – NÄHERUNG (ca. 260 m SW der DRK Villa Kunterbunt lt. mapcarta) // Lifeliner 4, Groningen Airport Eelde (ANWB Medical Air Assistance)
  "Luftrettung__Bremen (Klinikum Links der Weser)":[53.035852,8.817424] // Christoph 6, Landeplatz am Klinikum Links der Weser
 };
 // Präzise Koordinaten für einzelne Kliniken (überschreibt die grobe Orts-Koordinate aus
@@ -1210,10 +1224,21 @@ function nearestFirst(arr){
  });
 }
 
+// Insel Wangerooge: bodengebundene Fahrzeuge kommen nicht vom Festland auf die Insel und
+// umgekehrt. Luftrettung und DLRG (Boote) sind davon ausgenommen.
+function incidentOnWangerooge(){
+ const p=incidentPoint();
+ if(p)return p[0]>53.76&&p[0]<53.81&&p[1]>7.84&&p[1]<7.99;
+ return false;
+}
+function islandReachable(u){
+ if(u.org==="Luftrettung"||u.org==="DLRG")return true;
+ return incidentOnWangerooge()===(u.island==="Wangerooge");
+}
 function availableUnits(type,org=null){
- const prim=nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)));
+ const prim=nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)&&islandReachable(u)));
  if(prim.length)return prim;
- return nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"));
+ return nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"&&islandReachable(u)));
 }
 function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
 
@@ -1242,7 +1267,7 @@ function realisticMode(){
 
 
 const QUICK_RESOURCE_TYPES=[
- {type:"RTW"},{type:"NEF"},{type:"NKTW"},{type:"RTH"},{type:"OrgL/LNA"},{type:"HLF"},{type:"LF"},{type:"RW"},{type:"DLK"},{type:"ELW"},
+ {type:"RTW"},{type:"NEF"},{type:"NKTW"},{type:"RTH"},{type:"KTH"},{type:"OrgL/LNA"},{type:"HLF"},{type:"LF"},{type:"RW"},{type:"DLK"},{type:"ELW"},
  {type:["RTB","MZB"],label:"Boot"},{type:"GW Wasserrettung",label:"Strömungsrettung"},{type:"GW Taucher",label:"Taucher"},
  {type:"MTW"},{type:"GW Drohne"}
 ];
@@ -3753,7 +3778,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    if(led){led.style.background="#2ecc71";led.style.boxShadow="0 0 5px #2ecc71";led.title="LIVE"}
    const vType=unit?.type||local?.type;
    const inCallStatus4=String(unit?.status)==="4" && calls.length>0;
-   const canAssign=String(unit?.status)==="4" && ["RTW","RTH","NKTW","OrgL/LNA","NEF"].includes(vType);
+   const canAssign=String(unit?.status)==="4" && ["RTW","RTH","KTH","NKTW","OrgL/LNA","NEF"].includes(vType);
    const canOrglFeedback=vType==="OrgL/LNA" && inCallStatus4;
    if(!vehicleKeyboardOpen){
      const body=document.getElementById("vehicleBody"); if(!body)return;
@@ -3846,7 +3871,7 @@ async function openVehicleIvenaAssignment(unitId,dburl,sid,callId){
  if(!hospitals.length){toast("Keine Kliniken hinterlegt");return}
  const isAnnounceType=["OrgL/LNA","NEF"].includes(local?.type);
  const allowSelf=local?.type==="NEF";
- const transportOptions=isAnnounceType?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH","NKTW"].includes(u.type)&&String(u.status)==="4"):[];
+ const transportOptions=isAnnounceType?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH","KTH","NKTW"].includes(u.type)&&String(u.status)==="4"):[];
  clearInterval(vehiclePollTimer);
  let pa={};
  if(callId){
@@ -4282,7 +4307,7 @@ function randomizeIvenaClosures(){
  save();pushIvenaCloud();toast("Zufällige Abmeldungen gewürfelt");render("ivena");
 }
 function assignableTransportUnits(){
- return db.units.filter(u=>["RTW","RTH","NKTW","NEF"].includes(u.type) && String(u.status)==="4");
+ return db.units.filter(u=>["RTW","RTH","KTH","NKTW","NEF"].includes(u.type) && String(u.status)==="4");
 }
 function assignableNefUnits(){
  return db.units.filter(u=>["NEF","RTH"].includes(u.type) && String(u.status)==="4");
@@ -4297,7 +4322,7 @@ function openIvenaAssignment(){
  const transportUnits=assignableTransportUnits();
  const nefUnits=assignableNefUnits();
  if(!hospitals.length){toast("Bitte zuerst eine Klinik unter IVENA anlegen");return}
- if(!transportUnits.length){toast("Kein RTW/RTH/NKTW/NEF in Status 4 (Am Einsatzort) verfügbar");return}
+ if(!transportUnits.length){toast("Kein RTW/RTH/KTH/NKTW/NEF in Status 4 (Am Einsatzort) verfügbar");return}
  const dt=new Date(Date.now()+20*60*1000);
  const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
  const pa=db.currentCall?.answers||{};
