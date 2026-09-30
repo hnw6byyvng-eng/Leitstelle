@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.02</span>
+ <span id="versionTag">v4.03</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -144,6 +144,25 @@ const DEFAULTS_FRI_WHV={
   // 10–18 Uhr besetzt (DRK LV Oldenburg). Kein Funkrufname veröffentlicht; Saisonende 30.09. ist
   // eine ANNAHME. Wird wie ein Wasserrettungsboot (RTB) für Einsätze auf Wangerooge vorgeschlagen.
   {id:720,name:"Wasserwacht Wangerooge",opta:"DRK Wasserwacht Wangerooge – Rettungsboot",type:"RTB",org:"DRK",location:"Wangerooge",island:"Wangerooge",wasserrettung:true,status:"1",crew:"",skills:"Strandwache / Wasserrettung (saisonal)",verified:"DRK LV Oldenburg (Pressemeldung)",schedule:"season_wasserwacht"},
+  // DLRG Wangerooge: Festrumpfschlauchboot "Olli" (seit 03/2025, wangerooge.dlrg.de). Funkrufname nicht veröffentlicht.
+  {id:614,name:"DLRG Wangerooge Olli",opta:"DLRG Wangerooge – Boot „Olli“",type:"RTB",org:"DLRG",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Festrumpfschlauchboot (ehrenamtlich)",verified:"DLRG Wangerooge"},
+  // DGzRS-Stationen an der niedersächsischen/bremischen Nordseeküste (seenotretter.de, Stand 09/2026).
+  // Alarmierung real über MRCC Bremen, nicht über die Rettungsleitstelle. Rufzeichen = Funkrufzeichen des Schiffs.
+  {id:801,name:"HAMBURG",opta:"DGzRS Borkum – HAMBURG",type:"SRK",org:"DGzRS",location:"Borkum",status:"2",crew:"",callsign:"DBAU",skills:"28-m-Seenotrettungskreuzer, Besatzung: festangestellt + Freiwillige, Rufzeichen DBAU",verified:"seenotretter.de"},
+  {id:802,name:"HANS DITTMER",opta:"DGzRS Juist – HANS DITTMER",type:"SRB",org:"DGzRS",location:"Juist",status:"2",crew:"",callsign:"DK 7002",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DK 7002",verified:"seenotretter.de"},
+  {id:803,name:"EUGEN",opta:"DGzRS Norderney – EUGEN",type:"SRK",org:"DGzRS",location:"Norderney",status:"2",crew:"",callsign:"DBAV",skills:"20-m-Seenotrettungskreuzer, Besatzung: festangestellt + Freiwillige, Rufzeichen DBAV",verified:"seenotretter.de"},
+  {id:804,name:"WOLTERA",opta:"DGzRS Norderney – WOLTERA",type:"SRB",org:"DGzRS",location:"Norderney",status:"2",crew:"",callsign:"DG 7348",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: festangestellt, Rufzeichen DG 7348",verified:"seenotretter.de"},
+  {id:805,name:"OTTO DIERSCH",opta:"DGzRS Norddeich – OTTO DIERSCH",type:"SRB",org:"DGzRS",location:"Norddeich",status:"2",crew:"",callsign:"DBKX",skills:"10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DBKX",verified:"seenotretter.de"},
+  {id:806,name:"ELLI HOFFMANN-RÖSER",opta:"DGzRS Baltrum – ELLI HOFFMANN-RÖSER",type:"SRB",org:"DGzRS",location:"Baltrum",status:"2",crew:"",callsign:"DK 3090",skills:"9,5-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DK 3090",verified:"seenotretter.de"},
+  {id:807,name:"SECRETARIUS",opta:"DGzRS Langeoog – SECRETARIUS",type:"SRB",org:"DGzRS",location:"Langeoog",status:"2",crew:"",callsign:"DD 9495",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DD 9495",verified:"seenotretter.de"},
+  {id:808,name:"COURAGE",opta:"DGzRS Neuharlingersiel – COURAGE",type:"SRB",org:"DGzRS",location:"Neuharlingersiel",status:"2",crew:"",callsign:"DBAI 2",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DBAI 2",verified:"seenotretter.de"},
+  {id:809,name:"FRITZ THIEME",opta:"DGzRS Wangerooge – FRITZ THIEME",type:"SRB",org:"DGzRS",location:"Wangerooge",status:"2",crew:"",callsign:"DA 6179",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DA 6179",verified:"seenotretter.de"},
+  {id:810,name:"WOLFGANG PAUL LORENZ",opta:"DGzRS Horumersiel – WOLFGANG PAUL LORENZ",type:"SRB",org:"DGzRS",location:"Horumersiel",status:"2",crew:"",callsign:"DBKT",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DBKT",verified:"seenotretter.de"},
+  {id:811,name:"BERNHARD GRUBEN",opta:"DGzRS Hooksiel – BERNHARD GRUBEN",type:"SRK",org:"DGzRS",location:"Hooksiel",status:"2",crew:"",callsign:"DBBS",skills:"23,1-m-Seenotrettungskreuzer (Tochterboot JOHANN FIDI), Besatzung: festangestellt + Freiwillige, Rufzeichen DBBS",verified:"seenotretter.de"},
+  {id:812,name:"PETER HABIG",opta:"DGzRS Wilhelmshaven – PETER HABIG",type:"SRB",org:"DGzRS",location:"Wilhelmshaven",status:"2",crew:"",callsign:"DBAJ",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DBAJ",verified:"seenotretter.de"},
+  {id:813,name:"EMIL ZIMMERMANN",opta:"DGzRS Fedderwardersiel – EMIL ZIMMERMANN",type:"SRB",org:"DGzRS",location:"Fedderwardersiel",status:"2",crew:"",callsign:"DD 4662",skills:"9,5/10,1-m-Seenotrettungsboot, Besatzung: Freiwillige, Rufzeichen DD 4662",verified:"seenotretter.de"},
+  {id:814,name:"HERMANN RUDOLF MEYER",opta:"DGzRS Bremerhaven – HERMANN RUDOLF MEYER",type:"SRK",org:"DGzRS",location:"Bremerhaven",status:"2",crew:"",callsign:"DBAC",skills:"23,1-m-Seenotrettungskreuzer (Tochterboot CHRISTIAN), Besatzung: festangestellt + Freiwillige, Rufzeichen DBAC",verified:"seenotretter.de"},
+  {id:815,name:"ANNELIESE KRAMER",opta:"DGzRS Cuxhaven – ANNELIESE KRAMER",type:"SRK",org:"DGzRS",location:"Cuxhaven",status:"2",crew:"",callsign:"DBAM",skills:"28-m-Seenotrettungskreuzer, Besatzung: festangestellt + Freiwillige, Rufzeichen DBAM",verified:"seenotretter.de"},
   {id:719,name:"42-83-02",opta:"Rotkreuz Friesland 42/83-02",type:"RTW",org:"DRK",location:"Varel",status:"1",crew:"2",skills:"Hintergrund-Rettungsdienst",verified:"Nutzerangabe"},
   {id:706,name:"48-96-01",opta:"Rotkreuz Friesland 48/96-01",type:"GW-San",org:"DRK",location:"Varel",status:"1",crew:"3",skills:"Sanitätsdienst, Großschadenslagen",verified:"BOS-Fahrzeuge"},
   // DRK Kreisverband Jeverland e.V., Bereitschaft Jever: Der Kreisverband deckt Jever, Schortens
@@ -216,6 +235,10 @@ const DEFAULTS_FRI_WHV={
   {id:251,name:"18-19-01",opta:"Florian Friesland 18/19-01",type:"MZF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Mehrzweckfahrzeug",verified:"BOS-Fahrzeuge"},
   {id:252,name:"18-20-01",opta:"Florian Friesland 18/20-01",type:"TLF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Tanklöschfahrzeug (TLF 8/18)",verified:"BOS-Fahrzeuge"},
   {id:253,name:"18-45-01",opta:"Florian Friesland 18/45-01",type:"LF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Löschgruppenfahrzeug (LF 8/6)",verified:"BOS-Fahrzeuge"},
+  // Laut Wachenübersicht (bos-fahrzeuge.info D3873) ebenfalls vorhanden, in der Fahrzeugliste der Wache
+  // aber nicht aufgeführt – auf Nutzerbestätigung aufgenommen.
+  {id:254,name:"18-48-01",opta:"Florian Friesland 18/48-01",type:"HLF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Hilfeleistungslöschgruppenfahrzeug (HLF 20)",verified:"BOS-Fahrzeuge (Wachenübersicht) + Nutzerangabe"},
+  {id:255,name:"18-64-01",opta:"Florian Friesland 18/64-01",type:"GW-L1",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Gerätewagen Logistik 1",verified:"BOS-Fahrzeuge (Wachenübersicht) + Nutzerangabe"},
 
   {id:301,name:"21/10",opta:"Heros Jever 21/10",type:"MTW Zugtrupp",org:"THW",location:"Jever",status:"2",crew:"4",skills:"Führung",verified:"THW/BOS-Fahrzeuge"},
   {id:302,name:"22/51",opta:"Heros Jever 22/51",type:"GKW 1",org:"THW",location:"Jever",status:"2",crew:"9",skills:"Bergung, Technische Hilfe",verified:"THW/BOS-Fahrzeuge"},
@@ -600,7 +623,7 @@ function statusOptionsFor(u){
  // ergeben für Feuerwehr, THW und DLRG fachlich keinen Sinn. Beim DRK gilt das für alle
  // Fahrzeuge außer dem als RTW geführten Fahrzeug (der Jeverland-NKTW ist wie ein RTW besetzt
  // und ausgestattet und übernimmt dieselbe Rolle).
- const restricted=["Feuerwehr","THW","DLRG"].includes(u?.org) || (u?.org==="DRK" && u?.type!=="RTW");
+ const restricted=["Feuerwehr","THW","DLRG","DGzRS"].includes(u?.org) || (u?.org==="DRK" && u?.type!=="RTW");
  let opts=restricted?["0","1","2","3","4","5","6"]:["0","1","2","3","4","5","6","7","8"];
  // OrgL/LNA soll immer einsatzbereit bleiben: kein "Nicht einsatzbereit" (6),
  // "Patient aufgenommen" (7) oder "bedingt verfügbar" (8).
@@ -706,6 +729,7 @@ function initMap(){
   setTimeout(()=>leafletMap.invalidateSize(),150);
 }
 function vehicleMapEmoji(u){
+ if(u.org==="DGzRS")return"⚓";
  if(u.org==="Feuerwehr")return"🚒";
  if(u.org==="DLRG")return"🌊";
  if(u.org==="DRK")return"✚";
@@ -1160,6 +1184,22 @@ const STATION_OVERRIDE={
  "Rettungsdienst__Bockhorn":[53.38768,8.00959], // Rettungswache Friesische Wehde, Grabsteder Straße 27, 26345 Bockhorn
  "Rettungsdienst__Wangerland":[53.666102,7.981689], // Rettungswache Wangerland, Hohensminde 2, 26434 Wangerland
  "Feuerwehr__Jever":[53.568879,7.8917544],
+ // DGzRS-Liegeplätze: Koordinaten aus de.wikipedia "Seenotrettungsstation <Ort>"; Wangerooge aus
+ // bos-fahrzeuge.info (Hafen, Christian-Janßen-Straße 34). Horumersiel dort nur grob (53°41′N 8°1′O).
+ "DGzRS__Borkum":[53.56146,6.746604],
+ "DGzRS__Juist":[53.673951,6.997156],
+ "DGzRS__Norderney":[53.702603,7.163003],
+ "DGzRS__Norddeich":[53.621341,7.156105],
+ "DGzRS__Baltrum":[53.723902,7.366946],
+ "DGzRS__Langeoog":[53.726716,7.494048],
+ "DGzRS__Neuharlingersiel":[53.701706,7.703983],
+ "DGzRS__Wangerooge":[53.7763352382631,7.86798741241453],
+ "DGzRS__Horumersiel":[53.683292,8.020628],
+ "DGzRS__Hooksiel":[53.641733,8.08222],
+ "DGzRS__Wilhelmshaven":[53.513731,8.148518],
+ "DGzRS__Fedderwardersiel":[53.595381,8.359327],
+ "DGzRS__Bremerhaven":[53.537658,8.578775],
+ "DGzRS__Cuxhaven":[53.875453,8.697322],
  "Feuerwehr__Wangerooge":[53.7914514685647,7.89800714683531], // FF Wangerooge, Straße zum Westen 5 (bos-fahrzeuge.info) // FF Jever OF Jever, Milchstraße 3, 26441 Jever
  "THW__Jever":[53.58508200075142,7.907763263893131], // THW OV Jever, Am Bullhamm 11, 26441 Jever
  "Rettungsdienst__Jever":[53.579591309062,7.90786988147579], // Rettungswache Jever, Wangerländische Straße 40a
@@ -1257,7 +1297,8 @@ function incidentOnWangerooge(){
  return false;
 }
 function islandReachable(u){
- if(u.org==="Luftrettung"||u.org==="DLRG")return true;
+ if(u.org==="Luftrettung"||u.org==="DGzRS")return true;
+ if(u.org==="DLRG"&&!u.island)return true;
  return incidentOnWangerooge()===(u.island==="Wangerooge");
 }
 function availableUnits(type,org=null){
@@ -2624,7 +2665,7 @@ function finishCall(id=null){
 // Rettungsmittel anlegen/bearbeiten: erst die Kategorie (Organisation), dann der Fahrzeugtyp
 // aus den Typen dieser Kategorie (oder frei eingeben).
 var unitDraft=null;
-const UNIT_CATEGORIES=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Luftrettung","Polizei"];
+const UNIT_CATEGORIES=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Luftrettung","DGzRS","Polizei"];
 function addUnit(){unitDraft={id:null,org:"",type:"",name:"",opta:"",location:"",crew:"2",skills:""};render("mittel")}
 function editUnit(id){
  const u=db.units.find(x=>String(x.id)===String(id)); if(!u)return;
@@ -4052,8 +4093,8 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  renderVehicleTerminal(unitId,dburl,sid);
 }
 
-const ORG_ORDER=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Polizei","Luftrettung"];
-const ORG_ICON={"DLRG":"🌊","Rettungsdienst":"🚑","Feuerwehr":"🚒","THW":"🛠️","Polizei":"👮","Luftrettung":"🚁"};
+const ORG_ORDER=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Polizei","Luftrettung","DGzRS"];
+const ORG_ICON={"DLRG":"🌊","Rettungsdienst":"🚑","Feuerwehr":"🚒","THW":"🛠️","Polizei":"👮","Luftrettung":"🚁","DGzRS":"⚓"};
 function setMittelOrgFilter(org){
  db.mittelOrgFilter=org||null;
  save();

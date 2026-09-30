@@ -603,3 +603,17 @@ Version 4.02:
   NKTW) standen nach dem Neuladen auf Status 2 und wurden von der Dienstzeit-Automatik nicht
   mehr erfasst (z. B. nachts trotzdem verfügbar). Sie bekommen jetzt beim Start sofort den zur
   Uhrzeit passenden Status.
+
+Version 4.03:
+- FF Wangerooge ergänzt: 18/48-01 (HLF 20) und 18/64-01 (GW-L1) – laut Wachenübersicht auf
+  bos-fahrzeuge.info vorhanden, aber nicht in deren Fahrzeugliste; auf Nutzerbestätigung.
+- NEU: DLRG Wangerooge, Festrumpfschlauchboot "Olli" (Typ RTB, nur Einsätze auf Wangerooge).
+  Funkrufname nicht veröffentlicht.
+- NEU: Kategorie DGzRS (⚓) mit allen Stationen der niedersächsischen/bremischen Nordseeküste
+  (15 Einheiten, seenotretter.de): Borkum HAMBURG (SRK), Juist HANS DITTMER, Norderney EUGEN
+  (SRK) + WOLTERA, Norddeich OTTO DIERSCH, Baltrum ELLI HOFFMANN-RÖSER, Langeoog SECRETARIUS,
+  Neuharlingersiel COURAGE, Wangerooge FRITZ THIEME, Horumersiel WOLFGANG PAUL LORENZ, Hooksiel
+  BERNHARD GRUBEN (SRK), Wilhelmshaven PETER HABIG, Fedderwardersiel EMIL ZIMMERMANN,
+  Bremerhaven HERMANN RUDOLF MEYER (SRK), Cuxhaven ANNELIESE KRAMER (SRK); jeweils mit
+  Rufzeichen. Liegeplatz-Koordinaten aus Wikipedia bzw. bos-fahrzeuge.info. Keine AAO schlägt
+  DGzRS automatisch vor (real Alarmierung über MRCC Bremen) – manuell oder per AAO-Editor.
