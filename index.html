@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.98</span>
+ <span id="versionTag">v3.99</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -221,7 +221,11 @@ const DEFAULTS_FRI_WHV={
   // Ambulanz-/Krankentransporthubschrauber für die Ostfriesischen Inseln (Northern Helicopter),
   // Flugplatz Norden-Norddeich (EDWS), früher "Rettung Wittmund 79/99-1" in Emden.
   // Tagbereitschaft 08–20 Uhr (rth.info, Stand 08/2024). Besatzungsstärke nicht belegt.
-  {id:504,name:"Northern 06",opta:"Northern 06",type:"KTH",org:"Luftrettung",location:"Norden-Norddeich",status:"1",crew:"",skills:"Ambulanz-/Krankentransporthubschrauber Ostfriesische Inseln ↔ Festland, Rettungswinde",verified:"rth.info (Northern Helicopter)",schedule:"day_8_20"}
+  {id:504,name:"Northern 06",opta:"Northern 06",type:"KTH",org:"Luftrettung",location:"Norden-Norddeich",status:"1",crew:"",skills:"Ambulanz-/Krankentransporthubschrauber Ostfriesische Inseln ↔ Festland, Rettungswinde",verified:"rth.info (Northern Helicopter)",schedule:"day_8_20"},
+  // Einziger Intensivtransporthubschrauber (ITH) Niedersachsens (Nds. Innenministerium,
+  // intensivverlegung-niedersachsen.de). DRF Luftrettung, Flughafen Hannover-Langenhagen, 24 h,
+  // Alarmierung über die ITH-Koordinierungsstelle (KOST) Niedersachsen (rth.info, Stand 04/2026).
+  {id:505,name:"Christoph Niedersachsen",opta:"Christoph Niedersachsen",type:"ITH",org:"Luftrettung",location:"Hannover-Langenhagen",status:"1",crew:"",skills:"Intensivtransport (Verlegung), nachts mit Notarzt und HEMS-TC, Rufname auch Christoph 86",verified:"DRF Luftrettung / rth.info",schedule:"24h"}
 
  ],
  aao:[
@@ -1145,7 +1149,8 @@ const STATION_OVERRIDE={
  "DRK__Varel":[53.4009276,8.0969361], // DRK Bereitschaft Varel, Emil-Heeder-Straße 18, 26316 Varel
  "DRK__Jever":[53.5666342,7.8861984], // DRK Bereitschaft Jever, Schützenhofstraße 42a, 26441 Jever
  "Luftrettung__Groningen (Eelde)":[53.118056,6.575833],
- "Luftrettung__Norden-Norddeich":[53.63222,7.192321], // Northern 06, Flugplatz Norden-Norddeich (rth.info)
+ "Luftrettung__Norden-Norddeich":[53.63222,7.192321],
+ "Luftrettung__Hannover-Langenhagen":[52.462893,9.691488], // Christoph Niedersachsen, Flughafen Hannover (rth.info) // Northern 06, Flugplatz Norden-Norddeich (rth.info)
  "Rettungsdienst__Wangerooge":[53.7888,7.9105], // RW Wangerooge, Siedlerstraße 43a – NÄHERUNG (ca. 260 m SW der DRK Villa Kunterbunt lt. mapcarta) // Lifeliner 4, Groningen Airport Eelde (ANWB Medical Air Assistance)
  "Luftrettung__Bremen (Klinikum Links der Weser)":[53.035852,8.817424] // Christoph 6, Landeplatz am Klinikum Links der Weser
 };
@@ -1267,7 +1272,7 @@ function realisticMode(){
 
 
 const QUICK_RESOURCE_TYPES=[
- {type:"RTW"},{type:"NEF"},{type:"NKTW"},{type:"RTH"},{type:"KTH"},{type:"OrgL/LNA"},{type:"HLF"},{type:"LF"},{type:"RW"},{type:"DLK"},{type:"ELW"},
+ {type:"RTW"},{type:"NEF"},{type:"NKTW"},{type:"RTH"},{type:"ITH"},{type:"KTH"},{type:"OrgL/LNA"},{type:"HLF"},{type:"LF"},{type:"RW"},{type:"DLK"},{type:"ELW"},
  {type:["RTB","MZB"],label:"Boot"},{type:"GW Wasserrettung",label:"Strömungsrettung"},{type:"GW Taucher",label:"Taucher"},
  {type:"MTW"},{type:"GW Drohne"}
 ];
@@ -3778,7 +3783,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    if(led){led.style.background="#2ecc71";led.style.boxShadow="0 0 5px #2ecc71";led.title="LIVE"}
    const vType=unit?.type||local?.type;
    const inCallStatus4=String(unit?.status)==="4" && calls.length>0;
-   const canAssign=String(unit?.status)==="4" && ["RTW","RTH","KTH","NKTW","OrgL/LNA","NEF"].includes(vType);
+   const canAssign=String(unit?.status)==="4" && ["RTW","RTH","ITH","KTH","NKTW","OrgL/LNA","NEF"].includes(vType);
    const canOrglFeedback=vType==="OrgL/LNA" && inCallStatus4;
    if(!vehicleKeyboardOpen){
      const body=document.getElementById("vehicleBody"); if(!body)return;
@@ -3871,7 +3876,7 @@ async function openVehicleIvenaAssignment(unitId,dburl,sid,callId){
  if(!hospitals.length){toast("Keine Kliniken hinterlegt");return}
  const isAnnounceType=["OrgL/LNA","NEF"].includes(local?.type);
  const allowSelf=local?.type==="NEF";
- const transportOptions=isAnnounceType?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH","KTH","NKTW"].includes(u.type)&&String(u.status)==="4"):[];
+ const transportOptions=isAnnounceType?(vehicleUnitsCache||[]).filter(u=>["RTW","RTH","ITH","KTH","NKTW"].includes(u.type)&&String(u.status)==="4"):[];
  clearInterval(vehiclePollTimer);
  let pa={};
  if(callId){
@@ -4307,7 +4312,7 @@ function randomizeIvenaClosures(){
  save();pushIvenaCloud();toast("Zufällige Abmeldungen gewürfelt");render("ivena");
 }
 function assignableTransportUnits(){
- return db.units.filter(u=>["RTW","RTH","KTH","NKTW","NEF"].includes(u.type) && String(u.status)==="4");
+ return db.units.filter(u=>["RTW","RTH","ITH","KTH","NKTW","NEF"].includes(u.type) && String(u.status)==="4");
 }
 function assignableNefUnits(){
  return db.units.filter(u=>["NEF","RTH"].includes(u.type) && String(u.status)==="4");
@@ -4322,7 +4327,7 @@ function openIvenaAssignment(){
  const transportUnits=assignableTransportUnits();
  const nefUnits=assignableNefUnits();
  if(!hospitals.length){toast("Bitte zuerst eine Klinik unter IVENA anlegen");return}
- if(!transportUnits.length){toast("Kein RTW/RTH/KTH/NKTW/NEF in Status 4 (Am Einsatzort) verfügbar");return}
+ if(!transportUnits.length){toast("Kein RTW/RTH/ITH/KTH/NKTW/NEF in Status 4 (Am Einsatzort) verfügbar");return}
  const dt=new Date(Date.now()+20*60*1000);
  const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
  const pa=db.currentCall?.answers||{};

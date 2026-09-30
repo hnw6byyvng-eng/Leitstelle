@@ -565,3 +565,10 @@ Version 3.98:
 - NEU: Ambulanz-/Krankentransporthubschrauber "Northern 06" (Northern Helicopter), Flugplatz
   Norden-Norddeich, Fahrzeugtyp KTH, Tagbereitschaft 08–20 Uhr (Quelle: rth.info, Stand
   08/2024). Besatzungsstärke nicht belegt, daher leer. Als Transportmittel in IVENA wählbar.
+
+Version 3.99:
+- NEU: Intensivtransporthubschrauber "Christoph Niedersachsen" (auch Christoph 86), DRF
+  Luftrettung, Flughafen Hannover-Langenhagen, 24 h, Typ ITH. Laut Nds. Innenministerium der
+  einzige ITH in Niedersachsen. Als Transportmittel in IVENA wählbar.
+- Weitere KTHs in Niedersachsen außer "Northern 06" (Norden-Norddeich) wurden in den
+  geprüften Quellen nicht gefunden.
