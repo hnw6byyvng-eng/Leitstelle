@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v3.99</span>
+ <span id="versionTag">v4.00</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -452,6 +452,7 @@ const defaults=SCENARIOS[currentScenarioId].defaults;
 // Leitstellen-Daten überschreibt.
 const KEY=SCENARIOS[currentScenarioId].storageKey+(IS_MONITOR?"-monitor":"");
 // Tiefe Kopie, damit Änderungen (z. B. an AAOs) nie die mitgelieferten Standardwerte verändern.
+const HAD_LOCAL_DATA=!!localStorage.getItem(KEY);
 let db=JSON.parse(localStorage.getItem(KEY)||"null")||JSON.parse(JSON.stringify(defaults));
 if(!Array.isArray(db.units))db.units=[];
 if(!Array.isArray(db.callers))db.callers=[];
@@ -468,10 +469,14 @@ const RETIRED_UNIT_OPTAS=[
 db.units=db.units.filter(u=>!RETIRED_UNIT_OPTAS.includes(u.opta));
 // Neu hinzugekommene Standardfahrzeuge (z. B. per Update ergänzt) bei bereits genutzten
 // Installationen automatisch nachziehen, ohne eigene/manuell angelegte Einträge anzutasten.
+if(!Array.isArray(db.deletedUnitOptas))db.deletedUnitOptas=[];
 {
+ // Selbst gelöschte Standardfahrzeuge bleiben gelöscht; selbst angelegte Fahrzeuge bleiben bei
+ // jedem Update erhalten (sie stehen in den gespeicherten Daten, nicht im Programm).
  const existingOptas=new Set(db.units.map(u=>u.opta).filter(Boolean));
+ const deleted=new Set(db.deletedUnitOptas);
  defaults.units.forEach(u=>{
-   if(u.opta && !existingOptas.has(u.opta)) db.units.push({...u});
+   if(u.opta && !existingOptas.has(u.opta) && !deleted.has(u.opta)) db.units.push({...u});
  });
 }
 if(!Array.isArray(db.aao))db.aao=[];
@@ -2595,13 +2600,65 @@ function finishCall(id=null){
  toast("Einsatz abgeschlossen – zugeordnete Mittel Status 1");
  render("leitstelle");
 }
-function addUnit(u={}){const name=prompt("Funkrufname",u.name||"");if(!name)return;const unit={id:Date.now(),name,type:prompt("Fahrzeug-/Einheitentyp",u.type||"RTB"),location:prompt("Standort",u.location||"Varel"),status:u.status||"1",crew:prompt("Besatzung",u.crew||"2"),skills:prompt("Fähigkeiten",u.skills||"Wasserrettung")};db.units.push(unit);save();render("mittel")}
-function editUnit(id){let u=db.units.find(x=>x.id===id);if(u){addUnit(u);db.units=db.units.filter(x=>x.id!==id);save()}}
+// Rettungsmittel anlegen/bearbeiten: erst die Kategorie (Organisation), dann der Fahrzeugtyp
+// aus den Typen dieser Kategorie (oder frei eingeben).
+var unitDraft=null;
+const UNIT_CATEGORIES=["DLRG","DRK","Rettungsdienst","Feuerwehr","THW","Luftrettung","Polizei"];
+function addUnit(){unitDraft={id:null,org:"",type:"",name:"",opta:"",location:"",crew:"2",skills:""};render("mittel")}
+function editUnit(id){
+ const u=db.units.find(x=>String(x.id)===String(id)); if(!u)return;
+ unitDraft={id:u.id,org:u.org||"",type:u.type||"",name:u.name||"",opta:u.opta||"",location:u.location||"",crew:String(u.crew??""),skills:u.skills||""};
+ render("mittel");
+}
+function unitEditorHTML(){
+ const d=unitDraft;
+ const cats=[...new Set([...UNIT_CATEGORIES,...(db.units||[]).map(u=>u.org).filter(Boolean)])];
+ const inCat=(db.units||[]).filter(u=>u.org===d.org);
+ const types=[...new Set(inCat.map(u=>u.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"de"));
+ const locs=[...new Set(inCat.map(u=>u.location).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"de"));
+ const icon=o=>(typeof ORG_ICON!=="undefined"&&ORG_ICON[o])||(o==="DRK"?"✚":"🚗");
+ return `<div class="card">
+  <h2>${d.id==null?"＋ Rettungsmittel anlegen":"✏️ Rettungsmittel bearbeiten"}</h2>
+  <label>Kategorie</label>
+  <div class="row">${cats.map(o=>`<button class="${d.org===o?"primary":""}" onclick="unitDraft.org=${esc(JSON.stringify(o))};unitDraft.type='';render('mittel')">${icon(o)} ${esc(o)}</button>`).join("")}</div>
+  ${d.org?`
+  <label>Fahrzeugtyp</label>
+  ${types.length?`<div class="row">${types.map(t=>`<button class="${d.type===t?"primary":""}" onclick="unitDraft.type=${esc(JSON.stringify(t))};render('mittel')">${esc(t)}</button>`).join("")}</div>`:""}
+  <input style="margin-top:6px" value="${esc(types.includes(d.type)?"":d.type)}" placeholder="${types.length?"…oder anderen Typ eingeben":"Typ eingeben, z. B. RTW"}" oninput="unitDraft.type=this.value">
+  <div class="formgrid">
+   <div><label>Kurzname (z. B. 82-83-03)</label><input value="${esc(d.name)}" oninput="unitDraft.name=this.value"></div>
+   <div><label>Funkrufname / OPTA</label><input value="${esc(d.opta)}" placeholder="z. B. Rettung Friesland 82/83-03" oninput="unitDraft.opta=this.value"></div>
+   <div><label>Standort</label><input list="unitLocList" value="${esc(d.location)}" oninput="unitDraft.location=this.value"><datalist id="unitLocList">${locs.map(l=>`<option value="${esc(l)}">`).join("")}</datalist></div>
+   <div><label>Besatzung</label><input type="number" min="0" value="${esc(d.crew)}" oninput="unitDraft.crew=this.value"></div>
+  </div>
+  <label>Fähigkeiten / Hinweise (optional)</label><input value="${esc(d.skills)}" oninput="unitDraft.skills=this.value">`:`<p class="muted" style="margin-top:8px">Bitte zuerst die Kategorie wählen.</p>`}
+  <hr>
+  <div class="row"><button class="primary" onclick="saveUnitDraft()">💾 Speichern</button><button onclick="unitDraft=null;render('mittel')">Abbrechen</button></div>
+ </div>`;
+}
+function saveUnitDraft(){
+ const d=unitDraft; if(!d)return;
+ if(!d.org){toast("Bitte eine Kategorie wählen");return}
+ const type=String(d.type||"").trim(); if(!type){toast("Bitte einen Fahrzeugtyp wählen");return}
+ const name=String(d.name||d.opta||"").trim(); if(!name){toast("Bitte Kurzname oder Funkrufname eingeben");return}
+ const fields={org:d.org,type,name,opta:String(d.opta||"").trim()||name,location:String(d.location||"").trim(),crew:String(d.crew||"").trim(),skills:String(d.skills||"").trim()};
+ if(d.id!=null){
+   const u=db.units.find(x=>String(x.id)===String(d.id));
+   if(u)Object.assign(u,fields);
+ }else{
+   db.units.push({id:Date.now(),...fields,status:"2",custom:true,verified:"Eigene Angabe"});
+ }
+ unitDraft=null; save(); toast("Rettungsmittel gespeichert"); render("mittel");
+}
 function deleteUnit(id){
  const u=db.units.find(x=>String(x.id)===String(id));
  if(!u)return;
  if(!confirm(`„${u.opta||u.name}“ wirklich aus der Rettungsmittelliste entfernen?`))return;
  db.units=db.units.filter(x=>String(x.id)!==String(id));
+ if(u.opta&&(defaults.units||[]).some(d=>d.opta===u.opta)){
+   db.deletedUnitOptas=db.deletedUnitOptas||[];
+   if(!db.deletedUnitOptas.includes(u.opta))db.deletedUnitOptas.push(u.opta);
+ }
  save();toast("Fahrzeug entfernt");render("mittel");
 }
 function setStatus(id,s){db.units.find(x=>x.id===id).status=s;save();toast("Status geändert")}
@@ -2819,6 +2876,26 @@ function syncHandleEvent(type,msg){
      // die eigenen Abweichungen hochladen.
      syncShadow=new Map();
      for(const [p,str] of syncRemoteSlots(syncRemote)){const x=syncSplit(str);if(x)syncShadow.set(p,x.json)}
+     if(!HAD_LOCAL_DATA && syncRemote && Object.keys(syncRemote).length){
+       // Neues Gerät als Hauptplatz: nicht mit Standarddaten überschreiben, sondern den Stand
+       // der Sitzung übernehmen.
+       syncApplyRemote(null,true);
+     }else if(syncRemote){
+       // Selbst angelegte Fahrzeuge und AAOs, die nur in der Sitzung (z. B. von einem anderen
+       // Gerät) existieren, übernehmen statt sie zu löschen.
+       let added=false;
+       for(const k of ["units","aao"]){
+         const node=syncRemote[k]; if(!node||typeof node.o!=="string"||!node.i||!Array.isArray(db[k]))continue;
+         const have=new Set(db[k].map(x=>syncEncId(x.id)));
+         const del=new Set(db.deletedUnitOptas||[]);
+         for(const [eid,str] of Object.entries(node.i)){
+           if(have.has(eid))continue;
+           const x=syncSplit(str); if(!x)continue;
+           try{const item=JSON.parse(x.json); if(k==="units"&&item.opta&&del.has(item.opta))continue; db[k].push(item); added=true}catch(e){}
+         }
+       }
+       if(added){localStorage.setItem(KEY,JSON.stringify(db)); syncRequestRender()}
+     }
      syncReady=true; syncSetState("live"); syncPush();
      return;
    }
@@ -3962,6 +4039,7 @@ function setMittelOrgFilter(org){
  render("mittel");
 }
 function mittel(){
+ if(unitDraft){document.getElementById("app").innerHTML=unitEditorHTML();return}
  const units=db.units||[];
  const allOrgs=[...new Set(units.map(u=>u.org||"Sonstige"))].sort((a,b)=>{
    const ia=ORG_ORDER.indexOf(a), ib=ORG_ORDER.indexOf(b);
@@ -3985,7 +4063,7 @@ function mittel(){
         ${rows.map(u=>`<tr>
          <td>${vehicleLabelBlock(u)}${u.gpsUpdatedAt&&(Date.now()-new Date(u.gpsUpdatedAt).getTime())<120000?` <span title="Live-GPS aktiv" style="font-size:11px">📍</span>`:""}</td>
          <td><span class="status ${statusClass(String(u.status))}">${statusName(String(u.status))}</span></td>
-         <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button><button onclick="deleteUnit('${String(u.id)}')" title="Fahrzeug löschen">🗑️</button></div></td>
+         <td><div class="row"><button onclick="showVehicleQR('${String(u.id)}')">📱 Link / QR</button><button onclick="openVehiclePreview('${String(u.id)}')">👁️ Vorschau</button><button onclick="editUnit('${String(u.id)}')" title="Fahrzeug bearbeiten">✏️</button><button onclick="deleteUnit('${String(u.id)}')" title="Fahrzeug löschen">🗑️</button></div></td>
          <td>${statusOptionsFor(u).map(s=>`<button class="radio-key-mini${String(u.status)===s?" current":""}" onclick="setStatusFromSelect('${String(u.id)}','${s}')" title="${esc(statusName(s))}">${esc(s)}</button>`).join("")}</td>
         </tr>`).join("")}
        </tbody>
@@ -4006,7 +4084,7 @@ function mittel(){
      <div class="row">
        <button onclick="realisticMode()">🎲 Realistisch</button>
        <button onclick="openCloudSetup()">☁️ Live-Verbindung</button>
-       <button class="primary" onclick="addUnit()">＋ Einheit</button>
+       <button class="primary" onclick="addUnit()">＋ Rettungsmittel</button>
      </div>
    </div>
    ${orgFilterBar}

@@ -572,3 +572,17 @@ Version 3.99:
   einzige ITH in Niedersachsen. Als Transportmittel in IVENA wählbar.
 - Weitere KTHs in Niedersachsen außer "Northern 06" (Norden-Norddeich) wurden in den
   geprüften Quellen nicht gefunden.
+
+Version 4.00:
+- NEU: "＋ Rettungsmittel" öffnet ein Formular statt Eingabe-Dialogen: zuerst die Kategorie
+  (DLRG, DRK, Rettungsdienst, Feuerwehr, THW, Luftrettung, Polizei), dann der Fahrzeugtyp aus den
+  Typen dieser Kategorie (oder frei eingeben), dazu Kurzname, Funkrufname/OPTA, Standort,
+  Besatzung, Fähigkeiten. Vorher wurde keine Organisation gespeichert – solche Fahrzeuge
+  tauchten weder im Organisations-Filter auf noch wurden sie von der AAO vorgeschlagen.
+- NEU: ✏️ Bearbeiten bei jedem Fahrzeug (behält Status, ID und Terminal-Link).
+- Selbst angelegte Fahrzeuge bleiben bei jedem Update erhalten. Selbst gelöschte Standard-
+  fahrzeuge kommen nach einem Update nicht mehr zurück.
+- Fehler behoben: Ein neues Gerät, das als Hauptplatz derselben Sitzung geöffnet wurde, hat
+  bisher den Sitzungsstand mit Standarddaten überschrieben (eigene Fahrzeuge und AAO-Änderungen
+  wären dabei verloren gegangen). Jetzt übernimmt es den Sitzungsstand; ältere Geräte übernehmen
+  zusätzlich eigene Fahrzeuge/AAOs aus der Sitzung, statt sie zu löschen.
