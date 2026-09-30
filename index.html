@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.01</span>
+ <span id="versionTag">v4.02</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -140,6 +140,10 @@ const DEFAULTS_FRI_WHV={
   {id:703,name:"42-17-02",opta:"Rotkreuz Friesland 42/17-02",type:"MTW",org:"DRK",location:"Varel",status:"1",crew:"6",skills:"Mannschaftstransport SEG",verified:"BOS-Fahrzeuge"},
   {id:704,name:"42-59-01",opta:"Rotkreuz Friesland 42/59-01",type:"GW-SEG",org:"DRK",location:"Varel",status:"1",crew:"3",skills:"Schnelleinsatzgruppe – Sanitäts- und Betreuungsdienst, Großschadenslagen",verified:"BOS-Fahrzeuge"},
   {id:705,name:"42-83-01",opta:"Rotkreuz Friesland 42/83-01",type:"RTW",org:"DRK",location:"Varel",status:"1",crew:"2",skills:"Hintergrund-Rettungsdienst",verified:"BOS-Fahrzeuge"},
+  // DRK Wasserwacht Wangerooge: Strandwache mit Rettungsboot, Wachtürme ab Mitte Mai täglich
+  // 10–18 Uhr besetzt (DRK LV Oldenburg). Kein Funkrufname veröffentlicht; Saisonende 30.09. ist
+  // eine ANNAHME. Wird wie ein Wasserrettungsboot (RTB) für Einsätze auf Wangerooge vorgeschlagen.
+  {id:720,name:"Wasserwacht Wangerooge",opta:"DRK Wasserwacht Wangerooge – Rettungsboot",type:"RTB",org:"DRK",location:"Wangerooge",island:"Wangerooge",wasserrettung:true,status:"1",crew:"",skills:"Strandwache / Wasserrettung (saisonal)",verified:"DRK LV Oldenburg (Pressemeldung)",schedule:"season_wasserwacht"},
   {id:719,name:"42-83-02",opta:"Rotkreuz Friesland 42/83-02",type:"RTW",org:"DRK",location:"Varel",status:"1",crew:"2",skills:"Hintergrund-Rettungsdienst",verified:"Nutzerangabe"},
   {id:706,name:"48-96-01",opta:"Rotkreuz Friesland 48/96-01",type:"GW-San",org:"DRK",location:"Varel",status:"1",crew:"3",skills:"Sanitätsdienst, Großschadenslagen",verified:"BOS-Fahrzeuge"},
   // DRK Kreisverband Jeverland e.V., Bereitschaft Jever: Der Kreisverband deckt Jever, Schortens
@@ -207,6 +211,11 @@ const DEFAULTS_FRI_WHV={
   {id:235,name:"17-48-01",opta:"Florian Friesland 17/48-01",type:"HLF",org:"Feuerwehr",location:"Bockhorn",status:"2",crew:"9",skills:"Brandbekämpfung, Technische Hilfe, First Responder",verified:"BOS-Fahrzeuge"},
 
   {id:241,name:"16-11-01",opta:"Florian Friesland 16-11-01",type:"ELW",org:"Feuerwehr",location:"Hohenkirchen",status:"2",crew:"5",skills:"Einsatzleitung",verified:"Feuerwehr Hohenkirchen"},
+  // FF Wangerooge OF Wangerooge, Straße zum Westen 5, 26486 Wangerooge (bos-fahrzeuge.info, Wache 3873).
+  // Nur die dort als aktiv geführten Fahrzeuge; Anhänger nicht aufgenommen. Besatzung nicht belegt.
+  {id:251,name:"18-19-01",opta:"Florian Friesland 18/19-01",type:"MZF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Mehrzweckfahrzeug",verified:"BOS-Fahrzeuge"},
+  {id:252,name:"18-20-01",opta:"Florian Friesland 18/20-01",type:"TLF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Tanklöschfahrzeug (TLF 8/18)",verified:"BOS-Fahrzeuge"},
+  {id:253,name:"18-45-01",opta:"Florian Friesland 18/45-01",type:"LF",org:"Feuerwehr",location:"Wangerooge",island:"Wangerooge",status:"2",crew:"",skills:"Löschgruppenfahrzeug (LF 8/6)",verified:"BOS-Fahrzeuge"},
 
   {id:301,name:"21/10",opta:"Heros Jever 21/10",type:"MTW Zugtrupp",org:"THW",location:"Jever",status:"2",crew:"4",skills:"Führung",verified:"THW/BOS-Fahrzeuge"},
   {id:302,name:"22/51",opta:"Heros Jever 22/51",type:"GKW 1",org:"THW",location:"Jever",status:"2",crew:"9",skills:"Bergung, Technische Hilfe",verified:"THW/BOS-Fahrzeuge"},
@@ -1082,6 +1091,11 @@ function applyDutySchedule(){
  set("84-93-01",day?"1":"6");
  set("87-83-02",day?"1":"6");
  set("Northern 06",h>=8&&h<20?"1":"6"); // Tagbereitschaft 08–20 Uhr
+ {
+   // DRK Wasserwacht Wangerooge: 15.05.–30.09. (Ende angenommen), täglich 10–18 Uhr
+   const d=new Date(), md=(d.getMonth()+1)*100+d.getDate();
+   set("Wasserwacht Wangerooge",(md>=515&&md<=930&&h>=10&&h<18)?"1":"6");
+ }
 }
 
 const OPTA_AREA_ORDER={
@@ -1145,7 +1159,8 @@ const STATION_OVERRIDE={
  "Feuerwehr__Bockhorn":[53.3911,8.01891], // FF Bockhorn OF Bockhorn, Schulstraße 19, 26345 Bockhorn
  "Rettungsdienst__Bockhorn":[53.38768,8.00959], // Rettungswache Friesische Wehde, Grabsteder Straße 27, 26345 Bockhorn
  "Rettungsdienst__Wangerland":[53.666102,7.981689], // Rettungswache Wangerland, Hohensminde 2, 26434 Wangerland
- "Feuerwehr__Jever":[53.568879,7.8917544], // FF Jever OF Jever, Milchstraße 3, 26441 Jever
+ "Feuerwehr__Jever":[53.568879,7.8917544],
+ "Feuerwehr__Wangerooge":[53.7914514685647,7.89800714683531], // FF Wangerooge, Straße zum Westen 5 (bos-fahrzeuge.info) // FF Jever OF Jever, Milchstraße 3, 26441 Jever
  "THW__Jever":[53.58508200075142,7.907763263893131], // THW OV Jever, Am Bullhamm 11, 26441 Jever
  "Rettungsdienst__Jever":[53.579591309062,7.90786988147579], // Rettungswache Jever, Wangerländische Straße 40a
  "Feuerwehr__Hohenkirchen":[53.66165,7.91565], // FF Wangerland OF Hohenkirchen, Jeversche Straße 16, 26434 Hohenkirchen
@@ -1246,9 +1261,10 @@ function islandReachable(u){
  return incidentOnWangerooge()===(u.island==="Wangerooge");
 }
 function availableUnits(type,org=null){
- const prim=nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&["1","2"].includes(u.status)&&islandReachable(u)));
+ const orgOk=u=>!org||u.org===org||(org==="DLRG"&&u.wasserrettung);
+ const prim=nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&orgOk(u)&&["1","2"].includes(u.status)&&islandReachable(u)));
  if(prim.length)return prim;
- return nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&(!org||u.org===org)&&u.status==="8"&&islandReachable(u)));
+ return nearestFirst(db.units.filter(u=>!u.neighborLoan&&(!type||u.type===type)&&orgOk(u)&&u.status==="8"&&islandReachable(u)));
 }
 function chooseOne(type,org=null){return availableUnits(type,org)[0]||null}
 
@@ -4706,8 +4722,11 @@ if(!initVehicleMode()){
  if(!IS_MONITOR){
    let resetChanged=false;
    db.units.forEach(u=>{
-     if(!["6","2"].includes(String(u.status))){ setUnitStatus(u,"2"); resetChanged=true; }
+     if(!["6","2"].includes(String(u.status))){ setUnitStatus(u,u.schedule?"1":"2"); resetChanged=true; }
    });
+   // Fahrzeuge mit Dienstzeiten (z. B. Wasserwacht, Northern 06) sofort auf den passenden Status
+   db.units.forEach(u=>{if(u.schedule&&String(u.status)==="2"){u.status="1";resetChanged=true}});
+   applyDutySchedule();
    if(resetChanged)save();
  }
  render(IS_MONITOR?monitorStartPage:"leitstelle");

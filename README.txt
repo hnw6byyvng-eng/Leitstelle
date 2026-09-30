@@ -591,3 +591,15 @@ Version 4.01:
 - "Vorschlag alarmieren" funktioniert jetzt auch, wenn kein Einsatzmittel verfügbar ist. Der
   Einsatz wird angelegt und erscheint in der Übersicht; in der Alarmvorbereitung steht ein
   Hinweis. Fahrzeuge können danach per Nachforderung ergänzt werden.
+
+Version 4.02:
+- NEU: FF Wangerooge (Straße zum Westen 5): Florian Friesland 18/19-01 (MZF), 18/20-01 (TLF 8/18),
+  18/45-01 (LF 8/6). Quelle: bos-fahrzeuge.info, Wache 3873 (nur als aktiv geführte Fahrzeuge,
+  ohne Anhänger). Nur für Einsätze auf Wangerooge (Inselregel).
+- NEU: DRK Wasserwacht Wangerooge (Rettungsboot, Strandwache). Einsatzbereit 15.05.–30.09.,
+  täglich 10–18 Uhr – Saisonende ist eine Annahme. Kein Funkrufname veröffentlicht. Wird bei
+  Wasser-AAOs wie ein DLRG-Rettungsboot vorgeschlagen, nur auf Wangerooge.
+- Fehler behoben: Fahrzeuge mit Dienstzeiten (u. a. Northern 06, Wasserwacht, Tag-RTW/Nacht-
+  NKTW) standen nach dem Neuladen auf Status 2 und wurden von der Dienstzeit-Automatik nicht
+  mehr erfasst (z. B. nachts trotzdem verfügbar). Sie bekommen jetzt beim Start sofort den zur
+  Uhrzeit passenden Status.
