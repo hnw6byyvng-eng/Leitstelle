@@ -98,7 +98,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.00</span>
+ <span id="versionTag">v4.01</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -2506,7 +2506,10 @@ function showNafo(text){
 
 function prepareAlarm(){
  const c=db.currentCall;
- if(!c||!c.proposedUnitIds||!c.proposedUnitIds.length){toast("Kein alarmierbarer Vorschlag vorhanden");return}
+ // Auch ohne verfügbare Einsatzmittel alarmierbar – der Einsatz wird angelegt, Fahrzeuge
+ // können danach nachgefordert werden.
+ if(!c)return;
+ c.proposedUnitIds=c.proposedUnitIds||[];
  if(needsXABCDE(c)&&!xabcdeComplete(c)){
    toast("Vor Alarmierung muss XABCDE vollständig abgefragt werden");
    render("notruf");
@@ -2525,6 +2528,7 @@ function prepareAlarm(){
    <label>Einsatzstichwort</label><div class="big">${esc(c.keyword||"—")}</div>
    <label style="margin-top:12px">Vorgeschlagene Einsatzmittel</label>
    <div class="suggest">${esc(c.suggestion||"—")}</div>
+   ${c.proposedUnitIds.length?"":`<div class="suggest" style="margin-top:8px;background:#fff1f1;border-color:#f3b4b4">⚠️ Kein Einsatzmittel verfügbar. Der Einsatz wird trotzdem alarmiert und angelegt – Fahrzeuge können über „Rettungsmittel bearbeiten“ oder später per Nachforderung ergänzt werden.</div>`}
    ${xtext?`<label style="margin-top:12px">XABCDE</label><pre style="white-space:pre-wrap;background:#f8fafc;padding:10px;border-radius:10px">${esc(xtext)}</pre>`:""}
    <label style="margin-top:12px">📝 Freitext für die Alarmierung</label>
    <textarea id="alarmFreeText" rows="7" placeholder="Zusätzliche Lageinformationen, Hinweise zur Anfahrt, Gefahren, Zugang, Ansprechpartner …">${esc(c.alarmFreeText||"")}</textarea>
@@ -2545,7 +2549,8 @@ function confirmAlarm(){
 }
 function alarmProposal(){
  const c=db.currentCall;
- if(!c||!c.proposedUnitIds||!c.proposedUnitIds.length){toast("Kein alarmierbarer Vorschlag vorhanden");return}
+ if(!c)return;
+ c.proposedUnitIds=c.proposedUnitIds||[];
  if(needsXABCDE(c)&&!xabcdeComplete(c)){
    toast("XABCDE ist noch nicht vollständig");
    render("notruf");
@@ -2563,7 +2568,7 @@ function alarmProposal(){
  c.history.push({q:"🚨 Alarmierung",a:`Vorschlag alarmiert – ${now.toLocaleTimeString("de-DE")}${c.alarmFreeText?` | Freitext: ${c.alarmFreeText}`:""}`});
  save();
  if(db.cloud?.enabled)setTimeout(()=>pushCallCloud(c),0);
- toast("Vorschlag im Simulator alarmiert – weiterer Notruf möglich");
+ toast(c.proposedUnitIds.length?"Vorschlag im Simulator alarmiert – weiterer Notruf möglich":"Einsatz ohne verfügbare Fahrzeuge alarmiert – bitte Einsatzmittel nachfordern");
  render("leitstelle");
 }
 

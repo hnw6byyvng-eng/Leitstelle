@@ -586,3 +586,8 @@ Version 4.00:
   bisher den Sitzungsstand mit Standarddaten überschrieben (eigene Fahrzeuge und AAO-Änderungen
   wären dabei verloren gegangen). Jetzt übernimmt es den Sitzungsstand; ältere Geräte übernehmen
   zusätzlich eigene Fahrzeuge/AAOs aus der Sitzung, statt sie zu löschen.
+
+Version 4.01:
+- "Vorschlag alarmieren" funktioniert jetzt auch, wenn kein Einsatzmittel verfügbar ist. Der
+  Einsatz wird angelegt und erscheint in der Übersicht; in der Alarmvorbereitung steht ein
+  Hinweis. Fahrzeuge können danach per Nachforderung ergänzt werden.
