@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.04</span>
+ <span id="versionTag">v4.05</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4060,7 +4060,7 @@ async function openVehicleIvenaAssignment(unitId,dburl,sid,callId){
    <div><label>Fachrichtung</label><select id="vAsgFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div>
    <div><label>Schockraum</label><select id="vAsgSchock"><option value="nein">S- (nein)</option><option value="ja">S+ (ja)</option></select></div>
    <div><label>Geschlecht</label><select id="vAsgGender"><option value="M" ${genderMap[pa.patientGender]==="M"?"selected":""}>M</option><option value="W" ${genderMap[pa.patientGender]==="W"?"selected":""}>W</option></select></div>
-   <div><label>Alter</label><input id="vAsgAlter" type="number" min="0" max="120" placeholder="Jahre" value="${esc(pa.patientAge||"")}"></div>
+   <div><label>Alter</label><input id="vAsgAlter" type="number" min="0" max="120" placeholder="Jahre" value="${esc(pa.patientAge||"")}" oninput="pzcPreview('vAsg')"></div>
    <div><label>Notarzt an Bord</label><select id="vAsgNA"><option value="nein">NA- (ohne)</option><option value="ja">NA+ (mit)</option></select></div>
    ${isAnnounceType?`<div><label>Transportmittel (Status 4, optional)</label><select id="vAsgTransport">
      <option value="">– noch nicht festgelegt –</option>
@@ -4068,6 +4068,7 @@ async function openVehicleIvenaAssignment(unitId,dburl,sid,callId){
      ${transportOptions.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}</option>`).join("")}
    </select></div>`:""}
   </div>
+  ${pzcFieldsHTML("vAsg",pa)}
   <label style="margin-top:10px">Voraussichtliche Eintreffzeit</label>
   <input id="vAsgEta" type="datetime-local" value="${iso}">
   <div class="row" style="margin-top:14px">
@@ -4087,6 +4088,7 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  const alter=document.getElementById("vAsgAlter")?.value;
  const na=document.getElementById("vAsgNA")?.value==="ja";
  const etaRaw=document.getElementById("vAsgEta")?.value;
+ const pz=pzcRead("vAsg");
  let vehicleIds=[unitId];
  let vehicleLabels=[`${local?.opta||local?.name||unitId} (${local?.type||"?"})`];
  if(isAnnounceType){
@@ -4109,6 +4111,7 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
    id:Date.now(),
    hospitalId:hospital.id, hospitalName:hospital.name,
    fach, schockraum, geschlecht, alter, na,
+   rmi:pz.rmi, dringlichkeit:pz.dringlichkeit, pzc:pz.pzc,
    vehicleIds, vehicleLabels,
    eta: etaRaw?new Date(etaRaw).toISOString():null,
    createdAt:new Date().toISOString(),
@@ -4488,6 +4491,49 @@ function toggleAsgNefField(){
  const wrap=document.getElementById("asgNefWrap");
  if(wrap) wrap.classList.toggle("hidden", na!=="ja");
 }
+// ─── PZC (Patientenzuweisungscode) ───────────────────────────────────────────────────────────
+// 6-stellig: RMI (3) + Alter (2, Säugling < 1 J. = 00) + Behandlungsdringlichkeit (1).
+// RMI-Liste nach "PZC-Liste Version 1.0 / 11.11.2022 (Brandenburg / Bund)" – die in Niedersachsen
+// gültige IVENA-Liste kann in Einzelcodes abweichen.
+const PZC_RMI=[["Reanimation", [["131", "Reanimation laufend / intermittierend"], ["132", "Reanimation ROSC"], ["133", "Reanimation Trauma laufend/intermittierend"], ["134", "Reanimation Hypothermie"]]], ["Trauma – Mehrfachverletzung", [["211", "Polytrauma mit SHT"], ["212", "Polytrauma ohne SHT"], ["213", "Schockraumindikation nach Unfallhergang"], ["214", "Mehrfachverletzung sonstige"], ["215", "Mehrfachverletzung mit Augen"], ["219", "oberflächliche Verletzungen (bel. Lokalisation)"]]], ["Trauma – Kopf/Gesicht", [["221", "SHT offen"], ["222", "SHT geschlossen"], ["223", "Gesichtsverletzung"], ["224", "Kopfverletzung"], ["225", "Augenverletzung"]]], ["Trauma – Thorax/Abdomen", [["231", "Thorax penetrierend"], ["232", "Thorax geschlossen / stumpf"], ["233", "Pneumothorax traumatisch"], ["241", "Abdomen penetrierend"], ["242", "Abdomen geschlossen/stumpf"], ["243", "Akutes Abdomen (nicht Trauma)"]]], ["Wirbelsäule/Becken", [["251", "Verl. der Wirbelsäule mit neurol. Ausfällen"], ["252", "Verl. der Wirbelsäule ohne neurol. Ausfälle"], ["253", "Rückenschmerzen, akut mit neurolog. Symptomatik"], ["254", "Rückenschmerzen nicht traumatisch ohne neurologische Ausfälle"], ["255", "Lähmung / Querschnitt akut (nicht Stroke)"], ["261", "Becken offen"], ["262", "Becken geschlossen"], ["263", "Urogenitaltrauma (isoliert)"]]], ["Extremitäten", [["271", "Extremitäten offen"], ["272", "Extremitäten geschlossen"], ["273", "Hüft- / Schenkelhalsfraktur"], ["274", "Verl. d. Extrem. mit Gefäß-/Nervenverl."], ["275", "Handverletzung"], ["276", "Fingeramputation"], ["277", "Hand- / Extremitäten Amputation"]]], ["Physikalisch/chemisch", [["281", "Verbrennung / Verbrühung"], ["282", "Verätzung"], ["283", "Hochspannungstrauma"], ["284", "Barotrauma/Tauchunfall/Dekompressionskrankheit"], ["285", "Strahlentrauma"], ["286", "Hitzeerschöpfung / Hitzschlag"], ["287", "Unterkühlung / Erfrierung"], ["288", "(Beinahe-) Ertrinken / Badeunfall"]]], ["Gefäße", [["291", "Aortenaneurysma"], ["292", "Extremitätenischaemie (akut)"], ["293", "Aorta ascendens Dissektion (bestätigt)"], ["299", "Gefäßchirurgischer Notfall, sonstiger"]]], ["Atmung", [["311", "Atemnot (unklar) / Atembeschwerden / ARI"], ["312", "Obstruktion (Asthma / COPD)"], ["313", "Hämoptoe / Hämoptysen"], ["314", "(Bolus-) Aspiration"], ["315", "Bronchitis / Pneumonie"], ["316", "Hyperventilation"], ["317", "Lungenödem (nicht kardial)"], ["318", "Spontanpneumothorax"], ["319", "Pneumologischer Notfall, sonstiger"]]], ["Innere", [["321", "Anaphylaxie / Unverträglichkeitsreaktion"], ["322", "Synkope / Kollaps"], ["323", "Hypotonie"], ["324", "Thrombose"], ["325", "Unklares Fieber"], ["326", "Exsikkose"], ["329", "Internistischer Notfall, sonstiger"]]], ["Herz/Kreislauf", [["331", "Unklarer Brust- / Thoraxschmerz"], ["332", "STEMI / „OMI“"], ["333", "NSTEMI, instabile AP"], ["341", "Arrhythmie"], ["342", "Bradykardie"], ["343", "Tachykardie"], ["344", "Elektrounfall (Schwachstrom)"], ["345", "Hypertensiver Notfall / Krise"], ["346", "Kardiogener Schock"], ["347", "Herzinsuffizienz"], ["348", "Lungenembolie"], ["349", "Kardiologischer Notfall, sonstiger"]]], ["Gastroenterologie", [["351", "GI-Blutung"], ["353", "Bauchschmerzen"], ["354", "Gastroenteritis"], ["359", "Gastroenterologischer Notfall, sonstiger"]]], ["Intoxikation", [["360", "Rauchgas / Reizgas (nicht CO)"], ["361", "Alkohol"], ["362", "Drogen / Rauschgift"], ["363", "sonstige Intoxikation"], ["364", "Lebensmittel"], ["365", "Medikamente"], ["366", "Pflanzenschutzmittel"], ["367", "tierische Gifte"], ["368", "Giftpflanzen"], ["369", "Inhalative Intoxikation, sonstige"], ["370", "Kohlenmonoxid-Vergiftung"]]], ["Infektion", [["371", "Meningitis / Enzephalitis"], ["372", "TBC"], ["373", "Sepsis (Infekt. + qSOFA mind. 2)"], ["374", "Septischer Schock"], ["375", "hochkontagiöse Erkrankung (Sonderiso)"], ["376", "Covid-19 – SARS-CoV 2 (bestätigt)"], ["377", "Covid-19 – SARS-CoV 2 (nicht bestätigt)"], ["378", "SARS-CoV 2 zur Quarantäne"], ["379", "Infektiologischer Notfall, sonstige"]]], ["Stoffwechsel", [["391", "Akuter endokrinologischer Notfall"], ["392", "Hyperglykämie"], ["393", "Hypoglykämie"]]], ["Neurologie", [["411", "Anhaltender epileptischer Anfall"], ["412", "epileptischer Anfall (stattgehabt)"], ["413", "Kopf- / Gesichtsschmerz"], ["414", "Vigilanzminderung / Koma (ohne Trauma)"], ["415", "Schwindel"], ["419", "Neurologischer Notfall, sonstiger"], ["421", "Schlaganfall / Blutung < 24h oder unklar"], ["423", "Schlaganfall / Blutung > 24h"], ["425", "diagnostizierter cerebraler Gefäßverschluss zur Thrombektomie"]]], ["Psychiatrie", [["431", "Suizid, angedroht"], ["432", "Einweisung, psychiatrische"], ["433", "Einweisung (nach LandesPsychKG)"], ["434", "Einweisung (nach LandesPsychKG), mit Fixierung"], ["435", "Akute Verwirrtheit / Delir"]]], ["Pädiatrie", [["511", "pädiatrisch – Atemnot"], ["512", "schwerer Husten (Pseudokrupp)"], ["513", "pädiatrisch – Fieberkrampf"], ["519", "pädiatrischer Notfall, sonstiger"]]], ["Geburtshilfe – präklinische Geburt", [["521", "< 16 SSW"], ["522", "16+0 bis 21+6 SSW"], ["523", "22+0 bis 28+6 SSW"], ["524", "29+0 bis 31+6 SSW"], ["525", "32+0 bis 35+6 SSW und jede Wachstumsstörung des Feten"], ["526", "ab 36+0 SSW"], ["527", "ab 36+0 SSW bei Diabetes"], ["528", "Drillinge bis 32+6 SSW, alle über 3 Mehrlinge"], ["529", "Drillinge ab 33+0 SSW"]]], ["Geburtshilfe – einsetzende Geburt", [["531", "< 16 SSW"], ["532", "16+0 bis 21+6 SSW"], ["533", "22+0 bis 28+6 SSW"], ["534", "29+0 bis 31+6 SSW"], ["535", "32+0 bis 35+6 SSW und jede Wachstumsstörung des Feten"], ["536", "ab 36+0 SSW"], ["537", "ab 36+0 SSW bei Diabetes"], ["538", "Drillinge bis 32+6 SSW, alle über 3 Mehrlinge"], ["539", "Drillinge ab 33+0 SSW"], ["530", "akute fetale Gefährdung, Erstversorgung ggf. in ungeeigneter Klinik"]]], ["Geburtshilfe – Notfall in der Schwangerschaft", [["541", "< 16 SSW"], ["542", "16+0 bis 21+6 SSW"], ["543", "22+0 bis 28+6 SSW"], ["544", "29+0 bis 31+6 SSW"], ["545", "32+0 bis 35+6 SSW und jede Wachstumsstörung des Feten"], ["546", "ab 36+0 SSW"], ["547", "ab 36+0 SSW bei Diabetes"], ["548", "Drillinge bis 32+6 SSW, alle über 3 Mehrlinge"], ["549", "Drillinge ab 33+0 SSW"], ["540", "akute fetale Gefährdung, Erstversorgung ggf. in ungeeigneter Klinik"]]], ["Gynäkologie", [["551", "vaginale Blutung"], ["552", "Unterbauchschmerzen"], ["553", "Sexualdelikt"], ["559", "gynäkologischer Notfall, sonstiger"]]], ["Haut/Urologie", [["701", "Haut- und Geschlechtskrankheiten"], ["711", "Nieren- / Harnleiterkolik"], ["712", "Hodenschmerz"], ["713", "Harnverhalt (akut)"], ["714", "Hämaturie"], ["715", "Katheterwechsel (transurethral)"], ["716", "Katheterwechsel (suprapubisch)"], ["717", "Katheterverlust / -verstopfung"], ["718", "Harnwegsinfekt"], ["719", "urologischer Notfall, sonstiger"]]], ["Auge/HNO/MKG", [["721", "akute Augenerkrankung"], ["729", "Augennotfall, sonstiger"], ["731", "Nasenbluten (Epistaxis) unstillbar"], ["732", "(Nach-) Blutung, HNO, akut"], ["733", "Tracheostoma-Komplikation"], ["739", "HNO Notfall, sonstiger"], ["749", "Mund-Kiefer-Gesicht-Notfall, sonstiger"]]], ["Sonstiges", [["751", "geriatrische Einweisung"], ["779", "sonstige Notfallsituationen"], ["801", "Schmerz / Schwellung Bewegungsapparat (nicht traumatisch)"], ["802", "Schwellung / Abszess, sonstige Lokalisation"], ["809", "Allgemeinmedizin, sonstiger Notfall"]]]];
+const PZC_DRINGLICHKEIT={"1":"1 – Notfallversorgung / sofortige Intervention","2":"2 – stationäre Aufnahme wahrscheinlich","3":"3 – ambulante Versorgung / Ausschluss"};
+function pzcRmiLabel(rmi){for(const [,items] of PZC_RMI)for(const [c,l] of items)if(c===String(rmi))return l;return ""}
+function pzcAgeDigits(alter){const n=Number(alter);if(alter===""||alter==null||!Number.isFinite(n))return null;return String(Math.max(0,Math.min(99,Math.floor(n)))).padStart(2,"0")}
+function pzcBuild(rmi,alter,d){const a=pzcAgeDigits(alter);return rmi&&a!=null&&d?`${rmi}${a}${d}`:""}
+// Vorschlag aus der Notrufabfrage (nur Vorbelegung, frei änderbar)
+function pzcSuggest(answers){
+ const a=answers||{}, e=a.event||"";
+ if(e==="Reanimation")return {rmi:"131",d:"1"};
+ if(e==="Person im Wasser")return {rmi:"288",d:a.waterState==="Bergung"?"2":"1"};
+ if(a.x_massive==="Ja")return {rmi:"214",d:"1"};
+ if(e==="Verkehrsunfall")return {rmi:a.trapped==="ja"?"213":"214",d:a.trapped==="ja"?"1":"2"};
+ if(e==="Feuer / Rauchentwicklung")return {rmi:"360",d:"2"};
+ if(a.b_breath==="Keine normale Atmung"||a.b_breath==="Auffällig")return {rmi:"311",d:"1"};
+ if(a.d_disability==="Krampfanfall / neurologisch auffällig")return {rmi:"412",d:"2"};
+ if(a.d_disability==="Bewusstlos")return {rmi:"414",d:"1"};
+ if(e==="Medizinischer Notfall")return {rmi:"329",d:"2"};
+ return {rmi:"",d:"2"};
+}
+function pzcFieldsHTML(prefix,answers){
+ const sug=pzcSuggest(answers);
+ setTimeout(()=>pzcPreview(prefix),0);
+ return `<div class="formgrid">
+  <div><label>PZC – Rückmeldeindikation (RMI)</label><select id="${prefix}Rmi" onchange="pzcPreview('${prefix}')"><option value="">– keine Angabe –</option>${PZC_RMI.map(([g,items])=>`<optgroup label="${esc(g)}">${items.map(([c,l])=>`<option value="${c}" ${c===sug.rmi?"selected":""}>${c} – ${esc(l)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+  <div><label>Behandlungsdringlichkeit</label><select id="${prefix}Dring" onchange="pzcPreview('${prefix}')">${Object.entries(PZC_DRINGLICHKEIT).map(([k,v])=>`<option value="${k}" ${k===sug.d?"selected":""}>${esc(v)}</option>`).join("")}</select></div>
+ </div>
+ <div class="suggest-compact" style="margin-top:8px">PZC: <b id="${prefix}PzcOut" style="font-size:20px;letter-spacing:2px;color:#111827">–</b> <span class="muted">(RMI + Alter + Dringlichkeit)</span></div>`;
+}
+function pzcRead(prefix){
+ const rmi=document.getElementById(prefix+"Rmi")?.value||"";
+ const d=document.getElementById(prefix+"Dring")?.value||"";
+ const alter=document.getElementById(prefix+"Alter")?.value??"";
+ return {rmi,dringlichkeit:d,pzc:pzcBuild(rmi,alter,d)};
+}
+function pzcPreview(prefix){
+ const out=document.getElementById(prefix+"PzcOut"); if(!out)return;
+ const r=pzcRead(prefix);
+ out.textContent=r.pzc||(r.rmi?"Alter fehlt":"–");
+}
 function openIvenaAssignment(){
  const hospitals=db.ivena;
  const transportUnits=assignableTransportUnits();
@@ -4507,10 +4553,11 @@ function openIvenaAssignment(){
    <div><label>Fachrichtung</label><select id="asgFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div>
    <div><label>Schockraum</label><select id="asgSchock"><option value="nein">S- (nein)</option><option value="ja">S+ (ja)</option></select></div>
    <div><label>Geschlecht</label><select id="asgGender"><option value="M" ${genderMap[pa.patientGender]==="M"?"selected":""}>M</option><option value="W" ${genderMap[pa.patientGender]==="W"?"selected":""}>W</option></select></div>
-   <div><label>Alter</label><input id="asgAlter" type="number" min="0" max="120" placeholder="Jahre" value="${esc(pa.patientAge||"")}"></div>
+   <div><label>Alter</label><input id="asgAlter" type="number" min="0" max="120" placeholder="Jahre" value="${esc(pa.patientAge||"")}" oninput="pzcPreview('asg')"></div>
    <div><label>Notarzt</label><select id="asgNA" onchange="toggleAsgNefField()"><option value="nein">NA- (ohne)</option><option value="ja">NA+ (mit)</option></select></div>
    <div><label>Transportmittel (Status 4)</label><select id="asgTransport">${transportUnits.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}${u.location?` (${esc(u.location)})`:""}</option>`).join("")}</select></div>
   </div>
+  ${pzcFieldsHTML("asg",pa)}
   <div id="asgNefWrap" class="hidden">
    <label style="margin-top:10px">Begleitendes NEF/RTH (optional, Status 4)</label>
    <select id="asgNef"><option value="">– kein separates Begleitfahrzeug –</option>${nefUnits.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}${u.location?` (${esc(u.location)})`:""}</option>`).join("")}</select>
@@ -4543,6 +4590,7 @@ function saveIvenaAssignment(){
    }
  }
  const etaRaw=document.getElementById("asgEta")?.value;
+ const pz=pzcRead("asg");
  const vehicles=companion?[transport,companion]:[transport];
  vehicles.forEach(u=>setUnitStatus(u,"7"));
  db.ivenaAssignments=db.ivenaAssignments||[];
@@ -4550,6 +4598,7 @@ function saveIvenaAssignment(){
    id:Date.now(),
    hospitalId:hospital.id, hospitalName:hospital.name,
    fach, schockraum, geschlecht, alter, na,
+   rmi:pz.rmi, dringlichkeit:pz.dringlichkeit, pzc:pz.pzc,
    vehicleIds:vehicles.map(u=>u.id),
    vehicleLabels:vehicles.map(u=>`${u.opta||u.name} (${u.type})`),
    eta: etaRaw?new Date(etaRaw).toISOString():null,
@@ -4574,7 +4623,7 @@ function ivenaZuweisungen(){
  document.getElementById("app").innerHTML=`<div class="card">
   <div class="row between"><div><h2>📋 IVENA-Zuweisungen</h2><p class="muted">Simulierte Patiententransporte: Fahrzeug(e) → Zielklinik. Rein trainingsintern, keine Verbindung zum realen IVENA.</p></div><button class="primary" onclick="openIvenaAssignment()">➕ Neue Zuweisung</button></div>
   <div style="overflow:auto"><table><thead><tr>
-   <th>OPTA / Fahrzeug</th><th>Zielklinik</th><th>Fachrichtung</th><th>S</th><th>NA</th><th>Geschlecht/Alter</th><th>Eintreffzeit</th><th></th>
+   <th>OPTA / Fahrzeug</th><th>PZC</th><th>Zielklinik</th><th>Fachrichtung</th><th>S</th><th>NA</th><th>Geschlecht/Alter</th><th>Eintreffzeit</th><th></th>
   </tr></thead><tbody>
    ${list.length?list.map(a=>{
      const hospital=db.ivena.find(h=>String(h.id)===String(a.hospitalId));
@@ -4582,6 +4631,7 @@ function ivenaZuweisungen(){
      const etaTxt=a.eta?new Date(a.eta).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"–";
      return `<tr>
       <td>${a.vehicleLabels.map(l=>`<div>${esc(l)}</div>`).join("")}</td>
+      <td>${a.pzc?`<b style="letter-spacing:1px">${esc(a.pzc)}</b><br><small class="muted">${esc(pzcRmiLabel(a.rmi))}</small>`:`<span class="muted">–</span>`}</td>
       <td>${esc(a.hospitalName)}</td>
       <td><span class="status ${closed?"s6":"s2"}">${esc(a.fach)}${closed?" · abgemeldet!":" · frei"}</span></td>
       <td>${a.schockraum?"S+":"S-"}</td>
@@ -4590,7 +4640,7 @@ function ivenaZuweisungen(){
       <td>${etaTxt}</td>
       <td><button onclick="deleteIvenaAssignment(${a.id})">🗑️</button></td>
      </tr>`;
-   }).join(""):`<tr><td colspan="8" class="muted">Noch keine Zuweisungen.</td></tr>`}
+   }).join(""):`<tr><td colspan="9" class="muted">Noch keine Zuweisungen.</td></tr>`}
   </tbody></table></div>
  </div>`;
 }

@@ -625,3 +625,12 @@ Version 4.04:
   iPhone kein automatisches Hineinzoomen mehr aus, Meldungen erscheinen oberhalb der Leiste.
   Geprüft mit 390 px Breite auf allen Seiten inkl. Notruf, Rettungsmittel-/AAO-Formular und
   Monitor-QR. iPad-/Monitor-Ansicht unverändert.
+
+Version 4.05:
+- NEU: PZC (Patientenzuweisungscode) bei IVENA-Zuweisung (Leitstelle) und IVENA-Anmeldung/-
+  Zuweisung am Fahrzeugterminal: Auswahl der Rückmeldeindikation (RMI, gruppiert) und der
+  Behandlungsdringlichkeit 1/2/3; der 6-stellige PZC (RMI + Alter + Dringlichkeit, Säugling = 00)
+  wird live angezeigt, gespeichert und in der Liste der IVENA-Zuweisungen mit Klartext gezeigt.
+  RMI und Dringlichkeit werden aus der Notrufabfrage vorbelegt (z. B. Reanimation → 131/1).
+- Quelle der RMI-Liste: "PZC-Liste Version 1.0, 11.11.2022 (Brandenburg / Bund)". Die in
+  Niedersachsen gültige IVENA-Liste war nicht abrufbar und kann in Einzelcodes abweichen.
