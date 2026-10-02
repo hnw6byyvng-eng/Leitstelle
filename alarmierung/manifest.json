@@ -1,0 +1,17 @@
+{
+  "name": "JET Alarmierung",
+  "short_name": "Alarmierung",
+  "description": "Alarmierung und Textnachrichten an Trupps – Leitstelle und Empfangsgeräte",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f141a",
+  "theme_color": "#b0050f",
+  "lang": "de",
+  "icons": [
+    { "src": "../icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "../icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
