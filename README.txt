@@ -634,3 +634,13 @@ Version 4.05:
   RMI und Dringlichkeit werden aus der Notrufabfrage vorbelegt (z. B. Reanimation → 131/1).
 - Quelle der RMI-Liste: "PZC-Liste Version 1.0, 11.11.2022 (Brandenburg / Bund)". Die in
   Niedersachsen gültige IVENA-Liste war nicht abrufbar und kann in Einzelcodes abweichen.
+
+Version 4.06:
+- IVENA-Anmeldung/-Zuweisung an den externen Geräten (Fahrzeugterminals): Es stehen nur noch die
+  Kliniken des Szenarios zur Auswahl, in dem der QR-Code erzeugt wurde – mit dem aktuellen Stand
+  der Leitstelle (Abmeldungen, eigene Kliniken). Vorher kam die Liste aus einem für alle Szenarien
+  gemeinsamen Speicherplatz bzw. aus dem Szenario, das zuletzt auf dem Handy offen war.
+  Fahrzeug-, Nachbar- und Anrufer-Links enthalten dafür jetzt das Szenario. Bereits verteilte
+  QR-Codes funktionieren weiter wie bisher; für die neue Klinik-Auswahl bitte neu erzeugen.
+- PZC-Liste IVENA Niedersachsen: ivena-niedersachsen.de war von hier aus nicht erreichbar,
+  Liste bleibt vorerst die Bundes-Version 1.0.

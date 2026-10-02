@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.05</span>
+ <span id="versionTag">v4.06</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -437,7 +437,8 @@ function switchViewLink(){
  else localStorage.removeItem("dlrg-jet-device");
  location.reload();
 }
-let currentScenarioId=IS_MONITOR&&SCENARIOS[MONITOR_PARAMS.scenario]?MONITOR_PARAMS.scenario:localStorage.getItem("dlrg-jet-scenario");
+const URL_SCENARIO=new URLSearchParams(location.search).get("scenario");
+let currentScenarioId=(IS_MONITOR||isTerminalLink)&&SCENARIOS[URL_SCENARIO]?URL_SCENARIO:localStorage.getItem("dlrg-jet-scenario");
 if(!isTerminalLink && !IS_MONITOR && (!currentScenarioId||!SCENARIOS[currentScenarioId])){
  document.getElementById("app").innerHTML=`<div class="card" style="max-width:480px;margin:40px auto">
   <h2>Szenario wählen</h2>
@@ -3362,6 +3363,7 @@ function vehicleURL(u){
  const base=location.origin+location.pathname;
  const q=new URLSearchParams();
  q.set("vehicle",String(u.id));
+ q.set("scenario",currentScenarioId);
  q.set("sid",db.cloud?.sessionId||"");
  if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
  return `${base}?${q.toString()}`;
@@ -3418,6 +3420,7 @@ function neighborTerminalURL(nu){
  const base=location.origin+location.pathname;
  const q=new URLSearchParams();
  q.set("neighbor",String(nu.id));
+ q.set("scenario",currentScenarioId);
  q.set("sid",db.cloud?.sessionId||"");
  if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
  return `${base}?${q.toString()}`;
@@ -3449,6 +3452,7 @@ function callerURL(callerId){
  const base=location.origin+location.pathname;
  const q=new URLSearchParams();
  q.set("caller",String(callerId));
+ q.set("scenario",currentScenarioId);
  q.set("sid",db.cloud?.sessionId||"");
  if(db.cloud?.databaseURL)q.set("db",cleanDatabaseURL(db.cloud.databaseURL));
  return `${base}?${q.toString()}`;
@@ -3653,6 +3657,30 @@ async function vehicleFetch(dburl,sid,path,method="GET",data=null){
   if(!r.ok)throw new Error(`HTTP ${r.status}`);
   return await r.json();
  }catch(e){console.warn(e);return null}
+}
+// Kliniken für Fahrzeugterminals: ausschließlich die des Szenarios aus dem Link (Live-Stand der
+// Leitstelle aus dem Monitor-Sync; sonst die Standardkliniken des Szenarios). Alte Links ohne
+// Szenario nutzen weiterhin den früheren gemeinsamen Stand.
+async function vehicleLoadScenarioIvena(dburl,sid){
+ const sc=new URLSearchParams(location.search).get("scenario");
+ if(sc&&SCENARIOS[sc]){
+   try{
+     const node=await vehicleFetch(dburl,sid,`lst/${encodeURIComponent(sc)}/ivena`);
+     const dec=str=>{const i=typeof str==="string"?str.indexOf("|"):-1;return i<0?null:JSON.parse(str.slice(i+1))};
+     if(node&&typeof node.o==="string"&&node.i){
+       const order=dec(node.o)||[];
+       const list=order.map(id=>dec(node.i[encodeURIComponent(String(id)).replace(/\./g,"%2E")])).filter(Boolean);
+       if(list.length)return list;
+     }else if(node&&typeof node.v==="string"){
+       const v=dec(node.v); if(Array.isArray(v)&&v.length)return v;
+     }
+   }catch(e){console.warn("IVENA Szenario",e)}
+   return (SCENARIOS[sc].defaults.ivena||[]).map(h=>({...h}));
+ }
+ const remoteIvena=await vehicleFetch(dburl,sid,"ivena");
+ if(Array.isArray(remoteIvena))return remoteIvena;
+ if(remoteIvena&&typeof remoteIvena==="object")return Object.values(remoteIvena).filter(Boolean);
+ return null;
 }
 let vehiclePollTimer=null, vehicleIvenaCache=null, vehicleUnitsCache=null, vehicleKnownCallIds=null, vehicleKnownSdsIds=null;
 // Liegt ein Fahrzeug-/Nachbar-/Anrufer-Terminal mit gesperrtem Bildschirm oder im Hintergrund-Tab,
@@ -3939,9 +3967,7 @@ async function renderVehicleTerminal(unitId,dburl,sid){
    }
    vehicleKnownSdsIds=sdsIds;
    checkVoiceMessages(dburl,sid,(unit?.opta||local?.opta||local?.name||unitId)+"");
-   const remoteIvena=await vehicleFetch(dburl,sid,"ivena");
-   if(Array.isArray(remoteIvena))vehicleIvenaCache=remoteIvena;
-   else if(remoteIvena&&typeof remoteIvena==="object")vehicleIvenaCache=Object.values(remoteIvena).filter(Boolean);
+   vehicleIvenaCache=await vehicleLoadScenarioIvena(dburl,sid);
    const remoteUnits=await vehicleFetch(dburl,sid,"units");
    if(remoteUnits&&typeof remoteUnits==="object")vehicleUnitsCache=Object.values(remoteUnits).filter(Boolean);
    const led=document.getElementById("vehicleLiveLed");
