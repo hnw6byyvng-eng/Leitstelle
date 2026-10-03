@@ -649,3 +649,16 @@ Version 4.07:
 - PZC wird nicht mehr aus der Notrufabfrage vorbelegt. RMI und Dringlichkeit stehen auf
   "bitte wählen". Am Fahrzeugterminal ist der PZC Pflicht: Ohne RMI, Dringlichkeit und Alter
   lässt sich nicht anmelden/zuweisen. In der Leitstelle bleibt er optional.
+
+Version 4.07:
+- PZC-Liste auf IVENA Niedersachsen umgestellt (ivena-niedersachsen.de/pzc.php, Screenshot vom
+  Nutzer): inkl. 14x ECMO, 60x Transporte, 650 Schlaganfall-Projekt LVO und den je Code
+  erlaubten Dringlichkeiten (rote/gelbe/grüne Punkte). Hinweis: Screenshot war sehr klein;
+  Begriffe wurden sorgfältig abgeschrieben, Einzelfehler bitte melden.
+- Kein vorbelegter PZC mehr – die Besatzung wählt selbst. Neue Auswahl:
+  • PZC direkt eintippen (6 Ziffern) → Begriff, Alter und Dringlichkeit werden übernommen,
+  • Suchbegriff (Text oder Codeanfang),
+  • Fachrichtung/Gruppe wählen und darin blättern,
+  • Dringlichkeit: nur die für den Code erlaubten Stufen sind wählbar.
+- Am Fahrzeugterminal ist ein vollständiger PZC jetzt Pflicht für Anmeldung/Zuweisung; in der
+  Leitstelle bleibt er optional.
