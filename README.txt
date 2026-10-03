@@ -673,3 +673,10 @@ Version 4.08:
   Begriff und den Kürzeln (+ rot hervorgehoben), ebenso in den IVENA-Zuweisungen.
 - Hinweis: Die genaue Kürzel-Darstellung des echten IVENA konnte ich nicht offiziell belegen;
   die Kürzel sind daran angelehnt.
+
+Version 4.09:
+- Auswahlfeld "Fachrichtung" bei IVENA-Anmeldung/-Zuweisung entfernt. Die Fachrichtung ergibt sich
+  jetzt aus der PZC-Gruppe (z. B. 42x → Neurologie / Stroke Unit, 2xx → Chirurgie, 13x →
+  Schockraum) und wird bei der Code-Auswahl angezeigt; sie dient weiter zur Prüfung, ob die Klinik
+  diese Fachrichtung abgemeldet hat. Codes ohne passende Fachrichtung (z. B. 60x Transporte,
+  70x Haut, 74x MKG, 77x, 80x) werden ohne Fachrichtung gespeichert.
