@@ -680,3 +680,12 @@ Version 4.09:
   Schockraum) und wird bei der Code-Auswahl angezeigt; sie dient weiter zur Prüfung, ob die Klinik
   diese Fachrichtung abgemeldet hat. Codes ohne passende Fachrichtung (z. B. 60x Transporte,
   70x Haut, 74x MKG, 77x, 80x) werden ohne Fachrichtung gespeichert.
+
+Version 4.10:
+- PZC-Eingabe auf ein einziges Feld "PZC" reduziert (vorher: Alter, PZC direkt, Dringlichkeit,
+  Suchbegriff, Gruppe). Antippen öffnet die komplette Liste mit allen Gruppen aufgeklappt.
+  Ziffern tippen = PZC direkt (Liste filtert auf den Code), Text tippen = Suche nach Begriff
+  oder Gruppe. Antippen eines Codes übernimmt die RMI; danach Alter (2 Ziffern) und
+  Dringlichkeit (1 Ziffer) dahinter tippen. Unter dem Feld steht, was gewählt ist und was noch
+  fehlt; nicht erlaubte Dringlichkeiten werden rot gemeldet.
+- Kein eigenes Altersfeld mehr – das Alter kommt nur aus dem PZC.

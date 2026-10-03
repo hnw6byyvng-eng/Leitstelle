@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.09</span>
+ <span id="versionTag">v4.10</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4587,74 +4587,88 @@ function pzcAgeDigits(alter){const n=Number(alter);if(alter===""||alter==null||!
 function pzcBuild(rmi,alter,d){const a=pzcAgeDigits(alter);return rmi&&a!=null&&d?`${rmi}${a}${d}`:""}
 const PZC_DOT={"1":"#d71920","2":"#f2c200","3":"#5cc85c"};
 function pzcDots(allowed){return ["1","2","3"].map(k=>`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:2px;background:${allowed.includes(k)?PZC_DOT[k]:"transparent"}"></span>`).join("")}
-// PZC-Auswahl: kein Vorschlag – der PZC wird von der Besatzung selbst gewählt: direkt eintippen,
-// per Suchbegriff finden oder über die Gruppe (Fachrichtung) blättern.
+// PZC-Auswahl: ein einziges Feld. Antippen öffnet die komplette Liste (alle Gruppen aufgeklappt).
+// Ziffern = PZC direkt (RMI + 2 Ziffern Alter + Dringlichkeit), Text = Suche nach Begriff/Gruppe.
+// Antippen eines Codes übernimmt die RMI ins Feld; Alter und Dringlichkeit werden dahinter getippt.
 function pzcFieldsHTML(prefix){
- setTimeout(()=>{pzcRenderList(prefix);pzcPreview(prefix)},0);
- return `<div style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px">
-  <b>PZC (Patientenzuweisungscode)</b>
-  <input type="hidden" id="${prefix}Rmi" value="">
-  <div class="formgrid">
-   <div><label>Alter (Jahre, Säugling = 0)</label><input id="${prefix}Alter" type="number" min="0" max="120" placeholder="aus PZC oder eingeben" oninput="pzcPreview('${prefix}')"></div>
-   <div><label>PZC direkt eingeben</label><input id="${prefix}PzcDirect" inputmode="numeric" maxlength="6" placeholder="z. B. 421821" oninput="pzcDirectInput('${prefix}')"></div>
-   <div><label>Behandlungsdringlichkeit</label><select id="${prefix}Dring" onchange="pzcPreview('${prefix}')"><option value="">– wählen –</option>${Object.entries(PZC_DRINGLICHKEIT).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join("")}</select></div>
-   <div><label>Suchbegriff</label><input id="${prefix}PzcSearch" placeholder="z. B. Schlaganfall, Hypo, 288" oninput="pzcRenderList('${prefix}')"></div>
-   <div><label>Fachrichtung / Gruppe</label><select id="${prefix}PzcGroup" onchange="pzcRenderList('${prefix}')"><option value="">– alle Gruppen –</option>${PZC_RMI.map(([g])=>`<option value="${esc(g)}">${esc(g)}</option>`).join("")}</select></div>
-  </div>
-  <div id="${prefix}PzcList" style="max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px;background:#fff"></div>
-  <div class="suggest-compact" style="margin-top:8px"><span id="${prefix}PzcChosen" class="muted">Noch kein Code gewählt.</span><br>PZC: <b id="${prefix}PzcOut" style="font-size:20px;letter-spacing:2px;color:#111827">–</b> <span class="muted">(RMI + Alter + Dringlichkeit)</span></div>
+ setTimeout(()=>pzcPreview(prefix),0);
+ return `<div style="margin-top:10px;position:relative">
+  <label>PZC</label>
+  <input type="hidden" id="${prefix}Rmi" value=""><input type="hidden" id="${prefix}Alter" value=""><input type="hidden" id="${prefix}Dring" value="">
+  <input id="${prefix}PzcInput" autocomplete="off" placeholder="z. B. 421821 oder Begriff" style="font-size:18px;letter-spacing:1px"
+    onfocus="pzcOpenList('${prefix}')" oninput="pzcInput('${prefix}')" onblur="setTimeout(()=>pzcCloseList('${prefix}'),200)">
+  <div id="${prefix}PzcList" class="hidden" style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:4px;background:#fff;box-shadow:0 6px 18px #0002"></div>
+  <div class="suggest-compact" style="margin-top:6px"><span id="${prefix}PzcChosen" class="muted">Noch kein PZC.</span></div>
  </div>`;
 }
+function pzcOpenList(prefix){const box=document.getElementById(prefix+"PzcList");if(box){box.classList.remove("hidden");pzcRenderList(prefix)}}
+function pzcCloseList(prefix){document.getElementById(prefix+"PzcList")?.classList.add("hidden")}
 function pzcRenderList(prefix){
  const box=document.getElementById(prefix+"PzcList"); if(!box)return;
- const q=String(document.getElementById(prefix+"PzcSearch")?.value||"").trim().toLowerCase();
- const g=document.getElementById(prefix+"PzcGroup")?.value||"";
+ const raw=String(document.getElementById(prefix+"PzcInput")?.value||"").trim();
+ const digits=/^[\d\s]+$/.test(raw)?raw.replace(/\s/g,""):"";
+ const q=digits?digits.slice(0,3):raw.toLowerCase();
  const sel=document.getElementById(prefix+"Rmi")?.value||"";
  let html="";
  for(const [grp,items] of PZC_RMI){
-   if(g&&grp!==g)continue;
-   const hits=items.filter(([c,l])=>!q||c.startsWith(q)||l.toLowerCase().includes(q)||grp.toLowerCase().includes(q));
+   const hits=items.filter(([c,l])=>!q||(digits?c.startsWith(q):(l.toLowerCase().includes(q)||grp.toLowerCase().includes(q)||c.startsWith(q))));
    if(!hits.length)continue;
    html+=`<div style="background:#f1f5f9;font-weight:800;font-size:12px;padding:5px 8px;position:sticky;top:0">${esc(grp)}</div>`;
-   html+=hits.map(([c,l,d])=>`<div onclick="pzcPick('${prefix}','${c}')" style="padding:7px 8px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:8px;align-items:center;${c===sel?"background:#fff1c2;font-weight:700":""}"><span style="font-variant-numeric:tabular-nums;min-width:30px">${c}</span><span style="min-width:36px">${pzcDots(d)}</span><span>${esc(l)}</span></div>`).join("");
+   html+=hits.map(([c,l,d])=>`<div onmousedown="event.preventDefault();pzcPick('${prefix}','${c}')" style="padding:8px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:8px;align-items:center;${c===sel?"background:#fff1c2;font-weight:700":""}"><span style="font-variant-numeric:tabular-nums;min-width:30px">${c}</span><span style="min-width:36px">${pzcDots(d)}</span><span>${esc(l)}</span></div>`).join("");
  }
  box.innerHTML=html||`<div class="muted" style="padding:8px">Kein passender Code gefunden.</div>`;
 }
 function pzcPick(prefix,code){
- const f=pzcFind(code); if(!f)return;
- document.getElementById(prefix+"Rmi").value=code;
- const ds=document.getElementById(prefix+"Dring");
- if(ds){
-   [...ds.options].forEach(o=>{if(o.value)o.disabled=!f.allowed.includes(o.value)});
-   if(ds.value&&!f.allowed.includes(ds.value))ds.value="";
-   if(!ds.value&&f.allowed.length===1)ds.value=f.allowed;
- }
- pzcRenderList(prefix); pzcPreview(prefix);
+ const el=document.getElementById(prefix+"PzcInput"); if(!el)return;
+ const cur=el.value.replace(/\s/g,"");
+ // vorhandene Alter-/Dringlichkeitsziffern behalten, falls schon ein PZC getippt war
+ el.value=code+(/^\d{3,6}$/.test(cur)?cur.slice(3):"");
+ pzcInput(prefix);
+ pzcCloseList(prefix);
+ el.focus();
 }
-function pzcDirectInput(prefix){
- const el=document.getElementById(prefix+"PzcDirect");
- const v=String(el.value||"").replace(/\D/g,"").slice(0,6); el.value=v;
- if(v.length>=3){
-   if(pzcFind(v.slice(0,3)))pzcPick(prefix,v.slice(0,3));
-   else{document.getElementById(prefix+"Rmi").value="";pzcPreview(prefix);}
+function pzcInput(prefix){
+ const el=document.getElementById(prefix+"PzcInput"); if(!el)return;
+ const raw=el.value, compact=raw.replace(/\s/g,"");
+ const set=(id,v)=>{const x=document.getElementById(prefix+id);if(x)x.value=v};
+ set("Rmi","");set("Alter","");set("Dring","");
+ if(/^\d+$/.test(compact)){
+   if(compact.length>6)el.value=compact.slice(0,6);
+   const v=compact.slice(0,6), f=pzcFind(v.slice(0,3));
+   if(f){
+     set("Rmi",f.code);
+     if(v.length>=5)set("Alter",String(Number(v.slice(3,5))));
+     if(v.length===6&&f.allowed.includes(v[5]))set("Dring",v[5]);
+   }
  }
- if(v.length>=5){const a=document.getElementById(prefix+"Alter");if(a)a.value=String(Number(v.slice(3,5)));}
- if(v.length===6){const ds=document.getElementById(prefix+"Dring");const f=pzcFind(v.slice(0,3));if(ds&&f&&f.allowed.includes(v[5]))ds.value=v[5];}
+ const box=document.getElementById(prefix+"PzcList");
+ if(box&&!box.classList.contains("hidden"))pzcRenderList(prefix);
  pzcPreview(prefix);
 }
 function pzcRead(prefix){
  const rmi=document.getElementById(prefix+"Rmi")?.value||"";
  const d=document.getElementById(prefix+"Dring")?.value||"";
  const alter=document.getElementById(prefix+"Alter")?.value??"";
- return {rmi,dringlichkeit:d,pzc:pzcBuild(rmi,alter,d)};
+ return {rmi,dringlichkeit:d,alter,pzc:pzcBuild(rmi,alter,d)};
 }
 function pzcPreview(prefix){
- const out=document.getElementById(prefix+"PzcOut"); if(!out)return;
+ const ch=document.getElementById(prefix+"PzcChosen"); if(!ch)return;
+ const el=document.getElementById(prefix+"PzcInput");
+ const compact=String(el?.value||"").replace(/\s/g,"");
  const r=pzcRead(prefix), f=pzcFind(r.rmi);
- const ch=document.getElementById(prefix+"PzcChosen");
- const direct=document.getElementById(prefix+"PzcDirect")?.value||"";
- if(ch)ch.innerHTML=f?`Gewählt: <b>${f.code} – ${esc(f.label)}</b> <span class="muted">(${esc(f.group)})</span>${pzcFachrichtung(f.code)?` · Fachrichtung: <b>${esc(pzcFachrichtung(f.code))}</b>`:""} · erlaubte Dringlichkeit: ${f.allowed.split("").join(" / ")}`:(direct.length>=3?`<span style="color:#d71920">RMI ${esc(direct.slice(0,3))} gibt es in der Liste nicht.</span>`:`<span class="muted">Noch kein Code gewählt.</span>`);
- out.textContent=r.pzc||(r.rmi?(r.dringlichkeit?"Alter fehlt":"Dringlichkeit fehlt"):"–");
+ if(!compact){ch.innerHTML=`<span class="muted">Noch kein PZC.</span>`;return}
+ if(!/^\d+$/.test(compact)){ch.innerHTML=`<span class="muted">Suche … Code antippen zum Übernehmen.</span>`;return}
+ if(compact.length>=3&&!f){ch.innerHTML=`<span style="color:#d71920">RMI ${esc(compact.slice(0,3))} gibt es in der Liste nicht.</span>`;return}
+ if(!f){ch.innerHTML=`<span class="muted">RMI vervollständigen …</span>`;return}
+ const fach=pzcFachrichtung(f.code);
+ let need="";
+ if(compact.length<5)need=`Noch 2 Ziffern Alter eintippen (Säugling = 00).`;
+ else if(compact.length<6)need=`Noch Dringlichkeit eintippen: ${f.allowed.split("").join(" / ")}.`;
+ else if(!r.dringlichkeit)need=`<span style="color:#d71920">Dringlichkeit ${esc(compact[5])} ist für ${f.code} nicht erlaubt (erlaubt: ${f.allowed.split("").join(" / ")}).</span>`;
+ ch.innerHTML=`<b>${f.code} – ${esc(f.label)}</b> <span class="muted">(${esc(f.group)}${fach?` · ${esc(fach)}`:""})</span>`
+   +(r.alter!==""?` · Alter <b>${esc(r.alter)}</b>`:"")
+   +(r.dringlichkeit?` · Dringlichkeit <b>${esc(PZC_DRINGLICHKEIT[r.dringlichkeit])}</b>`:"")
+   +(r.pzc?` · <span style="color:#166534;font-weight:800">✔ PZC ${esc(r.pzc)}</span>`:`<br>${need}`);
 }
 function openIvenaAssignment(){
  const hospitals=db.ivena;
