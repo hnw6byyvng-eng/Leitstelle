@@ -644,3 +644,8 @@ Version 4.06:
   QR-Codes funktionieren weiter wie bisher; für die neue Klinik-Auswahl bitte neu erzeugen.
 - PZC-Liste IVENA Niedersachsen: ivena-niedersachsen.de war von hier aus nicht erreichbar,
   Liste bleibt vorerst die Bundes-Version 1.0.
+
+Version 4.07:
+- PZC wird nicht mehr aus der Notrufabfrage vorbelegt. RMI und Dringlichkeit stehen auf
+  "bitte wählen". Am Fahrzeugterminal ist der PZC Pflicht: Ohne RMI, Dringlichkeit und Alter
+  lässt sich nicht anmelden/zuweisen. In der Leitstelle bleibt er optional.

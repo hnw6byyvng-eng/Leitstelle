@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.06</span>
+ <span id="versionTag">v4.07</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4115,6 +4115,7 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  const na=document.getElementById("vAsgNA")?.value==="ja";
  const etaRaw=document.getElementById("vAsgEta")?.value;
  const pz=pzcRead("vAsg");
+ if(!pz.pzc){toast("Bitte PZC vollständig angeben: RMI, Dringlichkeit und Alter");pzcPreview("vAsg");return}
  let vehicleIds=[unitId];
  let vehicleLabels=[`${local?.opta||local?.name||unitId} (${local?.type||"?"})`];
  if(isAnnounceType){
@@ -4540,12 +4541,13 @@ function pzcSuggest(answers){
  if(e==="Medizinischer Notfall")return {rmi:"329",d:"2"};
  return {rmi:"",d:"2"};
 }
+// Keine Vorbelegung: RMI und Dringlichkeit wählt die Besatzung selbst (v4.07).
 function pzcFieldsHTML(prefix,answers){
- const sug=pzcSuggest(answers);
+ const sug={rmi:"",d:""};
  setTimeout(()=>pzcPreview(prefix),0);
  return `<div class="formgrid">
-  <div><label>PZC – Rückmeldeindikation (RMI)</label><select id="${prefix}Rmi" onchange="pzcPreview('${prefix}')"><option value="">– keine Angabe –</option>${PZC_RMI.map(([g,items])=>`<optgroup label="${esc(g)}">${items.map(([c,l])=>`<option value="${c}" ${c===sug.rmi?"selected":""}>${c} – ${esc(l)}</option>`).join("")}</optgroup>`).join("")}</select></div>
-  <div><label>Behandlungsdringlichkeit</label><select id="${prefix}Dring" onchange="pzcPreview('${prefix}')">${Object.entries(PZC_DRINGLICHKEIT).map(([k,v])=>`<option value="${k}" ${k===sug.d?"selected":""}>${esc(v)}</option>`).join("")}</select></div>
+  <div><label>PZC – Rückmeldeindikation (RMI)</label><select id="${prefix}Rmi" onchange="pzcPreview('${prefix}')"><option value="">– bitte wählen –</option>${PZC_RMI.map(([g,items])=>`<optgroup label="${esc(g)}">${items.map(([c,l])=>`<option value="${c}" ${c===sug.rmi?"selected":""}>${c} – ${esc(l)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+  <div><label>Behandlungsdringlichkeit</label><select id="${prefix}Dring" onchange="pzcPreview('${prefix}')"><option value="">– bitte wählen –</option>${Object.entries(PZC_DRINGLICHKEIT).map(([k,v])=>`<option value="${k}" ${k===sug.d?"selected":""}>${esc(v)}</option>`).join("")}</select></div>
  </div>
  <div class="suggest-compact" style="margin-top:8px">PZC: <b id="${prefix}PzcOut" style="font-size:20px;letter-spacing:2px;color:#111827">–</b> <span class="muted">(RMI + Alter + Dringlichkeit)</span></div>`;
 }
@@ -4558,7 +4560,7 @@ function pzcRead(prefix){
 function pzcPreview(prefix){
  const out=document.getElementById(prefix+"PzcOut"); if(!out)return;
  const r=pzcRead(prefix);
- out.textContent=r.pzc||(r.rmi?"Alter fehlt":"–");
+ out.textContent=r.pzc||(!r.rmi?"RMI fehlt":!r.dringlichkeit?"Dringlichkeit fehlt":"Alter fehlt");
 }
 function openIvenaAssignment(){
  const hospitals=db.ivena;
