@@ -689,3 +689,9 @@ Version 4.10:
   Dringlichkeit (1 Ziffer) dahinter tippen. Unter dem Feld steht, was gewählt ist und was noch
   fehlt; nicht erlaubte Dringlichkeiten werden rot gemeldet.
 - Kein eigenes Altersfeld mehr – das Alter kommt nur aus dem PZC.
+
+Version 4.11:
+- Eintreffzeit bei IVENA-Anmeldung/-Zuweisung: Datum ist vorausgefüllt (heute), die Uhrzeit muss
+  selbst gewählt werden (ohne Uhrzeit keine Anmeldung). Ab 23:45 Uhr steht das Datum automatisch
+  auf dem nächsten Tag und die Uhrzeit auf 00:00. Vorher war "jetzt + 20 Minuten" vorbelegt.
+- Doppelte PZC-Prüfung am Fahrzeugterminal entfernt (kein Funktionsunterschied).

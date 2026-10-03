@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.10</span>
+ <span id="versionTag">v4.11</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4091,8 +4091,7 @@ async function openVehicleIvenaAssignment(unitId,dburl,sid,callId){
   </div>
   ${pzcFieldsHTML("vAsg")}
   ${ivenaFlagsHTML("vAsg")}
-  <label style="margin-top:10px">Voraussichtliche Eintreffzeit</label>
-  <input id="vAsgEta" type="datetime-local" value="${iso}">
+  ${etaFieldsHTML("vAsg")}
   <div class="row" style="margin-top:14px">
    <button onclick="renderVehicleTerminal('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">Abbrechen</button>
    <button class="primary" onclick="saveVehicleIvenaAssignment('${unitId}','${dburl.replace(/'/g,"\\'")}','${sid.replace(/'/g,"\\'")}')">✅ ${isAnnounceType?"Anmelden":"Zuweisen"}</button>
@@ -4108,10 +4107,10 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
  const zus=ivenaFlagsRead("vAsg");
  const schockraum=zus.flags.s, geschlecht=zus.geschlecht, na=zus.flags.n;
  const alter=document.getElementById("vAsgAlter")?.value??"";
- const etaRaw=document.getElementById("vAsgEta")?.value;
+ const eta=etaRead("vAsg");
  const pz=pzcRead("vAsg");
- if(!pz.pzc){toast("Bitte PZC vollständig angeben (Code, Alter, Dringlichkeit)");return}
  if(!pz.pzc){toast("Bitte PZC vollständig angeben: RMI, Dringlichkeit und Alter");pzcPreview("vAsg");return}
+ if(!eta){toast("Bitte die Uhrzeit der Eintreffzeit wählen");return}
  let vehicleIds=[unitId];
  let vehicleLabels=[`${local?.opta||local?.name||unitId} (${local?.type||"?"})`];
  if(isAnnounceType){
@@ -4136,7 +4135,7 @@ async function saveVehicleIvenaAssignment(unitId,dburl,sid){
    fach, schockraum, geschlecht, alter, na,
    rmi:pz.rmi, dringlichkeit:pz.dringlichkeit, pzc:pz.pzc, flags:zus.flags, info:zus.info,
    vehicleIds, vehicleLabels,
-   eta: etaRaw?new Date(etaRaw).toISOString():null,
+   eta,
    createdAt:new Date().toISOString(),
    source:"vehicle"
  };
@@ -4590,6 +4589,20 @@ function pzcDots(allowed){return ["1","2","3"].map(k=>`<span style="display:inli
 // PZC-Auswahl: ein einziges Feld. Antippen öffnet die komplette Liste (alle Gruppen aufgeklappt).
 // Ziffern = PZC direkt (RMI + 2 Ziffern Alter + Dringlichkeit), Text = Suche nach Begriff/Gruppe.
 // Antippen eines Codes übernimmt die RMI ins Feld; Alter und Dringlichkeit werden dahinter getippt.
+// Eintreffzeit: Datum ist vorausgefüllt (heute), die Uhrzeit muss selbst gewählt werden.
+// Ab 23:45 Uhr springt das Datum automatisch auf morgen und die Uhrzeit auf 00:00.
+function etaFieldsHTML(prefix){
+ const now=new Date(); let d=new Date(now), t="";
+ if(now.getHours()===23&&now.getMinutes()>=45){d.setDate(d.getDate()+1);t="00:00"}
+ const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+ return `<label style="margin-top:10px">Voraussichtliche Eintreffzeit</label>
+  <div class="row" style="flex-wrap:nowrap"><input id="${prefix}EtaDate" type="date" value="${ds}" style="flex:1"><input id="${prefix}EtaTime" type="time" value="${t}" style="flex:1"></div>`;
+}
+function etaRead(prefix){
+ const d=document.getElementById(prefix+"EtaDate")?.value, t=document.getElementById(prefix+"EtaTime")?.value;
+ if(!d||!t)return null;
+ const dt=new Date(`${d}T${t}`); return isNaN(dt)?null:dt.toISOString();
+}
 function pzcFieldsHTML(prefix){
  setTimeout(()=>pzcPreview(prefix),0);
  return `<div style="margin-top:10px;position:relative">
@@ -4694,8 +4707,7 @@ function openIvenaAssignment(){
    <label style="margin-top:10px">Begleitendes NEF/RTH (optional, Status 4)</label>
    <select id="asgNef"><option value="">– kein separates Begleitfahrzeug –</option>${nefUnits.map(u=>`<option value="${u.id}">${esc(u.opta||u.name)} · ${esc(u.type)}${u.location?` (${esc(u.location)})`:""}</option>`).join("")}</select>
   </div>
-  <label style="margin-top:10px">Voraussichtliche Eintreffzeit</label>
-  <input id="asgEta" type="datetime-local" value="${iso}">
+  ${etaFieldsHTML("asg")}
   <div class="row" style="margin-top:14px">
    <button onclick="render('ivenaZuweisungen')">Abbrechen</button>
    <button class="primary" onclick="saveIvenaAssignment()">✅ Zuweisen</button>
@@ -4720,7 +4732,8 @@ function saveIvenaAssignment(){
      companion=c;
    }
  }
- const etaRaw=document.getElementById("asgEta")?.value;
+ const eta=etaRead("asg");
+ if(!eta){toast("Bitte die Uhrzeit der Eintreffzeit wählen");return}
  const pz=pzcRead("asg");
  const vehicles=companion?[transport,companion]:[transport];
  vehicles.forEach(u=>setUnitStatus(u,"7"));
@@ -4732,7 +4745,7 @@ function saveIvenaAssignment(){
    rmi:pz.rmi, dringlichkeit:pz.dringlichkeit, pzc:pz.pzc, flags:zus.flags, info:zus.info,
    vehicleIds:vehicles.map(u=>u.id),
    vehicleLabels:vehicles.map(u=>`${u.opta||u.name} (${u.type})`),
-   eta: etaRaw?new Date(etaRaw).toISOString():null,
+   eta,
    createdAt:new Date().toISOString(),
    source:"leitstelle"
  };
