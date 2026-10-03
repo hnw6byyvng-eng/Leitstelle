@@ -662,3 +662,14 @@ Version 4.07:
   • Dringlichkeit: nur die für den Code erlaubten Stufen sind wählbar.
 - Am Fahrzeugterminal ist ein vollständiger PZC jetzt Pflicht für Anmeldung/Zuweisung; in der
   Leitstelle bleibt er optional.
+
+Version 4.08:
+- NEU: IVENA-Zusatzangaben bei Anmeldung (Fahrzeugterminal) und Zuweisung (Leitstelle) als
+  Kürzel nebeneinander zum Antippen: S (Schockraum), BG (BG-lich), SS (Schwanger), B (Beatmet),
+  R (Reanimiert), I (Ansteckungsfähig), N (Arztbegleitet), Geschlecht M/W/D, dazu "Weitere
+  Informationen". Ohne Aktion steht alles auf "–". Das Alter kommt aus dem PZC (oder wird im
+  PZC-Block eingetragen) und wird nicht mehr aus der Notrufabfrage vorbelegt.
+- Anzeige: unter der IVENA-Ansicht neue Liste "📥 Patientenanmeldungen" je Klinik mit PZC,
+  Begriff und den Kürzeln (+ rot hervorgehoben), ebenso in den IVENA-Zuweisungen.
+- Hinweis: Die genaue Kürzel-Darstellung des echten IVENA konnte ich nicht offiziell belegen;
+  die Kürzel sind daran angelehnt.
