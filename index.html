@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.16</span>
+ <span id="versionTag">v4.17</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -2535,7 +2535,9 @@ function evaluate(){
      for(const k of groups.keys()){
        if(k===win||k==="base"||XABCDE_AAO.includes(k))continue;
        if(!aaoCombinable(win,k))continue;
-       if(topUp(k)&&kwMap[k])keyword=`${keyword} · ${kwMap[k]}`;
+       // Kombinierte AAOs werden vollständig dazu alarmiert (Fahrzeuge addieren sich).
+       const extra=all.filter(r=>String(r.src)===k);
+       if(extra.length){req.push(...extra);if(kwMap[k])keyword=`${keyword} · ${kwMap[k]}`}
        c.aaoCombined.push((aaoEntry(k)?.name)||k);
      }
      c.aaoWinner=(aaoEntry(win)?.name)||null;
@@ -4411,7 +4413,7 @@ function aaoEditor(){
   <div class="row">${[["nein","Nein"],["ja","Ja"],["mit","Mit diesen …"]].map(([v,t])=>`<button class="${d.combine===v?"primary":""}" onclick="aaoDraft.combine='${v}';render('aao')">${t}</button>`).join("")}</div>
   ${d.combine==="mit"?`<details open style="margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px"><summary><b>AAOs auswählen</b> (${d.combineWith.length} gewählt)</summary>
    <div style="max-height:260px;overflow:auto;margin-top:6px">${db.aao.filter(x=>String(x.id)!==String(d.id)).map(x=>`<label style="display:flex;gap:8px;align-items:center;font-weight:500;margin:4px 0"><input type="checkbox" style="width:auto" ${d.combineWith.includes(String(x.id))?"checked":""} onchange="aaoToggleWith('${String(x.id)}',this.checked)"> ${esc(x.name)}</label>`).join("")}</div>
-  </details>`:`<p class="muted" style="margin:4px 0 0;font-size:12px">${d.combine==="ja"?"Passt diese AAO zusammen mit anderen, laufen alle zusammen – Fahrzeuge aufgefüllt, nicht doppelt.":"Diese AAO läuft nicht von sich aus mit anderen (andere AAOs können sie aber über ihre eigene Einstellung mitnehmen)."}</p>`}
+  </details>`:`<p class="muted" style="margin:4px 0 0;font-size:12px">${d.combine==="ja"?"Passt diese AAO zusammen mit anderen, laufen alle zusammen – die Fahrzeuge aller AAOs werden addiert.":"Diese AAO läuft nicht von sich aus mit anderen (andere AAOs können sie aber über ihre eigene Einstellung mitnehmen)."}</p>`}
   <label>Alarmierung</label>
   <datalist id="aaoTypeList">${types.map(t=>`<option value="${esc(t)}">`).join("")}</datalist>
   ${d.units.map(unitRow).join("")||`<p class="muted">Keine Fahrzeuge.</p>`}

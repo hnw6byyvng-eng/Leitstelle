@@ -727,3 +727,8 @@ Version 4.16:
 - "Mit anderen AAOs": Es reicht jetzt, wenn EINE der beiden AAOs die Kombination erlaubt. Eine AAO
   auf "Ja" läuft mit allen anderen passenden AAOs zusammen, eine auf "Mit diesen …" mit den
   angehakten – egal, wie die anderen eingestellt sind.
+
+Version 4.17:
+- Kombinierte AAOs ("Mit anderen AAOs") werden jetzt vollständig dazu alarmiert – die Fahrzeuge
+  addieren sich (z. B. 2× RTW, wenn beide AAOs einen RTW haben). RTW/NEF aus XABCDE werden
+  weiterhin nur aufgefüllt.
