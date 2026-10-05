@@ -695,3 +695,9 @@ Version 4.11:
   selbst gewählt werden (ohne Uhrzeit keine Anmeldung). Ab 23:45 Uhr steht das Datum automatisch
   auf dem nächsten Tag und die Uhrzeit auf 00:00. Vorher war "jetzt + 20 Minuten" vorbelegt.
 - Doppelte PZC-Prüfung am Fahrzeugterminal entfernt (kein Funktionsunterschied).
+
+Version 4.12:
+- Updates kommen jetzt beim ersten Neuladen an: Die Seite wird immer zuerst frisch aus dem Netz
+  geladen (nur offline aus dem Zwischenspeicher), und wenn eine neue App-Version aktiv wird, lädt
+  sich die Seite einmal automatisch neu. Vorher konnte die alte Version noch ein- bis zweimal
+  aus dem Zwischenspeicher kommen.

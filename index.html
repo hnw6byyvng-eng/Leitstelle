@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.11</span>
+ <span id="versionTag">v4.12</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -5004,8 +5004,15 @@ if(!initVehicleMode()){
 </script>
 <script>
 if("serviceWorker" in navigator){
+  // Neue Version: sobald ein neuer Service Worker die Kontrolle übernimmt, einmal automatisch
+  // neu laden, damit Updates ohne mehrfaches Neuladen ankommen.
+  let swReloaded=false;
+  const hadController=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(swReloaded||!hadController)return; swReloaded=true; location.reload();
+  });
   window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("sw.js").catch(()=>{});
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});
   });
 }
 </script>
