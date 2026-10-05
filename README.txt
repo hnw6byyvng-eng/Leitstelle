@@ -722,3 +722,8 @@ Version 4.15:
   Zusammen alarmiert wird nur, wenn beide AAOs es erlauben (Ja oder gegenseitig angehakt). Die
   Fahrzeuge werden aufgefüllt, nicht doppelt; das Stichwort wird angehängt. In der
   Live-Bewertung steht, welche AAOs zusätzlich alarmiert werden.
+
+Version 4.16:
+- "Mit anderen AAOs": Es reicht jetzt, wenn EINE der beiden AAOs die Kombination erlaubt. Eine AAO
+  auf "Ja" läuft mit allen anderen passenden AAOs zusammen, eine auf "Mit diesen …" mit den
+  angehakten – egal, wie die anderen eingestellt sind.
