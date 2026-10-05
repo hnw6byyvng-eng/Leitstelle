@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.13</span>
+ <span id="versionTag">v4.14</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -1891,7 +1891,7 @@ const qs=[
  ["firePeople","🔥 Wie viele Personen sind durch Feuer/Rauch lebensgefährlich bedroht?","ynFire"],
  ["water","🌊 Befindet sich die Person im Wasser?","ynQ"],
  ["waterState","🌊 Wie ist der Zustand der Person im Wasser?","waterState"],
- ["personDanger","⚠️ Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
+ ["personDanger","⚠️ Wie viele Personen sind verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
  ["x_massive","X – Gibt es eine kritische / lebensbedrohliche Blutung?","xyn"],
  ["a_airway","A – Ist der Atemweg frei?","xairway"],
  ["b_breath","B – Wie ist die Atmung?","xbreathing"],
@@ -1974,8 +1974,7 @@ function needsXABCDE(c=db.currentCall){
  if(["Reanimation","Medizinischer Notfall","Verkehrsunfall"].includes(e))return true;
  if(e==="Person im Wasser" && a.waterState!=="Bergung")return true;
  if(e==="Feuer / Rauchentwicklung" && answerYes(a.firePeople))return true;
- if(["Technische Hilfeleistung","Sonstiger Notfall"].includes(e) && a.personDanger==="ja")return true;
- if(a.personDanger==="ja")return true;
+ if(answerYes(a.personDanger))return true;
  return false;
 }
 function xabcdeComplete(c=db.currentCall){
@@ -2021,14 +2020,15 @@ function questionHTML(q){
 
  if(type==="ynFire"&&!fire)return skip("nicht zutreffend");
  if(type==="ynTech"&&!tech)return skip("nicht zutreffend");
- if(type==="ynTech"||type==="ynFire"){
-   return `<label>${label}</label><div class="row"><input id="ans" type="number" min="0" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${["0","1","2","3"].map(n=>`<button onclick="answer('${id}','${n}')">${n}</button>`).join("")}</div>`;
- }
  if(id==="water"&&!water)return skip("nein");
  if(type==="waterState"&&e!=="Person im Wasser")return skip("nicht zutreffend");
 
  if(type==="ynPersonDanger"){
-   if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return skip("ja");
+   // Bei diesen Lagen ist mindestens eine Person betroffen – Anzahl aus "Wie viele Personen betroffen"
+   if(["Reanimation","Medizinischer Notfall","Person im Wasser","Verkehrsunfall"].includes(e))return skip(String(Math.max(1,Number(c?.answers?.count)||1)));
+ }
+ if(type==="ynTech"||type==="ynFire"||type==="ynPersonDanger"){
+   return `<label>${label}</label><div class="row"><input id="ans" type="number" min="0" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${["0","1","2","3"].map(n=>`<button onclick="answer('${id}','${n}')">${n}</button>`).join("")}</div>`;
  }
 
  if(["x_massive","a_airway","b_breath","c_circ","d_disability","e_exposure"].includes(id) && reaShortcutActive(c))
@@ -4286,7 +4286,7 @@ const AAO_RULE_FIELDS={
  waterState:{label:"Person im Wasser – Zustand",values:["Lebenszeichen","Vermisst","Bergung"]},
  trapped:{label:"Anzahl eingeklemmt/eingeschlossen",free:true,placeholder:"z. B. >0, 2, >=3 (oder ja/nein)"},
  firePeople:{label:"Anzahl lebensgefährlich bedroht (Feuer)",free:true,placeholder:"z. B. >0, 2, >=3 (oder ja/nein)"},
- personDanger:{label:"Person verletzt/gefährdet",values:["ja","nein","unbekannt"]},
+ personDanger:{label:"Anzahl verletzt/erkrankt/gefährdet",free:true,placeholder:"z. B. >0, 2, >=3 (oder ja/nein)"},
  danger:{label:"Weitere Gefahren",values:["ja","nein","unbekannt"]},
  x_massive:{label:"X – kritische Blutung",values:["Nein","Ja","Unklar"]},
  a_airway:{label:"A – Atemweg",values:["Frei","Gefährdet / verlegt","Unklar"]},
@@ -4306,7 +4306,7 @@ function aaoRulesEdited(id){return !!(db.aao||[]).find(a=>String(a.id)===String(
 function aaoUnits(id){if(aaoRulesEdited(id))return [];return (aaoEntry(id)?.units||[]).filter(x=>x&&String(x.type||"").trim())}
 function aaoKeyword(id,fallback){if(aaoRulesEdited(id))return fallback;const k=String(aaoEntry(id)?.keyword||"").trim();return k||fallback}
 function aaoRuleMatches(val,rule,key){
- if((key==="trapped"||key==="firePeople")&&/^(ja|nein|unbekannt)$/i.test(String(rule).trim())){
+ if((key==="trapped"||key==="firePeople"||key==="personDanger")&&/^(ja|nein|unbekannt)$/i.test(String(rule).trim())){
    const r=String(rule).trim().toLowerCase();
    if(r==="unbekannt")return false;
    return r==="ja"?answerYes(val):(String(val??"").trim()!==""&&!answerYes(val));

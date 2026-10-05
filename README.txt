@@ -709,3 +709,9 @@ Version 4.13:
   Zahlenfeld. Ab 1 gilt wie bisher "ja" (eingeklemmt → H_Eingeklemmt, bedroht → F_2_Y, XABCDE).
 - AAO-Bedingungen dafür sind jetzt Zahlen (z. B. ">0", ">=3"); bestehende Bedingungen mit
   "ja"/"nein" funktionieren weiter. Ältere Einsätze mit "ja"/"nein" werden weiter verstanden.
+
+Version 4.14:
+- Auch "Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?" ist jetzt eine
+  Anzahl-Frage ("Wie viele Personen …?") mit Knöpfen 0, 1, 2, 3. Bei Reanimation, med. Notfall,
+  Person im Wasser und VU wird sie wie bisher übersprungen – jetzt mit der Anzahl der Betroffenen.
+  Ab 1 wird XABCDE abgefragt.
