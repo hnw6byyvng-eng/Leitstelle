@@ -701,3 +701,11 @@ Version 4.12:
   geladen (nur offline aus dem Zwischenspeicher), und wenn eine neue App-Version aktiv wird, lädt
   sich die Seite einmal automatisch neu. Vorher konnte die alte Version noch ein- bis zweimal
   aus dem Zwischenspeicher kommen.
+
+Version 4.13:
+- Notrufabfrage: "Ist jemand eingeklemmt?" → "Wie viele Personen sind eingeklemmt oder
+  eingeschlossen?" und "Sind Menschen durch Feuer/Rauch gefährdet?" → "Wie viele Personen sind
+  durch Feuer/Rauch lebensgefährlich bedroht?" – jeweils mit Schnellknöpfen 0, 1, 2, 3 und
+  Zahlenfeld. Ab 1 gilt wie bisher "ja" (eingeklemmt → H_Eingeklemmt, bedroht → F_2_Y, XABCDE).
+- AAO-Bedingungen dafür sind jetzt Zahlen (z. B. ">0", ">=3"); bestehende Bedingungen mit
+  "ja"/"nein" funktionieren weiter. Ältere Einsätze mit "ja"/"nein" werden weiter verstanden.

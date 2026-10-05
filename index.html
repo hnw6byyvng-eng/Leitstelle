@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.12</span>
+ <span id="versionTag">v4.13</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -1409,7 +1409,7 @@ function maybeAddDlrgElw1(list){
 // ein DRK-Fahrzeug (Küchenwagen oder GW-Betreuung) hinzugezogen.
 function maybeAddDrkSupport(list,call){
  if(call?.answers?.event!=="Feuer / Rauchentwicklung")return null;
- if(call?.answers?.firePeople==="ja")return null;
+ if(answerYes(call?.answers?.firePeople))return null;
  const fwCount=(list||[]).filter(x=>x.org==="Feuerwehr").length;
  const already=(list||[]).some(x=>x.org==="DRK");
  if(fwCount>2 && !already){
@@ -1887,8 +1887,8 @@ const qs=[
  ["location","📍 Wo genau ist der Notfallort?","text"],
  ["event","❓ Was ist passiert?","event112"],
  ["count","👥 Wie viele Personen/Tiere sind betroffen?","count"],
- ["trapped","🚗 Ist jemand eingeklemmt oder eingeschlossen?","ynTech"],
- ["firePeople","🔥 Sind Menschen durch Feuer/Rauch gefährdet?","ynFire"],
+ ["trapped","🚗 Wie viele Personen sind eingeklemmt oder eingeschlossen?","ynTech"],
+ ["firePeople","🔥 Wie viele Personen sind durch Feuer/Rauch lebensgefährlich bedroht?","ynFire"],
  ["water","🌊 Befindet sich die Person im Wasser?","ynQ"],
  ["waterState","🌊 Wie ist der Zustand der Person im Wasser?","waterState"],
  ["personDanger","⚠️ Ist eine Person verletzt, erkrankt oder unmittelbar gefährdet?","ynPersonDanger"],
@@ -1964,13 +1964,16 @@ function isBenignExposureText(t){
  if(s==="")return true;
  return ["keine","keine auffälligkeiten","keine befunde","kein befund","unauffällig","o.b.","ob","nichts","nichts auffällig","nichts weiter"].includes(s);
 }
+// Anzahl-Antworten (eingeklemmt / lebensgefährlich bedroht). Ältere Einsätze hatten "ja"/"nein".
+function answerCount(v){const s=String(v??"").trim().toLowerCase();if(s==="ja")return 1;if(s==="nein"||s==="")return 0;const n=Number(s);return Number.isFinite(n)?n:0}
+function answerYes(v){return answerCount(v)>0}
 function needsXABCDE(c=db.currentCall){
  if(!c)return false;
  if(isManv(c))return false; // MANV: Sichtung statt Einzel-XABCDE
  const a=c.answers||{}, e=a.event||"";
  if(["Reanimation","Medizinischer Notfall","Verkehrsunfall"].includes(e))return true;
  if(e==="Person im Wasser" && a.waterState!=="Bergung")return true;
- if(e==="Feuer / Rauchentwicklung" && a.firePeople==="ja")return true;
+ if(e==="Feuer / Rauchentwicklung" && answerYes(a.firePeople))return true;
  if(["Technische Hilfeleistung","Sonstiger Notfall"].includes(e) && a.personDanger==="ja")return true;
  if(a.personDanger==="ja")return true;
  return false;
@@ -2018,6 +2021,9 @@ function questionHTML(q){
 
  if(type==="ynFire"&&!fire)return skip("nicht zutreffend");
  if(type==="ynTech"&&!tech)return skip("nicht zutreffend");
+ if(type==="ynTech"||type==="ynFire"){
+   return `<label>${label}</label><div class="row"><input id="ans" type="number" min="0" autofocus style="flex:1"><button class="primary" onclick="answer('${id}',document.getElementById('ans').value)">Antwort übernehmen</button>${["0","1","2","3"].map(n=>`<button onclick="answer('${id}','${n}')">${n}</button>`).join("")}</div>`;
+ }
  if(id==="water"&&!water)return skip("nein");
  if(type==="waterState"&&e!=="Person im Wasser")return skip("nicht zutreffend");
 
@@ -2391,7 +2397,7 @@ function evaluate(){
      addAao(1);
    }
  } else if(e==="Feuer / Rauchentwicklung"){
-   if(a.firePeople==="ja"){keyword=kw(7,"F_2_Y");addAao(7)}
+   if(answerYes(a.firePeople)){keyword=kw(7,"F_2_Y");addAao(7)}
    else{keyword=kw(6,"F_2");addAao(6)}
  } else if(e==="Verkehrsunfall"){
    if(c.locationIsWater){
@@ -2400,7 +2406,7 @@ function evaluate(){
      keyword=kw(19,"H_Boot im Wasser");
      addAao(19);
    } else {
-     if(a.trapped==="ja"){keyword=kw(8,"H_Eingeklemmt_2 R1");addAao(8)}
+     if(answerYes(a.trapped)){keyword=kw(8,"H_Eingeklemmt_2 R1");addAao(8)}
      else{keyword=kw(20,"H_VU R1");addAao(20)}
    }
  } else if(e==="Technische Hilfeleistung"){
@@ -4278,8 +4284,8 @@ const AAO_RULE_FIELDS={
  event:{label:"Was ist passiert?",values:["Medizinischer Notfall","Reanimation","Feuer / Rauchentwicklung","Verkehrsunfall","Technische Hilfeleistung","Person im Wasser","Vermisste Person","Sonstiger Notfall"]},
  count:{label:"Anzahl Betroffene",free:true,placeholder:"z. B. >3, 2, <=5"},
  waterState:{label:"Person im Wasser – Zustand",values:["Lebenszeichen","Vermisst","Bergung"]},
- trapped:{label:"Eingeklemmt/eingeschlossen",values:["ja","nein","unbekannt"]},
- firePeople:{label:"Menschen durch Feuer gefährdet",values:["ja","nein","unbekannt"]},
+ trapped:{label:"Anzahl eingeklemmt/eingeschlossen",free:true,placeholder:"z. B. >0, 2, >=3 (oder ja/nein)"},
+ firePeople:{label:"Anzahl lebensgefährlich bedroht (Feuer)",free:true,placeholder:"z. B. >0, 2, >=3 (oder ja/nein)"},
  personDanger:{label:"Person verletzt/gefährdet",values:["ja","nein","unbekannt"]},
  danger:{label:"Weitere Gefahren",values:["ja","nein","unbekannt"]},
  x_massive:{label:"X – kritische Blutung",values:["Nein","Ja","Unklar"]},
@@ -4300,6 +4306,11 @@ function aaoRulesEdited(id){return !!(db.aao||[]).find(a=>String(a.id)===String(
 function aaoUnits(id){if(aaoRulesEdited(id))return [];return (aaoEntry(id)?.units||[]).filter(x=>x&&String(x.type||"").trim())}
 function aaoKeyword(id,fallback){if(aaoRulesEdited(id))return fallback;const k=String(aaoEntry(id)?.keyword||"").trim();return k||fallback}
 function aaoRuleMatches(val,rule,key){
+ if((key==="trapped"||key==="firePeople")&&/^(ja|nein|unbekannt)$/i.test(String(rule).trim())){
+   const r=String(rule).trim().toLowerCase();
+   if(r==="unbekannt")return false;
+   return r==="ja"?answerYes(val):(String(val??"").trim()!==""&&!answerYes(val));
+ }
  if(key==="freeText"){
    // Enthält-Suche, Groß-/Kleinschreibung egal; "a, b" = a ODER b
    const t=String(val||"").toLowerCase();
