@@ -124,7 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.14</span>
+ <span id="versionTag">v4.15</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -1951,7 +1951,7 @@ function notruf(){
   <div class="card"><h3>Abfrageverlauf</h3>${c.history.length?c.history.map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b>${esc(x.q)}</b><br>${esc(x.a)}</div>`).join(""):"<span class='muted'>Noch keine Antworten.</span>"}</div>
  </section>
  <aside>
-  <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div>${c.aaoWinner?`<div class="muted" style="font-size:12px;margin-top:4px">AAO: ${esc(c.aaoWinner)}${(c.aaoMatches||[]).length>1?` · ebenfalls passend (nicht alarmiert): ${esc(c.aaoMatches.filter(n=>n!==c.aaoWinner).join(", "))}`:""}</div>`:""}<p>${c.suggestion||"Antworten fehlen noch."}</p></div>
+  <div class="card"><h2>🧠 Live-Bewertung</h2><div class="big">${esc(c.keyword||"—")}</div>${c.aaoWinner?`<div class="muted" style="font-size:12px;margin-top:4px">AAO: ${esc(c.aaoWinner)}${(c.aaoCombined||[]).length?` · zusätzlich: ${esc(c.aaoCombined.join(", "))}`:""}${(c.aaoMatches||[]).filter(n=>n!==c.aaoWinner&&!(c.aaoCombined||[]).includes(n)).length?` · ebenfalls passend (nicht alarmiert): ${esc(c.aaoMatches.filter(n=>n!==c.aaoWinner&&!(c.aaoCombined||[]).includes(n)).join(", "))}`:""}</div>`:""}<p>${c.suggestion||"Antworten fehlen noch."}</p></div>
   <div class="card"><h2>🚑 Nächste verfügbare Mittel</h2>${nearest.length?nearest.map(u=>`<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span><b>${esc(u.type||"—")}</b><br><small class="muted">${esc(u.opta||u.name||"—")}${geographicRank(u)<999?` · ~${geographicRank(u).toFixed(1)} km · ca. ${estimatedEtaMinutes(u)} min`:``}</small></span><span class="status ${statusClass(u.status)}">${statusName(u.status)}</span></div>`).join(""):`<span class="muted">Keine verfügbaren Mittel</span>`}</div>
  </aside></div>`;
  if(q && q[0]==="location" && !c.callerGpsPending) setTimeout(initNotrufMap,0);
@@ -2511,11 +2511,9 @@ function evaluate(){
      const all=req;
      req=req.filter(r=>String(r.src)===win||r.src==="r0mod");
      if(kwMap[win])keyword=kwMap[win];
-     // Rettungsdienst nach XABCDE (RD_X/A/B/C/D) kommt immer dazu – aufgefüllt, nicht doppelt.
-     const XABCDE_AAO=["10","11","12","13","14","15","16"];
-     for(const xid of XABCDE_AAO){
-       if(xid===win)continue;
-       const xs=all.filter(r=>String(r.src)===xid); if(!xs.length)continue;
+     // Weitere AAO dazunehmen – aufgefüllt (Maximalprinzip), nicht doppelt.
+     const topUp=(gid)=>{
+       const xs=all.filter(r=>String(r.src)===gid); if(!xs.length)return false;
        const need={};
        for(const r of xs)need[r.type]=(need[r.type]||0)+1;
        let added=false;
@@ -2524,7 +2522,21 @@ function evaluate(){
          const extra=xs.filter(r=>r.type===t).slice(0,Math.max(0,n-have));
          if(extra.length){req.push(...extra);added=true}
        }
-       if(added&&kwMap[xid])keyword=`${keyword} · ${kwMap[xid]}`;
+       return added;
+     };
+     // Rettungsdienst nach XABCDE (RD_X/A/B/C/D) kommt immer dazu.
+     const XABCDE_AAO=["10","11","12","13","14","15","16"];
+     for(const xid of XABCDE_AAO){
+       if(xid===win)continue;
+       if(topUp(xid)&&kwMap[xid])keyword=`${keyword} · ${kwMap[xid]}`;
+     }
+     // "Mit anderen AAOs": die gewählte AAO entscheidet, welche weiteren passenden AAOs dazukommen.
+     c.aaoCombined=[];
+     for(const k of groups.keys()){
+       if(k===win||k==="base"||XABCDE_AAO.includes(k))continue;
+       if(!aaoCombinable(win,k))continue;
+       if(topUp(k)&&kwMap[k])keyword=`${keyword} · ${kwMap[k]}`;
+       c.aaoCombined.push((aaoEntry(k)?.name)||k);
      }
      c.aaoWinner=(aaoEntry(win)?.name)||null;
    }else c.aaoWinner=null;
@@ -4305,6 +4317,24 @@ function aaoEntry(id){return (db.aao||[]).find(a=>String(a.id)===String(id))||(d
 function aaoRulesEdited(id){return !!(db.aao||[]).find(a=>String(a.id)===String(id))?.rulesEdited}
 function aaoUnits(id){if(aaoRulesEdited(id))return [];return (aaoEntry(id)?.units||[]).filter(x=>x&&String(x.type||"").trim())}
 function aaoKeyword(id,fallback){if(aaoRulesEdited(id))return fallback;const k=String(aaoEntry(id)?.keyword||"").trim();return k||fallback}
+// Kombination: "nein" (Standard) = nur allein, "ja" = mit allen passenden AAOs, "mit" = nur mit
+// den angehakten. Zusammen alarmiert wird nur, wenn beide AAOs es erlauben.
+function aaoCombineMode(id){const e=aaoEntry(id);return e?.combine||"nein"}
+function aaoAllows(aId,bId){
+ const a=aaoEntry(aId); if(!a)return false;
+ const m=a.combine||"nein";
+ if(m==="ja")return true;
+ if(m==="mit")return (a.combineWith||[]).map(String).includes(String(bId));
+ return false;
+}
+// Zwei AAOs laufen nur zusammen, wenn beide es erlauben ("Ja" oder gegenseitig angehakt).
+function aaoCombinable(winId,otherId){return aaoAllows(winId,otherId)&&aaoAllows(otherId,winId)}
+function aaoCombineText(a){
+ const m=a.combine||"nein";
+ if(m==="ja")return "Ja";
+ if(m==="mit"){const names=(a.combineWith||[]).map(id=>aaoEntry(id)?.name).filter(Boolean);return names.length?`mit: ${names.map(esc).join(", ")}`:"mit: (keine gewählt)"}
+ return "Nein";
+}
 function aaoRuleMatches(val,rule,key){
  if((key==="trapped"||key==="firePeople"||key==="personDanger")&&/^(ja|nein|unbekannt)$/i.test(String(rule).trim())){
    const r=String(rule).trim().toLowerCase();
@@ -4339,9 +4369,9 @@ let aaoDraft=null;
 function aao(){
  if(aaoDraft)return aaoEditor();
  document.getElementById("app").innerHTML=`<div class="card"><div class="row between"><div><h2>🧠 AAO / Einsatzstichworte</h2><p class="muted">Die AAO steuert den Alarmvorschlag. Passen mehrere AAOs, wird nur die höchste alarmiert (die mit den meisten Fahrzeugen; bei Gleichstand die spezifischere). Rettungsdienst aus XABCDE (RD_X…RD_D) kommt immer dazu.</p></div><button class="primary" onclick="editAAO(null)">＋ AAO anlegen</button></div>
- <table><thead><tr><th>Stichwort</th><th>Bedingungen</th><th>Alarmierung</th><th></th></tr></thead><tbody>${db.aao.map(a=>{
+ <table><thead><tr><th>Stichwort</th><th>Bedingungen</th><th>Alarmierung</th><th>Mit anderen AAOs</th><th></th></tr></thead><tbody>${db.aao.map(a=>{
    const builtin=isBuiltinAao(a.id);
-   return `<tr style="${a.active===false?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.keyword?`<br><small class="muted">${esc(a.keyword)}</small>`:""}${builtin&&!a.rulesEdited?"":`<br><span class="pill">${builtin?"Bedingungen geändert":"eigene"}${a.active===false?" · inaktiv":""}</span>`}</td><td>${aaoRulesText(a)}</td><td>${(a.units||[]).map(x=>`${Number(x.n)||1}× ${esc(x.type)}${x.org?` <small class="muted">(${esc(x.org)})</small>`:""}`).join(", ")||`<span class="muted">keine</span>`}</td><td style="white-space:nowrap"><button onclick="editAAO(${JSON.stringify(a.id)})">✏️ Bearbeiten</button>${builtin?"":` <button onclick="deleteAAO(${JSON.stringify(a.id)})">Löschen</button>`}</td></tr>`;
+   return `<tr style="${a.active===false?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.keyword?`<br><small class="muted">${esc(a.keyword)}</small>`:""}${builtin&&!a.rulesEdited?"":`<br><span class="pill">${builtin?"Bedingungen geändert":"eigene"}${a.active===false?" · inaktiv":""}</span>`}</td><td>${aaoRulesText(a)}</td><td>${(a.units||[]).map(x=>`${Number(x.n)||1}× ${esc(x.type)}${x.org?` <small class="muted">(${esc(x.org)})</small>`:""}`).join(", ")||`<span class="muted">keine</span>`}</td><td><small>${aaoCombineText(a)}</small></td><td style="white-space:nowrap"><button onclick="editAAO(${JSON.stringify(a.id)})">✏️ Bearbeiten</button>${builtin?"":` <button onclick="deleteAAO(${JSON.stringify(a.id)})">Löschen</button>`}</td></tr>`;
  }).join("")}</tbody></table></div>`;
 }
 function editAAO(id){
@@ -4349,6 +4379,7 @@ function editAAO(id){
  aaoDraft=src?JSON.parse(JSON.stringify(src)):{id:null,name:"",keyword:"",rules:{event:"Medizinischer Notfall"},units:[{type:"RTW",n:1,org:"Rettungsdienst"}],active:true};
  aaoDraft.units=(aaoDraft.units||[]).map(x=>({type:x.type||"",n:Number(x.n)||1,org:x.org||""}));
  aaoDraft._rules=Object.entries(aaoDraft.rules||{}).map(([k,v])=>({k,v:String(v)}));
+ aaoDraft.combine=aaoDraft.combine||"nein"; aaoDraft.combineWith=(aaoDraft.combineWith||[]).map(String);
  render("aao");
 }
 function aaoEditor(){
@@ -4376,6 +4407,11 @@ function aaoEditor(){
      <button style="margin-top:6px" onclick="aaoDraft.rulesEdited=true;aaoDraft.active=aaoDraft.active!==false;render('aao')">✏️ Bedingungen ändern</button>`
    :`${d._rules.map(ruleRow).join("")}<button onclick="aaoDraft._rules.push({k:'event',v:'Medizinischer Notfall'});render('aao')">＋ Bedingung</button>
      <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" style="width:auto" ${d.active!==false?"checked":""} onchange="aaoDraft.active=this.checked"> Aktiv (wird bei der Disposition berücksichtigt)</label>`}
+  <label>Mit anderen AAOs benutzen</label>
+  <div class="row">${[["nein","Nein"],["ja","Ja"],["mit","Mit diesen …"]].map(([v,t])=>`<button class="${d.combine===v?"primary":""}" onclick="aaoDraft.combine='${v}';render('aao')">${t}</button>`).join("")}</div>
+  ${d.combine==="mit"?`<details open style="margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px"><summary><b>AAOs auswählen</b> (${d.combineWith.length} gewählt)</summary>
+   <div style="max-height:260px;overflow:auto;margin-top:6px">${db.aao.filter(x=>String(x.id)!==String(d.id)).map(x=>`<label style="display:flex;gap:8px;align-items:center;font-weight:500;margin:4px 0"><input type="checkbox" style="width:auto" ${d.combineWith.includes(String(x.id))?"checked":""} onchange="aaoToggleWith('${String(x.id)}',this.checked)"> ${esc(x.name)}${(x.combine||"nein")==="nein"?' <small class="muted">(steht selbst auf „Nein“)</small>':(x.combine==="mit"&&!(x.combineWith||[]).map(String).includes(String(d.id))?' <small class="muted">(hat diese AAO selbst nicht angehakt)</small>':"")}</label>`).join("")}</div>
+  </details>`:`<p class="muted" style="margin:4px 0 0;font-size:12px">${d.combine==="ja"?"Passen weitere AAOs, die das ebenfalls erlauben, werden deren Fahrzeuge zusätzlich alarmiert (aufgefüllt, nicht doppelt).":"Diese AAO wird allein alarmiert (Standard: nur die höchste AAO)."}</p>`}
   <label>Alarmierung</label>
   <datalist id="aaoTypeList">${types.map(t=>`<option value="${esc(t)}">`).join("")}</datalist>
   ${d.units.map(unitRow).join("")||`<p class="muted">Keine Fahrzeuge.</p>`}
@@ -4387,6 +4423,13 @@ function aaoEditor(){
    ${d.id!=null&&isBuiltinAao(d.id)?`<button onclick="resetAAO()">↺ Standard wiederherstellen</button>`:""}
   </div>
  </div>`;
+}
+function aaoToggleWith(id,on){
+ const set=new Set(aaoDraft.combineWith||[]);
+ if(on)set.add(String(id)); else set.delete(String(id));
+ aaoDraft.combineWith=[...set];
+ const sum=document.querySelector("#app details summary");
+ if(sum)sum.innerHTML=`<b>AAOs auswählen</b> (${aaoDraft.combineWith.length} gewählt)`;
 }
 function aaoSetRuleKey(i,k){
  const f=AAO_RULE_FIELDS[k];
@@ -4409,6 +4452,8 @@ function saveAAO(){
  if(String(d.keyword||"").trim())entry.keyword=String(d.keyword).trim();
  if(!builtin)entry.active=d.active!==false;
  if(d.rulesEdited)entry.rulesEdited=true;
+ entry.combine=d.combine||"nein";
+ if(entry.combine==="mit")entry.combineWith=(d.combineWith||[]).map(String);
  const idx=db.aao.findIndex(x=>String(x.id)===String(entry.id));
  if(idx>=0)db.aao[idx]=entry; else db.aao.push(entry);
  aaoDraft=null;

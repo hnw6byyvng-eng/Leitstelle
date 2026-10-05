@@ -715,3 +715,10 @@ Version 4.14:
   Anzahl-Frage ("Wie viele Personen …?") mit Knöpfen 0, 1, 2, 3. Bei Reanimation, med. Notfall,
   Person im Wasser und VU wird sie wie bisher übersprungen – jetzt mit der Anzahl der Betroffenen.
   Ab 1 wird XABCDE abgefragt.
+
+Version 4.15:
+- NEU: AAO-Spalte "Mit anderen AAOs" mit drei Möglichkeiten: Nein (Standard, wie bisher nur die
+  höchste AAO), Ja (mit allen passenden AAOs), Mit diesen … (aufklappbare Liste zum Anhaken).
+  Zusammen alarmiert wird nur, wenn beide AAOs es erlauben (Ja oder gegenseitig angehakt). Die
+  Fahrzeuge werden aufgefüllt, nicht doppelt; das Stichwort wird angehängt. In der
+  Live-Bewertung steht, welche AAOs zusätzlich alarmiert werden.
