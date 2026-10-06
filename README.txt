@@ -776,3 +776,7 @@ Version 4.23:
 - Vorbereitung Umzug auf lst-sim.github.io: Die neue Adresse übernimmt beim ersten Aufruf über
   die Weiterleitung von der alten Adresse automatisch die Live-Verbindung (Sitzung) und die
   Geräteeinstellungen und holt dann den kompletten Leitstellen-Stand aus der Sitzung.
+
+UMZUG (06.10.2026): Leitstelle.sim ist jetzt unter https://lst-sim.github.io/ erreichbar
+(Repo lst-sim/lst-sim.github.io). Diese alte Adresse leitet automatisch weiter und nimmt dabei
+Live-Sitzung und Geräteeinstellungen mit; alte QR-Codes funktionieren weiter.
