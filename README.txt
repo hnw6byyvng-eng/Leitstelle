@@ -760,3 +760,10 @@ Version 4.20:
 - "Automatisch" würfelt jetzt sofort beim Umschalten und danach laufend weiter (am Hauptplatz,
   je Klinik gelegentlich eine neue Abmeldung für 1–8 h) – vorher nur per Knopf "Neu auswürfeln".
   Gewürfelt werden nur Fachrichtungen, die die Klinik wirklich hat.
+
+Version 4.21:
+- IVENA-Zuweisungen/-Anmeldungen können nachträglich bearbeitet werden (✏️ in der IVENA-Liste
+  und unter IVENA-Zuweisungen): Zielklinik, PZC, Zusatzangaben, Geschlecht, weitere
+  Informationen, Eintreffzeit. Geänderte Angaben stehen danach in BLAU (Zusatzkürzel blau
+  hinterlegt), mit "geändert <Zeit>". Ausnahme: Wird die Klinik geändert, gilt es als neue
+  Anmeldung dort – ohne blaue Markierungen.

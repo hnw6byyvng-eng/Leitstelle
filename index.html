@@ -132,7 +132,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.20</span>
+ <span id="versionTag">v4.21</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4649,13 +4649,74 @@ function ivenaFlagsRead(prefix){
  return {flags,geschlecht:st.g||"",info:String(document.getElementById(prefix+"Info")?.value||"").trim()};
 }
 // Anzeige wie in IVENA: Kürzel nebeneinander, "+" hervorgehoben
+// Nachträglich geänderte Angaben werden blau dargestellt (a.edited); bei Klinikwechsel nicht.
+const IVENA_EDIT_BLUE="#1d4ed8";
+function ivenaEd(a,k){return !!(a&&a.edited&&a.edited[k])}
+function ivenaBlue(a,k,html){return ivenaEd(a,k)?`<span style="color:${IVENA_EDIT_BLUE}" title="nachträglich geändert">${html}</span>`:html}
 function ivenaFlagsLine(a){
  const f=a.flags||{s:!!a.schockraum,n:!!a.na};
- const tag=(on,txt)=>`<span style="display:inline-block;min-width:30px;text-align:center;margin:1px 2px;padding:1px 5px;border-radius:5px;font-weight:800;font-size:12px;${on?"background:#d71920;color:#fff":"background:#eef2f6;color:#64748b"}">${txt}</span>`;
- return IVENA_FLAGS.map(([k,abbr])=>tag(!!f[k],abbr+(f[k]?"+":"–"))).join("")+tag(false,a.geschlecht||"–")+tag(false,(a.alter!==""&&a.alter!=null)?`${a.alter} J.`:"? J.");
+ const tag=(on,txt,ed)=>`<span ${ed?'title="nachträglich geändert" ':""}style="display:inline-block;min-width:30px;text-align:center;margin:1px 2px;padding:1px 5px;border-radius:5px;font-weight:800;font-size:12px;${on?(ed?`background:${IVENA_EDIT_BLUE};color:#fff`:"background:#d71920;color:#fff"):(ed?`background:#dbeafe;color:${IVENA_EDIT_BLUE}`:"background:#eef2f6;color:#64748b")}">${txt}</span>`;
+ return IVENA_FLAGS.map(([k,abbr])=>tag(!!f[k],abbr+(f[k]?"+":"–"),ivenaEd(a,"f_"+k))).join("")+tag(false,a.geschlecht||"–",ivenaEd(a,"geschlecht"))+tag(false,(a.alter!==""&&a.alter!=null)?`${a.alter} J.`:"? J.",ivenaEd(a,"pzc"));
 }
 function ivenaPatientRow(a){
- return `${a.pzc?`<b style="letter-spacing:1px">${esc(a.pzc)}</b> <small class="muted">${esc(pzcRmiLabel(a.rmi))}</small><br>`:""}${ivenaFlagsLine(a)}${a.info?`<div style="font-size:12px;margin-top:2px">ℹ️ ${esc(a.info)}</div>`:""}`;
+ return `${a.pzc?ivenaBlue(a,"pzc",`<b style="letter-spacing:1px">${esc(a.pzc)}</b> <small ${ivenaEd(a,"pzc")?"":'class="muted"'}>${esc(pzcRmiLabel(a.rmi))}</small>`)+"<br>":""}${ivenaFlagsLine(a)}${a.info?`<div style="font-size:12px;margin-top:2px">${ivenaBlue(a,"info","ℹ️ "+esc(a.info))}</div>`:""}`;
+}
+// ─── IVENA-Zuweisung nachträglich bearbeiten ─────────────────────────────────────────────────
+function editIvenaAssignment(id,back){
+ const a=(db.ivenaAssignments||[]).find(x=>String(x.id)===String(id)); if(!a)return;
+ uiLocked=true;
+ const hospitals=db.ivena||[];
+ document.getElementById("app").innerHTML=`<div class="card">
+  <h2>✏️ IVENA-Zuweisung bearbeiten</h2>
+  <p class="muted">${(a.vehicleLabels||[]).map(esc).join(", ")||"ohne Fahrzeug"} · angemeldet ${a.createdAt?new Date(a.createdAt).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"–"}. Geänderte Angaben erscheinen danach <span style="color:${IVENA_EDIT_BLUE};font-weight:700">blau</span> – außer bei Wechsel der Klinik.</p>
+  <label>Zielklinik</label>
+  <select id="edAHospital">${hospitals.map(h=>`<option value="${h.id}" ${String(h.id)===String(a.hospitalId)?"selected":""}>${esc(h.name)}${h.place?` (${esc(h.place)})`:""}</option>`).join("")}</select>
+  ${pzcFieldsHTML("edA")}
+  ${ivenaFlagsHTML("edA")}
+  ${etaFieldsHTML("edA")}
+  <div class="row" style="margin-top:14px">
+   <button onclick="render('${back==="ivena"?"ivena":"ivenaZuweisungen"}')">Abbrechen</button>
+   <button class="primary" onclick="saveEditedIvenaAssignment('${a.id}','${back==="ivena"?"ivena":"ivenaZuweisungen"}')">💾 Änderungen speichern</button>
+  </div>
+ </div>`;
+ setTimeout(()=>{
+   const inp=document.getElementById("edAPzcInput"); if(inp&&a.pzc){inp.value=a.pzc;pzcInput("edA")}
+   const st=window._ivState.edA; if(st){st.flags={...(a.flags||{s:!!a.schockraum,n:!!a.na})};st.g=a.geschlecht||"";document.getElementById("edAFlags").innerHTML=ivenaFlagsChips("edA")}
+   const info=document.getElementById("edAInfo"); if(info)info.value=a.info||"";
+   if(a.eta){const d=new Date(a.eta);const p2=n=>String(n).padStart(2,"0");
+     const de=document.getElementById("edAEtaDate"),te=document.getElementById("edAEtaTime");
+     if(de)de.value=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`; if(te)te.value=`${p2(d.getHours())}:${p2(d.getMinutes())}`;}
+ },20);
+}
+function saveEditedIvenaAssignment(id,back){
+ const a=(db.ivenaAssignments||[]).find(x=>String(x.id)===String(id)); if(!a)return;
+ const hospital=(db.ivena||[]).find(h=>String(h.id)===String(document.getElementById("edAHospital")?.value));
+ if(!hospital){toast("Bitte Zielklinik wählen");return}
+ const pz=pzcRead("edA"); if(!pz.pzc){toast("Bitte PZC vollständig angeben");return}
+ const eta=etaRead("edA"); if(!eta){toast("Bitte die Uhrzeit der Eintreffzeit wählen");return}
+ const zus=ivenaFlagsRead("edA");
+ const oldFlags=a.flags||{s:!!a.schockraum,n:!!a.na};
+ const hospitalChanged=String(hospital.id)!==String(a.hospitalId);
+ const ed={...(a.edited||{})};
+ if(pz.pzc!==a.pzc)ed.pzc=true;
+ IVENA_FLAGS.forEach(([k])=>{if(!!zus.flags[k]!==!!oldFlags[k])ed["f_"+k]=true});
+ if((zus.geschlecht||"")!==(a.geschlecht||""))ed.geschlecht=true;
+ if((zus.info||"")!==(a.info||""))ed.info=true;
+ const oldEta=a.eta?new Date(a.eta).getTime():null, newEta=new Date(eta).getTime();
+ if(oldEta===null||Math.abs(oldEta-newEta)>=60000)ed.eta=true;
+ Object.assign(a,{
+   hospitalId:hospital.id, hospitalName:hospital.name,
+   rmi:pz.rmi, dringlichkeit:pz.dringlichkeit, alter:pz.alter, pzc:pz.pzc, fach:pzcFachrichtung(pz.rmi),
+   flags:zus.flags, schockraum:zus.flags.s, na:zus.flags.n, geschlecht:zus.geschlecht, info:zus.info,
+   eta, updatedAt:new Date().toISOString()
+ });
+ // Neue Klinik = neue Anmeldung dort: keine blauen Markierungen.
+ if(hospitalChanged){a.edited={};a.createdAt=new Date().toISOString()}
+ else a.edited=ed;
+ save();
+ if(db.cloud?.enabled)cloudRequest(`ivenaAssignments/${encodeURIComponent(String(a.id))}`,"PUT",a);
+ toast(hospitalChanged?"Zuweisung an neue Klinik übertragen":"Zuweisung geändert");
+ render(back);
 }
 function asgOnN(on){const w=document.getElementById("asgNefWrap");if(w)w.classList.toggle("hidden",!on)}
 // ─── PZC (Patientenzuweisungscode) ───────────────────────────────────────────────────────────
@@ -4876,8 +4937,8 @@ function ivenaZuweisungen(){
       <td>${ivenaPatientRow(a)}</td>
       <td>${esc(a.hospitalName)}</td>
       <td>${a.fach?`<span class="status ${closed?"s6":"s2"}">${esc(a.fach)}${closed?" · abgemeldet!":" · frei"}</span>`:`<span class="muted">–</span>`}</td>
-      <td>${etaTxt}</td>
-      <td><button onclick="deleteIvenaAssignment(${a.id})">🗑️</button></td>
+      <td>${ivenaBlue(a,"eta",etaTxt)}</td>
+      <td style="white-space:nowrap"><button onclick="editIvenaAssignment('${a.id}','ivenaZuweisungen')" title="Bearbeiten">✏️</button><button onclick="deleteIvenaAssignment(${a.id})">🗑️</button></td>
      </tr>`;
    }).join(""):`<tr><td colspan="6" class="muted">Noch keine Zuweisungen.</td></tr>`}
   </tbody></table></div>
@@ -4959,14 +5020,14 @@ function ivenaIncomingHTML(rows){
      const past=t!=null&&t<now;
      const mins=t!=null?Math.round((t-now)/60000):null;
      return `<tr style="${past?"background:#f8fafc;color:#475569":""}">
-      <td style="white-space:nowrap"><b>${fmt(a.eta)}</b>${mins!=null?`<br><small class="muted">${mins>=0?`in ${mins} min`:(-mins>=60?`eingetroffen vor ${Math.floor(-mins/60)} h ${-mins%60} min`:`eingetroffen vor ${-mins} min`)}</small>`:""}</td>
+      <td style="white-space:nowrap">${ivenaBlue(a,"eta",`<b>${fmt(a.eta)}</b>`)}${mins!=null?`<br><small class="muted">${mins>=0?`in ${mins} min`:(-mins>=60?`eingetroffen vor ${Math.floor(-mins/60)} h ${-mins%60} min`:`eingetroffen vor ${-mins} min`)}</small>`:""}</td>
       <td>${esc(a.hospitalName)}</td>
       <td>${(a.vehicleLabels||[]).map(l=>`<div>${esc(l)}</div>`).join("")||"–"}${(()=>{const us=(a.vehicleIds||[]).map(id=>db.units.find(u=>String(u.id)===String(id))).filter(Boolean);return us.length?`<small class="muted">${us.map(u=>`Status ${esc(u.status)}${["1","2"].includes(String(u.status))&&past?" · wieder frei":""}`).join(" / ")}</small>`:""})()}</td>
-      <td style="white-space:nowrap"><b style="letter-spacing:1px">${esc(a.pzc||"–")}</b></td>
-      <td>${esc(pzcRmiLabel(a.rmi)||"–")}</td>
-      <td style="white-space:nowrap">${ivenaFlagsLine(a)}${a.info?`<div style="font-size:12px">ℹ️ ${esc(a.info)}</div>`:""}</td>
-      <td>${esc(a.fach||"–")}</td>
-      <td style="white-space:nowrap"><small>${fmt(a.createdAt)}</small></td>
+      <td style="white-space:nowrap">${ivenaBlue(a,"pzc",`<b style="letter-spacing:1px">${esc(a.pzc||"–")}</b>`)}</td>
+      <td>${ivenaBlue(a,"pzc",esc(pzcRmiLabel(a.rmi)||"–"))}</td>
+      <td style="white-space:nowrap">${ivenaFlagsLine(a)}${a.info?`<div style="font-size:12px">${ivenaBlue(a,"info","ℹ️ "+esc(a.info))}</div>`:""}</td>
+      <td>${ivenaBlue(a,"pzc",esc(a.fach||"–"))}</td>
+      <td style="white-space:nowrap"><small>${fmt(a.createdAt)}</small>${a.edited&&Object.keys(a.edited).length?`<br><small style="color:${IVENA_EDIT_BLUE}">geändert ${fmt(a.updatedAt)}</small>`:""}<br><button style="padding:4px 8px;margin-top:4px" onclick="editIvenaAssignment('${a.id}','ivena')">✏️</button></td>
      </tr>`;}).join("")}
   </tbody></table></div>`:`<p class="muted">Noch keine Patientenanmeldungen.</p>`}
  </div>`;
