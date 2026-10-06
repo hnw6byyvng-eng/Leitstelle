@@ -732,3 +732,15 @@ Version 4.17:
 - Kombinierte AAOs ("Mit anderen AAOs") werden jetzt vollständig dazu alarmiert – die Fahrzeuge
   addieren sich (z. B. 2× RTW, wenn beide AAOs einen RTW haben). RTW/NEF aus XABCDE werden
   weiterhin nur aufgefüllt.
+
+Version 4.18:
+- IVENA-Ansicht neu aufgebaut wie im Original: oben eine Tabelle Kliniken × Fachbereiche
+  (CHI, INN, PÄD, GYN, NEU/SU, KAR/CPU, ITS, SR, PSY, HNO, AUG, URO) – grün = frei, rot =
+  abgemeldet mit Uhrzeit "bis", grau = nicht vorhanden; Punkt vor dem Namen = Klinikstatus
+  grün/gelb/rot; letzte Spalte = Zahl der angemeldeten Patienten.
+- Darunter "Angemeldete Patienten / Fahrzeuge": nach Ankunftszeit sortiert (mit "in X min"),
+  Klinik, Rettungsmittel, PZC, Indikation, Zusatzangaben-Kürzel, Fachrichtung, Anmeldezeit;
+  bereits eingetroffene blass.
+- Die bisherigen Bedienelemente (Status, Abmeldungen, Kliniken bearbeiten) liegen jetzt im
+  aufklappbaren Bereich "⚙️ Übungssteuerung". Handy: Tabelle seitlich wischbar, Kliniknamen bleiben
+  stehen.
