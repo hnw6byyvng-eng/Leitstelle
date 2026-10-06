@@ -132,7 +132,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.19</span>
+ <span id="versionTag">v4.20</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4518,19 +4518,45 @@ function deleteIvena(id){
 }
 function toggleIvenaMode(){
  db.ivenaMode=db.ivenaMode==="auto"?"manual":"auto";
+ if(db.ivenaMode==="auto"){randomizeIvenaClosures();return}
  save();render("ivena");
 }
+// Automatik: am Hauptplatz jede Minute – je Klinik kleine Chance auf eine neue Abmeldung einer
+// real angebotenen Fachrichtung (1–8 h). Abgelaufene Abmeldungen fallen von selbst weg.
+function ivenaAutoTick(){
+ if(IS_MONITOR||db.ivenaMode!=="auto")return;
+ const now=Date.now(); let changed=false;
+ db.ivena.forEach(h=>{
+   if(Math.random()>=1/45)return;
+   const open=(h.fachrichtungen||[]).filter(f=>!ivenaActiveClosures(h).some(c=>c.fach===f));
+   if(!open.length)return;
+   const fach=open[Math.floor(Math.random()*open.length)];
+   h.closures=ivenaActiveClosures(h);
+   h.closures.push({id:now+Math.random(),fach,until:new Date(now+(1+Math.floor(Math.random()*8))*3600*1000).toISOString()});
+   changed=true;
+ });
+ if(changed){save();pushIvenaCloud();if(currentPage==="ivena"&&!uiLocked)render("ivena")}
+}
+setInterval(ivenaAutoTick,60000);
 function ivenaActiveClosures(h){
  const now=Date.now();
  return (h.closures||[]).filter(cl=>new Date(cl.until).getTime()>now);
 }
-function openIvenaClosure(hid){
+function ivenaReopen(hid,cid){
  const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ const cl=(h.closures||[]).find(c=>String(c.id)===String(cid));
+ if(!confirm(`${cl?.fach||"Fachrichtung"} bei ${h.name} wieder freigeben?`))return;
+ deleteIvenaClosure(hid,cid);
+}
+function openIvenaClosure(hid,preFach){
+ const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
+ uiLocked=true;
  document.getElementById("app").innerHTML=`<div class="card">
   <h2>🚫 Fachrichtung abmelden</h2>
   <p class="muted">${esc(h.name)} · ${esc(h.place||"")}</p>
   <label>Fachrichtung</label>
-  <select id="closureFach">${IVENA_FACHRICHTUNGEN.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select>
+  <select id="closureFach">${(h.fachrichtungen&&h.fachrichtungen.length?h.fachrichtungen:IVENA_FACHRICHTUNGEN).map(f=>`<option value="${esc(f)}" ${f===preFach?"selected":""}>${esc(f)}</option>`).join("")}</select>
+  <div class="row" style="margin-top:8px">${[1,2,4,8].map(hh=>`<button onclick="ivenaClosureQuick(${hh})">${hh} h</button>`).join("")}</div>
   <label style="margin-top:10px">Abgemeldet bis</label>
   <input id="closureUntil" type="datetime-local">
   <div class="row" style="margin-top:14px">
@@ -4541,6 +4567,11 @@ function openIvenaClosure(hid){
  const dt=new Date(Date.now()+2*3600*1000);
  const iso=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
  document.getElementById("closureUntil").value=iso;
+}
+function ivenaClosureQuick(hours){
+ const dt=new Date(Date.now()+hours*3600*1000);
+ const el=document.getElementById("closureUntil");
+ if(el)el.value=new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
 }
 function saveIvenaClosure(hid){
  const h=db.ivena.find(x=>String(x.id)===String(hid));if(!h)return;
@@ -4560,8 +4591,9 @@ function randomizeIvenaClosures(){
  const now=Date.now();
  db.ivena.forEach(h=>{
    h.closures=ivenaActiveClosures(h);
-   if(Math.random()<0.4){
-     const fach=IVENA_FACHRICHTUNGEN[Math.floor(Math.random()*IVENA_FACHRICHTUNGEN.length)];
+   const offered=(h.fachrichtungen&&h.fachrichtungen.length?h.fachrichtungen:IVENA_FACHRICHTUNGEN).filter(f=>!h.closures.some(c=>c.fach===f));
+   if(offered.length&&Math.random()<0.4){
+     const fach=offered[Math.floor(Math.random()*offered.length)];
      const hours=1+Math.floor(Math.random()*7);
      h.closures.push({id:Date.now()+Math.random(),fach,until:new Date(now+hours*3600*1000).toISOString()});
    }
@@ -4895,8 +4927,10 @@ function ivenaMatrixHTML(rows){
    const cells=IVENA_FACHRICHTUNGEN.map(f=>{
      if(!offered.has(f))return `<td title="${esc(f)}: nicht vorhanden" style="background:#e5e7eb;border:1px solid #fff"></td>`;
      const cl=closures.find(c=>c.fach===f);
-     if(cl){const until=new Date(cl.until).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});return `<td title="${esc(f)}: abgemeldet bis ${until}" style="background:#dc2626;color:#fff;text-align:center;font-size:10px;font-weight:800;border:1px solid #fff">${until}</td>`;}
-     return `<td title="${esc(f)}: frei" style="background:#16a34a;border:1px solid #fff"></td>`;
+     const manual=db.ivenaMode!=="auto";
+     const fq=esc(JSON.stringify(f));
+     if(cl){const until=new Date(cl.until).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});return `<td title="${esc(f)}: abgemeldet bis ${until}${manual?" – antippen zum Freigeben":""}" ${manual?`onclick="ivenaReopen('${h.id}','${cl.id}')"`:""} style="background:#dc2626;color:#fff;text-align:center;font-size:10px;font-weight:800;border:1px solid #fff;${manual?"cursor:pointer":""}">${until}</td>`;}
+     return `<td title="${esc(f)}: frei${manual?" – antippen zum Abmelden":""}" ${manual?`onclick="openIvenaClosure('${h.id}',${fq})"`:""} style="background:#16a34a;border:1px solid #fff;${manual?"cursor:pointer":""}"></td>`;
    }).join("");
    return `<tr><td class="ivm-name" style="white-space:nowrap;padding:6px 8px;position:sticky;left:0;background:#fff;z-index:1"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot};margin-right:6px"></span><b>${esc(h.name)}</b><br><small class="muted">${esc(h.place||"")}</small></td>${cells}<td style="text-align:center;font-weight:800">${incoming||""}</td></tr>`;
  }).join("");
@@ -4946,18 +4980,18 @@ function ivena(){
   <div class="row between"><div><h2>🏥 IVENA – Übungsansicht</h2><p class="muted">Lokale Simulation für die Ausbildung. Keine Verbindung zum realen IVENA-System und keine Echtzeit-Kapazitätsdaten.</p></div><button class="primary" onclick="addIvena()">＋ Ziel hinzufügen</button></div>
   <label style="margin-top:4px">Leitstellenbereiche</label>
   <div class="row">${areas.map(a=>`<button class="${db.ivenaAreaFilter.includes(a)?"primary":""}" onclick="toggleIvenaArea('${a.replace(/'/g,"\\'")}')">${db.ivenaAreaFilter.includes(a)?"✅ ":""}${esc(a)}</button>`).join("")}</div>
-  ${ivenaMatrixHTML(rows)}
-  ${ivenaIncomingHTML(rows)}
-  <details style="margin-top:16px" ${db.ivenaControlsOpen?"open":""} ontoggle="db.ivenaControlsOpen=this.open">
-  <summary style="cursor:pointer;font-weight:800">⚙️ Übungssteuerung: Status, Abmeldungen, Kliniken bearbeiten</summary>
   <div class="row between" style="margin-top:14px;background:#f8fafc;border-radius:10px;padding:10px 12px">
-   <div><b>Fachrichtungs-Abmeldungen:</b> <span class="muted">${isAuto?"Werden zufällig gewürfelt.":"Werden manuell pro Klinik gepflegt."}</span></div>
+   <div><b>Fachrichtungs-Abmeldungen:</b> <span class="muted">${isAuto?"Werden zufällig gewürfelt.":"Manuell: Feld in der Tabelle antippen – grün = abmelden, rot = wieder freigeben."}</span></div>
    <div class="row">
     <button class="${isAuto?"":"primary"}" onclick="${isAuto?"toggleIvenaMode()":""}">🖐️ Manuell</button>
     <button class="${isAuto?"primary":""}" onclick="${isAuto?"":"toggleIvenaMode()"}">🎲 Automatisch</button>
     ${isAuto?`<button onclick="randomizeIvenaClosures()">🎲 Neu auswürfeln</button>`:""}
    </div>
   </div>
+  ${ivenaMatrixHTML(rows)}
+  ${ivenaIncomingHTML(rows)}
+  <details style="margin-top:16px" ${db.ivenaControlsOpen?"open":""} ontoggle="db.ivenaControlsOpen=this.open">
+  <summary style="cursor:pointer;font-weight:800">⚙️ Übungssteuerung: Status, Abmeldungen, Kliniken bearbeiten</summary>
   <div class="row" style="margin-top:12px">
    <button class="${byFach?"":"primary"}" onclick="${byFach?"toggleIvenaViewMode()":""}">🏥 Nach Klinik</button>
    <button class="${byFach?"primary":""}" onclick="${byFach?"":"toggleIvenaViewMode()"}">🏷️ Nach Fachrichtung</button>

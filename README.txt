@@ -751,3 +751,12 @@ Version 4.19:
   "eingetroffen vor …", dazu der aktuelle Fahrzeugstatus ("wieder frei"). Die 📥-Spalte zählt
   ebenfalls die letzten 24 h. Ältere Einträge werden ausgeblendet (in "IVENA-Zuweisungen"
   bleiben sie weiter abrufbar).
+
+Version 4.20:
+- IVENA: Umschalter "🖐️ Manuell / 🎲 Automatisch" für Fachabteilungs-Abmeldungen wieder direkt
+  über der Tabelle (lag seit v4.18 im zugeklappten Bereich). Manuell: grünes Feld antippen =
+  Fachabteilung abmelden (Fachrichtung vorausgewählt, Schnellknöpfe 1/2/4/8 h), rotes Feld
+  antippen = wieder freigeben. Automatisch: wie bisher gewürfelt, mit "Neu auswürfeln".
+- "Automatisch" würfelt jetzt sofort beim Umschalten und danach laufend weiter (am Hauptplatz,
+  je Klinik gelegentlich eine neue Abmeldung für 1–8 h) – vorher nur per Knopf "Neu auswürfeln".
+  Gewürfelt werden nur Fachrichtungen, die die Klinik wirklich hat.
