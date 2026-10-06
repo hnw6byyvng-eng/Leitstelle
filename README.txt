@@ -771,3 +771,8 @@ Version 4.21:
 Version 4.22:
 - Webseite umbenannt in "Leitstelle.sim": Browser-Tab, Name auf dem Homebildschirm (App-Name)
   und oben links neben der Versionsnummer. Gespeicherte Daten und Links bleiben unverändert.
+
+Version 4.23:
+- Vorbereitung Umzug auf lst-sim.github.io: Die neue Adresse übernimmt beim ersten Aufruf über
+  die Weiterleitung von der alten Adresse automatisch die Live-Verbindung (Sitzung) und die
+  Geräteeinstellungen und holt dann den kompletten Leitstellen-Stand aus der Sitzung.

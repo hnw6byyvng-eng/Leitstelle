@@ -132,7 +132,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span style="color:#334155;font-weight:800">Leitstelle.sim</span> <span id="versionTag">v4.22</span>
+ <span style="color:#334155;font-weight:800">Leitstelle.sim</span> <span id="versionTag">v4.23</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -141,6 +141,21 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </div>
 <div id="callerRequestBanner"></div>
 <main id="app"></main><div id="toast" class="toast"></div>
+<script>
+// Umzug der Adresse (v4.23): Die alte Seite schickt einmalig Live-Verbindung (Sitzung) und
+// Geräte-Einstellungen per "#umzug=…" mit. Die neue Adresse übernimmt sie, holt dann über den
+// Live-Sync den kompletten Leitstellen-Stand (Einsätze, Fahrzeuge, AAO, IVENA …) aus der Sitzung.
+(function(){
+ const m=location.hash.match(/^#umzug=([^&]+)/); if(!m)return;
+ try{
+   const d=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+   if(d.cloud&&d.cloud.sessionId&&!localStorage.getItem("dlrg-jet-cloud-shared"))localStorage.setItem("dlrg-jet-cloud-shared",JSON.stringify(d.cloud));
+   if(d.scenario&&!localStorage.getItem("dlrg-jet-scenario"))localStorage.setItem("dlrg-jet-scenario",d.scenario);
+   if(d.device&&!localStorage.getItem("dlrg-jet-device"))localStorage.setItem("dlrg-jet-device",d.device);
+ }catch(e){console.warn("Umzug",e)}
+ history.replaceState(null,"",location.pathname+location.search);
+})();
+</script>
 <script>
 const DEFAULTS_FRI_WHV={
  units:[
