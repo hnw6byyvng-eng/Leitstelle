@@ -132,7 +132,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px
 </head>
 <body>
 <div style="padding:6px 10px;font-size:11px;color:#94a3b8;font-weight:700;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--bg)">
- <span id="versionTag">v4.18</span>
+ <span id="versionTag">v4.19</span>
  <span id="syncState"></span>
  <a id="homeLink" href="#" onclick="render('leitstelle');return false" class="hidden" style="color:#64748b;text-decoration:underline;font-weight:600">🖥️ Leitstelle</a>
  <a id="monitorLink" href="#" onclick="showMonitorQR();return false" style="color:#64748b;text-decoration:underline;font-weight:600;margin-left:auto">🖥️ Monitor hinzufügen</a>
@@ -4878,6 +4878,10 @@ function toggleIvenaViewMode(){
 }
 // IVENA-Übersicht wie im Original: Kliniken (Zeilen) × Fachbereiche (Spalten), grün = frei,
 // rot = abgemeldet, grau = nicht vorhanden.
+// Anmeldungen bleiben 24 h nach Ankunft (bzw. Anmeldung) in der IVENA-Ansicht sichtbar –
+// auch wenn das Fahrzeug die Klinik längst wieder verlassen hat.
+const IVENA_KEEP_MS=24*60*60000;
+function ivenaRecent(a,now=Date.now()){const t=new Date(a.eta||a.createdAt||0).getTime();return !t||t>now-IVENA_KEEP_MS}
 const IVENA_FACH_ABBR={"Chirurgie":"CHI","Innere Medizin":"INN","Pädiatrie":"PÄD","Gynäkologie/Geburtshilfe":"GYN","Neurologie / Stroke Unit":"NEU/SU","Kardiologie / Chest Pain Unit":"KAR/CPU","Intensivmedizin":"ITS","Schockraum":"SR","Psychiatrie":"PSY","HNO":"HNO","Augenheilkunde":"AUG","Urologie":"URO"};
 function ivenaMatrixHTML(rows){
  const now=Date.now();
@@ -4887,7 +4891,7 @@ function ivenaMatrixHTML(rows){
    const offered=new Set(h.fachrichtungen||[]);
    const st=String(h.status||"grün").toLowerCase();
    const dot={"grün":"#16a34a","gelb":"#eab308","rot":"#dc2626"}[st]||"#94a3b8";
-   const incoming=(db.ivenaAssignments||[]).filter(a=>String(a.hospitalId)===String(h.id)&&(!a.eta||new Date(a.eta).getTime()>now-60*60000)).length;
+   const incoming=(db.ivenaAssignments||[]).filter(a=>String(a.hospitalId)===String(h.id)&&ivenaRecent(a,now)).length;
    const cells=IVENA_FACHRICHTUNGEN.map(f=>{
      if(!offered.has(f))return `<td title="${esc(f)}: nicht vorhanden" style="background:#e5e7eb;border:1px solid #fff"></td>`;
      const cl=closures.find(c=>c.fach===f);
@@ -4897,27 +4901,33 @@ function ivenaMatrixHTML(rows){
    return `<tr><td class="ivm-name" style="white-space:nowrap;padding:6px 8px;position:sticky;left:0;background:#fff;z-index:1"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot};margin-right:6px"></span><b>${esc(h.name)}</b><br><small class="muted">${esc(h.place||"")}</small></td>${cells}<td style="text-align:center;font-weight:800">${incoming||""}</td></tr>`;
  }).join("");
  return `<div style="overflow:auto;margin-top:10px"><table class="keep-table" style="border-collapse:separate;border-spacing:0;min-width:640px">
-  <thead><tr><th style="position:sticky;left:0;background:#fff">Klinik</th>${head}<th title="angemeldete Patienten (laufend)" style="text-align:center">📥</th></tr></thead>
+  <thead><tr><th style="position:sticky;left:0;background:#fff">Klinik</th>${head}<th title="angemeldete Patienten (letzte 24 h)" style="text-align:center">📥 24h</th></tr></thead>
   <tbody>${body||`<tr><td colspan="${IVENA_FACHRICHTUNGEN.length+2}" class="muted">Keine Kliniken im gewählten Bereich.</td></tr>`}</tbody>
  </table></div>
- <div class="row" style="gap:12px;font-size:12px;margin-top:6px"><span><span style="display:inline-block;width:12px;height:12px;background:#16a34a;vertical-align:middle"></span> frei</span><span><span style="display:inline-block;width:12px;height:12px;background:#dc2626;vertical-align:middle"></span> abgemeldet (bis)</span><span><span style="display:inline-block;width:12px;height:12px;background:#e5e7eb;vertical-align:middle"></span> nicht vorhanden</span><span>📥 angemeldete Patienten</span></div>`;
+ <div class="row" style="gap:12px;font-size:12px;margin-top:6px"><span><span style="display:inline-block;width:12px;height:12px;background:#16a34a;vertical-align:middle"></span> frei</span><span><span style="display:inline-block;width:12px;height:12px;background:#dc2626;vertical-align:middle"></span> abgemeldet (bis)</span><span><span style="display:inline-block;width:12px;height:12px;background:#e5e7eb;vertical-align:middle"></span> nicht vorhanden</span><span>📥 angemeldete Patienten (24 h)</span></div>`;
 }
 function ivenaIncomingHTML(rows){
  const ids=new Set(rows.map(h=>String(h.id)));
  const now=Date.now();
- const list=(db.ivenaAssignments||[]).filter(a=>ids.has(String(a.hospitalId)))
-   .slice().sort((a,b)=>(a.eta?new Date(a.eta).getTime():Infinity)-(b.eta?new Date(b.eta).getTime():Infinity));
+ const list=(db.ivenaAssignments||[]).filter(a=>ids.has(String(a.hospitalId))&&ivenaRecent(a,now))
+   .slice().sort((a,b)=>{
+     // erst die noch erwarteten (nächste Ankunft oben), dann die eingetroffenen (jüngste oben)
+     const ta=new Date(a.eta||a.createdAt||0).getTime(), tb=new Date(b.eta||b.createdAt||0).getTime();
+     const fa=ta>=now, fb=tb>=now;
+     if(fa!==fb)return fa?-1:1;
+     return fa?ta-tb:tb-ta;
+   });
  const fmt=d=>d?new Date(d).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"–";
- return `<div style="margin-top:16px"><h3>📥 Angemeldete Patienten / Fahrzeuge</h3>
+ return `<div style="margin-top:16px"><h3>📥 Angemeldete Patienten / Fahrzeuge <small class="muted" style="font-weight:500">(letzte 24 h)</small></h3>
   ${list.length?`<div style="overflow:auto"><table class="keep-table" style="min-width:760px"><thead><tr><th>Ankunft</th><th>Klinik</th><th>Rettungsmittel</th><th>PZC</th><th>Indikation</th><th>Zusatzangaben</th><th>Fachrichtung</th><th>Angemeldet</th></tr></thead><tbody>
    ${list.map(a=>{
      const t=a.eta?new Date(a.eta).getTime():null;
      const past=t!=null&&t<now;
      const mins=t!=null?Math.round((t-now)/60000):null;
-     return `<tr style="${past?"opacity:.55":""}">
-      <td style="white-space:nowrap"><b>${fmt(a.eta)}</b>${mins!=null?`<br><small class="muted">${mins>=0?`in ${mins} min`:`vor ${-mins} min`}</small>`:""}</td>
+     return `<tr style="${past?"background:#f8fafc;color:#475569":""}">
+      <td style="white-space:nowrap"><b>${fmt(a.eta)}</b>${mins!=null?`<br><small class="muted">${mins>=0?`in ${mins} min`:(-mins>=60?`eingetroffen vor ${Math.floor(-mins/60)} h ${-mins%60} min`:`eingetroffen vor ${-mins} min`)}</small>`:""}</td>
       <td>${esc(a.hospitalName)}</td>
-      <td>${(a.vehicleLabels||[]).map(l=>`<div>${esc(l)}</div>`).join("")||"–"}</td>
+      <td>${(a.vehicleLabels||[]).map(l=>`<div>${esc(l)}</div>`).join("")||"–"}${(()=>{const us=(a.vehicleIds||[]).map(id=>db.units.find(u=>String(u.id)===String(id))).filter(Boolean);return us.length?`<small class="muted">${us.map(u=>`Status ${esc(u.status)}${["1","2"].includes(String(u.status))&&past?" · wieder frei":""}`).join(" / ")}</small>`:""})()}</td>
       <td style="white-space:nowrap"><b style="letter-spacing:1px">${esc(a.pzc||"–")}</b></td>
       <td>${esc(pzcRmiLabel(a.rmi)||"–")}</td>
       <td style="white-space:nowrap">${ivenaFlagsLine(a)}${a.info?`<div style="font-size:12px">ℹ️ ${esc(a.info)}</div>`:""}</td>

@@ -744,3 +744,10 @@ Version 4.18:
 - Die bisherigen Bedienelemente (Status, Abmeldungen, Kliniken bearbeiten) liegen jetzt im
   aufklappbaren Bereich "⚙️ Übungssteuerung". Handy: Tabelle seitlich wischbar, Kliniknamen bleiben
   stehen.
+
+Version 4.19:
+- IVENA: Angemeldete Patienten bleiben 24 Stunden nach Ankunft sichtbar – auch wenn das
+  Fahrzeug die Klinik schon wieder verlassen hat. Eingetroffene stehen grau hinterlegt mit
+  "eingetroffen vor …", dazu der aktuelle Fahrzeugstatus ("wieder frei"). Die 📥-Spalte zählt
+  ebenfalls die letzten 24 h. Ältere Einträge werden ausgeblendet (in "IVENA-Zuweisungen"
+  bleiben sie weiter abrufbar).
