@@ -767,3 +767,7 @@ Version 4.21:
   Informationen, Eintreffzeit. Geänderte Angaben stehen danach in BLAU (Zusatzkürzel blau
   hinterlegt), mit "geändert <Zeit>". Ausnahme: Wird die Klinik geändert, gilt es als neue
   Anmeldung dort – ohne blaue Markierungen.
+
+Version 4.22:
+- Webseite umbenannt in "Leitstelle.sim": Browser-Tab, Name auf dem Homebildschirm (App-Name)
+  und oben links neben der Versionsnummer. Gespeicherte Daten und Links bleiben unverändert.
